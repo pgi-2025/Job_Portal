@@ -56,9 +56,6 @@ supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})  # tighten to your real frontend origin(s) in production
 
-@app.route("/")
-def home():
-    return send_file("login.html")
 
 
 def _fresh_client() -> Client:
