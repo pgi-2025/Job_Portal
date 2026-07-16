@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plant Green Inertia — Student Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A120D;
+    --forest:#0E3B2C;
+    --forest-2:#124A38;
+    --accent:#3DDC84;
+    --accent-soft:#9BE8B8;
+    --white:#FFFFFF;
+    --paper:#F5F8F6;
+    --paper-2:#EFF6F1;
+    --text-dark:#0A120D;
+    --text-muted:#5B6B62;
+    --line:#E1E9E4;
+    --gold:#FFC94A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter', sans-serif;
+    color:var(--text-dark);
+    background:
+      radial-gradient(1200px 600px at 90% -10%, rgba(61,220,132,0.10), transparent 60%),
+      linear-gradient(180deg, #F3F8F4 0%, #FBFDF9 40%);
+    min-height:100vh;
+    padding-bottom:110px;
+  }
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  input{font-family:inherit;}
+  ::selection{ background:var(--accent); color:var(--ink); }
+
+  /* ===== NAVBAR ===== */
+  .navbar{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 40px;
+    background:linear-gradient(120deg, var(--ink) 0%, var(--forest) 60%, var(--forest-2) 100%);
+    box-shadow:0 6px 24px rgba(10,18,13,0.18);
+  }
+  .nav-left{ display:flex; align-items:center; gap:16px; }
+  .nav-logo{
+    width:40px; height:40px; border-radius:10px;
+    background:var(--white);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .nav-logo svg{ width:22px; height:22px; }
+  .nav-title{
+    color:var(--white);
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:19px;
+    letter-spacing:0.01em;
+  }
+  .nav-title span{ color:var(--accent-soft); font-weight:500; font-size:14px; display:block; margin-top:1px;}
+  .nav-right{ display:flex; align-items:center; gap:14px; position:relative; }
+  .nav-hello{ color:var(--gold); font-weight:600; font-size:14.5px; }
+  .avatar-btn{
+    width:42px; height:42px; border-radius:50%;
+    background:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk', sans-serif; font-weight:700; color:var(--ink);
+    border:2px solid rgba(255,255,255,0.5);
+    overflow:hidden;
+    transition:transform 0.2s ease;
+  }
+  .avatar-btn:hover{ transform:scale(1.06); }
+  .avatar-btn img{ width:100%; height:100%; object-fit:cover; }
+  .avatar-menu{
+    position:absolute; top:52px; right:0;
+    background:var(--white);
+    border-radius:12px;
+    box-shadow:0 20px 44px rgba(10,18,13,0.22);
+    min-width:170px;
+    padding:8px;
+    display:none;
+    flex-direction:column;
+    z-index:60;
+  }
+  .avatar-menu.open{ display:flex; animation:fadeUp 0.2s ease; }
+  .avatar-menu button, .avatar-menu a{
+    text-align:left;
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--text-dark);
+    display:flex; align-items:center; gap:8px;
+  }
+  .avatar-menu button:hover, .avatar-menu a:hover{ background:var(--paper-2); }
+  .avatar-menu .logout{ color:#D64545; }
+
+  @keyframes fadeUp{
+    from{ opacity:0; transform:translateY(-6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  /* ===== LAYOUT ===== */
+  .dash-grid{
+    display:grid;
+    grid-template-columns:280px minmax(0,1fr) 340px;
+    gap:24px;
+    max-width:1440px;
+    margin:28px auto 0;
+    padding:0 40px;
+    align-items:start;
+  }
+  .card{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:22px;
+    box-shadow:0 2px 14px rgba(10,18,13,0.04);
+  }
+  .card + .card{ margin-top:20px; }
+  .card h3{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:16.5px;
+    font-weight:700;
+    color:var(--forest);
+    margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
+  }
+
+  /* ===== DRIVES ===== */
+  .drive-item{
+    display:flex; gap:10px;
+    padding:10px 0;
+    border-bottom:1px dashed var(--line);
+    font-size:13.5px;
+  }
+  .drive-item:last-child{ border-bottom:none; }
+  .drive-date{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--forest);
+    background:rgba(61,220,132,0.14);
+    padding:3px 8px;
+    border-radius:6px;
+    height:fit-content;
+    white-space:nowrap;
+  }
+  .drive-title{ color:var(--text-dark); font-weight:600; }
+
+  /* ===== CAREER TIPS (rotating) ===== */
+  .tip-text{
+    font-size:13.5px; line-height:1.65; color:var(--text-muted);
+    min-height:78px;
+    animation:fadeUp 0.4s ease;
+  }
+  .tip-dots{ display:flex; gap:5px; margin-top:12px; }
+  .tip-dots span{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--line);
+    transition:background 0.25s ease, transform 0.25s ease;
+  }
+  .tip-dots span.active{ background:var(--accent); transform:scale(1.3); }
+
+  /* ===== COMPANIES ===== */
+  .companies-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .companies-head h2{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:22px; font-weight:700; color:var(--forest);
+  }
+  .companies-head .hint{ font-size:12px; color:var(--text-muted); }
+  .company-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+    gap:14px;
+  }
+  .company-card{
+    position:relative;
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 14px;
+    min-height:96px;
+    display:flex; align-items:center; justify-content:center;
+    text-align:center;
+    font-size:13px; font-weight:700;
+    color:var(--text-dark);
+    cursor:pointer;
+    transition:box-shadow 0.25s ease, border-color 0.25s ease;
+    transform-style:preserve-3d;
+    will-change:transform;
+    opacity:0;
+    animation:cardIn 0.5s ease forwards;
+  }
+  .company-card:hover{
+    border-color:var(--accent);
+    box-shadow:0 16px 30px rgba(14,59,44,0.14);
+  }
+  @keyframes cardIn{
+    from{ opacity:0; transform:translateY(14px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .skeleton{
+    background:linear-gradient(90deg, #EEF3EF 25%, #E4EEE7 37%, #EEF3EF 63%);
+    background-size:400% 100%;
+    animation:shimmer 1.4s ease infinite;
+    border-radius:14px;
+    height:96px;
+  }
+  @keyframes shimmer{
+    0%{ background-position:100% 50%; }
+    100%{ background-position:0 50%; }
+  }
+
+  /* ===== MODAL ===== */
+  .modal-backdrop{
+    position:fixed; inset:0;
+    background:rgba(10,18,13,0.5);
+    backdrop-filter:blur(4px);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:80;
+  }
+  .modal-backdrop.open{ display:flex; animation:fadeUp 0.2s ease; }
+  .modal{
+    background:var(--white);
+    border-radius:18px;
+    padding:28px;
+    width:92%; max-width:380px;
+    box-shadow:0 30px 60px rgba(10,18,13,0.3);
+    animation:popModal 0.28s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes popModal{
+    from{ transform:scale(0.9); opacity:0; }
+    to{ transform:scale(1); opacity:1; }
+  }
+  .modal h3{ font-family:'Space Grotesk', sans-serif; font-size:19px; color:var(--forest); margin-bottom:4px; }
+  .modal .modal-sub{ font-size:12.5px; color:var(--text-muted); margin-bottom:16px; }
+  .role-chip{
+    display:inline-block;
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    padding:7px 12px;
+    border-radius:20px;
+    font-size:12.5px; font-weight:600;
+    margin:0 6px 8px 0;
+    color:var(--forest);
+  }
+  .modal-close{
+    margin-top:18px; width:100%;
+    padding:11px 0;
+    border-radius:10px;
+    background:var(--ink);
+    color:var(--white);
+    font-weight:600; font-size:13.5px;
+  }
+  .modal-close:hover{ background:var(--forest); }
+
+  /* ===== PROFILE PANEL ===== */
+  .completeness{
+    display:flex; align-items:center; gap:14px;
+    margin-bottom:18px;
+  }
+  .ring{ position:relative; width:56px; height:56px; flex-shrink:0; }
+  .ring svg{ transform:rotate(-90deg); width:56px; height:56px; }
+  .ring circle{ fill:none; stroke-width:5; }
+  .ring .bg{ stroke:var(--line); }
+  .ring .fg{
+    stroke:var(--accent);
+    stroke-linecap:round;
+    stroke-dasharray:150.8;
+    stroke-dashoffset:150.8;
+    transition:stroke-dashoffset 1s cubic-bezier(.65,0,.35,1);
+  }
+  .ring-label{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk', sans-serif;
+    font-size:12px; font-weight:700; color:var(--forest);
+  }
+  .completeness-text strong{ display:block; font-size:14px; }
+  .completeness-text span{ font-size:12px; color:var(--text-muted); }
+
+  .field{
+    display:flex; flex-direction:column; gap:6px;
+    margin-bottom:13px;
+  }
+  .field label{ font-size:12px; font-weight:600; color:var(--text-dark); }
+  .field input{
+    padding:10.5px 12px;
+    border:1px solid var(--line);
+    border-radius:9px;
+    font-size:13.5px;
+    background:var(--paper);
+    transition:border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .field input:focus{
+    outline:none; border-color:var(--forest);
+    box-shadow:0 0 0 3px rgba(61,220,132,0.18);
+  }
+  .field.field-error input{
+    border-color:#FF6B6B !important;
+    box-shadow:0 0 0 3px rgba(255,107,107,0.15) !important;
+  }
+  .shake{ animation:shakeX 0.4s ease; }
+  @keyframes shakeX{
+    10%,90%{ transform:translateX(-1px); }
+    20%,80%{ transform:translateX(2px); }
+    30%,50%,70%{ transform:translateX(-4px); }
+    40%,60%{ transform:translateX(4px); }
+  }
+
+  .upload-row{ margin-bottom:14px; }
+  .upload-row label{ font-size:12px; font-weight:600; display:block; margin-bottom:6px; }
+  .upload-box{
+    display:flex; align-items:center; gap:10px;
+    border:1.5px dashed var(--line);
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:12.5px;
+    color:var(--text-muted);
+    cursor:pointer;
+    transition:border-color 0.2s ease, background 0.2s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  .upload-box:hover{ border-color:var(--accent); background:rgba(61,220,132,0.05); }
+  .upload-box input[type=file]{
+    position:absolute; inset:0; opacity:0; cursor:pointer;
+  }
+  .upload-box .file-name{ font-weight:600; color:var(--forest); }
+  .upload-icon{ width:16px; height:16px; flex-shrink:0; color:var(--forest); }
+
+  .submit-btn{
+    position:relative; overflow:hidden;
+    width:100%; padding:12.5px 0;
+    border-radius:10px;
+    background:var(--ink); color:var(--white);
+    font-size:14px; font-weight:600;
+    transition:transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+    margin-top:6px;
+  }
+  .submit-btn:hover{ background:var(--forest); box-shadow:0 8px 20px rgba(14,59,44,0.25); transform:translateY(-1px); }
+  .submit-btn.is-loading{ pointer-events:none; opacity:0.85; }
+  .btn-label{ display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .spinner{
+    width:14px; height:14px;
+    border:2px solid rgba(255,255,255,0.35);
+    border-top-color:#fff; border-radius:50%;
+    animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .ripple{
+    position:absolute; border-radius:50%;
+    background:rgba(255,255,255,0.45);
+    transform:scale(0);
+    animation:rippleAnim 0.6s ease-out forwards;
+    pointer-events:none;
+  }
+  @keyframes rippleAnim{ to{ transform:scale(2.6); opacity:0; } }
+
+  /* ===== TOASTS ===== */
+  .toast-container{
+    position:fixed; top:22px; right:22px;
+    display:flex; flex-direction:column; gap:10px;
+    z-index:999; max-width:320px;
+  }
+  .toast{
+    display:flex; align-items:center; gap:10px;
+    background:var(--ink); color:var(--white);
+    padding:13px 16px; border-radius:10px;
+    font-size:13px; line-height:1.4;
+    box-shadow:0 14px 34px rgba(0,0,0,0.28);
+    border-left:4px solid var(--accent);
+    animation:toastIn 0.35s cubic-bezier(.34,1.56,.64,1) forwards, toastOut 0.4s ease forwards 3.4s;
+  }
+  .toast.error{ border-left-color:#FF6B6B; }
+  @keyframes toastIn{ from{ transform:translateX(120%); opacity:0; } to{ transform:translateX(0); opacity:1; } }
+  @keyframes toastOut{ to{ transform:translateX(120%); opacity:0; } }
+
+  /* ===== FLOATING CTA ===== */
+  .cta-bar{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%);
+    background:linear-gradient(120deg, var(--forest) 0%, var(--ink) 100%);
+    color:var(--white);
+    padding:16px 30px;
+    border-radius:50px;
+    display:flex; align-items:center; gap:14px;
+    box-shadow:0 18px 40px rgba(10,18,13,0.35);
+    z-index:40;
+    animation:ctaPulse 2.6s ease-in-out infinite;
+    cursor:pointer;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .cta-bar:hover{ transform:translateX(-50%) translateY(-2px); }
+  .cta-bar .cta-title{ font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:14.5px; }
+  .cta-bar .cta-sub{ font-size:13px; color:var(--accent-soft); font-weight:600; }
+  @keyframes ctaPulse{
+    0%,100%{ box-shadow:0 18px 40px rgba(10,18,13,0.35), 0 0 0 0 rgba(61,220,132,0.3); }
+    50%{ box-shadow:0 18px 40px rgba(10,18,13,0.35), 0 0 0 10px rgba(61,220,132,0); }
+  }
+
+  @media (max-width: 1180px){
+    .dash-grid{ grid-template-columns:1fr; }
+  }
+  @media (max-width: 640px){
+    .navbar{ padding:14px 18px; }
+    .nav-title{ font-size:16px; }
+    .dash-grid{ padding:0 16px; }
+    .cta-bar{ padding:13px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ============ NAVBAR ============ -->
+<nav class="navbar">
+  <div class="nav-left">
+    <div class="nav-logo">
+      <img src="assets/pgi logo.jpg" alt="Plant Green Inertia logo" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">
+    </div>
+    <div class="nav-title">Plant Green Inertia <span>Student Portal</span></div>
+  </div>
+  <div class="nav-right">
+    <span class="nav-hello" id="navHello">Hello, Student</span>
+    <button class="avatar-btn" id="avatarBtn"><span id="avatarInitials">S</span></button>
+    <div class="avatar-menu" id="avatarMenu">
+      <a href="#" id="scrollToProfile">👤 My Profile</a>
+      <button class="logout" id="logoutBtn">🚪 Log out</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ DASHBOARD GRID ============ -->
+<div class="dash-grid">
+
+  <!-- LEFT COLUMN -->
+  <div>
+    <div class="card">
+      <h3>📅 Upcoming Drives</h3>
+      <div id="drivesList">
+        <div class="skeleton" style="height:60px;"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>💡 Career Tips</h3>
+      <div class="tip-text" id="tipText">Loading tips…</div>
+      <div class="tip-dots" id="tipDots"></div>
+    </div>
+  </div>
+
+  <!-- CENTER COLUMN -->
+  <div>
+    <div class="card">
+      <div class="companies-head">
+        <h2>Tie-up Companies</h2>
+        <span class="hint">(Click for roles)</span>
+      </div>
+      <div class="company-grid" id="companyGrid">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div id="profileColumn">
+    <div class="card">
+      <h3>Profile Update</h3>
+
+      <div class="completeness">
+        <div class="ring">
+          <svg viewBox="0 0 56 56">
+            <circle class="bg" cx="28" cy="28" r="24"></circle>
+            <circle class="fg" id="ringFg" cx="28" cy="28" r="24"></circle>
+          </svg>
+          <div class="ring-label" id="ringLabel">0%</div>
+        </div>
+        <div class="completeness-text">
+          <strong>Profile strength</strong>
+          <span id="completenessNote">Fill in your details below</span>
+        </div>
+      </div>
+
+      <form id="profileForm">
+        <div class="field" data-field="full_name">
+          <label>Full Name</label>
+          <input type="text" id="pf-name" placeholder="Full Name">
+        </div>
+        <div class="field" data-field="mobile_number">
+          <label>Mobile Number</label>
+          <input type="tel" id="pf-mobile" placeholder="Mobile Number">
+        </div>
+        <div class="field" data-field="college">
+          <label>College Name</label>
+          <input type="text" id="pf-college" placeholder="College Name">
+        </div>
+        <div class="field" data-field="degree">
+          <label>Degree</label>
+          <input type="text" id="pf-degree" placeholder="Degree">
+        </div>
+        <div class="field" data-field="age">
+          <label>Age</label>
+          <input type="number" id="pf-age" placeholder="Age" min="15" max="80">
+        </div>
+
+        <div class="upload-row">
+          <label>Upload Resume (PDF)</label>
+          <div class="upload-box">
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span class="file-name" id="resumeFileName">Choose file — no file chosen</span>
+            <input type="file" id="pf-resume" accept="application/pdf">
+          </div>
+        </div>
+
+        <div class="upload-row">
+          <label>Upload Photo</label>
+          <div class="upload-box">
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none"><path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <span class="file-name" id="photoFileName">Choose file — no file chosen</span>
+            <input type="file" id="pf-photo" accept="image/*">
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn"><span class="btn-label">Update Information</span></button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ FLOATING CTA ============ -->
+<div class="cta-bar" id="ctaBar">
+  <span style="font-size:20px;">🎯</span>
+  <div>
+    <div class="cta-title">Ready to Get Hired?</div>
+  </div>
+  <span class="cta-sub">Take Assessment Now →</span>
+</div>
+
+<!-- ============ COMPANY MODAL ============ -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h3 id="modalCompanyName">Company</h3>
+    <p class="modal-sub">Open roles for students</p>
+    <div id="modalRoles"></div>
+    <button class="modal-close" id="modalClose">Close</button>
+  </div>
+</div>
+
+<script>
+  // ============ CONFIG ============
+  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000'
+    : 'https://YOUR-BACKEND-DOMAIN';
+
+  // ============ AUTH GUARD ============
+  const token = sessionStorage.getItem('grove_token');
+  let cachedProfile = {};
+  try { cachedProfile = JSON.parse(sessionStorage.getItem('grove_profile') || '{}'); } catch(e){}
+
+  if(!token){
+    // No session — send back to login. (Comment this out while testing the
+    // dashboard's visuals standalone without a running backend.)
+    window.location.href = 'login.html';
+  }
+
+  function authHeaders(extra = {}){
+    return Object.assign({ 'Authorization': `Bearer ${token}` }, extra);
+  }
+
+  // ============ TOASTS ============
+  function showToast(message, type = 'success'){
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3900);
+  }
+
+  // ============ NAVBAR / AVATAR ============
+  function initials(name){
+    if(!name) return 'S';
+    return name.trim().split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
+  }
+  function paintGreeting(profile){
+    const name = profile.full_name || 'Student';
+    document.getElementById('navHello').textContent = `Hello, ${name.split(' ')[0]}`;
+    const avatarEl = document.getElementById('avatarInitials');
+    if(profile.photo_url){
+      avatarEl.parentElement.innerHTML = `<img src="${profile.photo_url}" alt="${name}">`;
+    } else {
+      avatarEl.textContent = initials(name);
+    }
+  }
+  paintGreeting(cachedProfile);
+
+  const avatarBtn = document.getElementById('avatarBtn');
+  const avatarMenu = document.getElementById('avatarMenu');
+  avatarBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    avatarMenu.classList.toggle('open');
+  });
+  document.addEventListener('click', () => avatarMenu.classList.remove('open'));
+  document.getElementById('scrollToProfile').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('profileColumn').scrollIntoView({ behavior:'smooth', block:'start' });
+  });
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    sessionStorage.removeItem('grove_token');
+    sessionStorage.removeItem('grove_profile');
+    window.location.href = 'login.html';
+  });
+
+  // ============ CAREER TIPS (rotating) ============
+  const tips = [
+    "Keep your resume updated to 2026 standards. Companies now prioritize problem-solving and specific tool certifications.",
+    "Tailor your resume for every application — recruiters spend under 10 seconds on a first pass.",
+    "Practice explaining one real project end-to-end. It matters more in interviews than a long skills list.",
+    "Follow up after a placement drive with a short thank-you note. It's a small thing recruiters remember."
+  ];
+  let tipIndex = 0;
+  const tipTextEl = document.getElementById('tipText');
+  const tipDotsEl = document.getElementById('tipDots');
+  tips.forEach((_, i) => {
+    const dot = document.createElement('span');
+    if(i === 0) dot.className = 'active';
+    tipDotsEl.appendChild(dot);
+  });
+  function renderTip(){
+    tipTextEl.style.animation = 'none';
+    void tipTextEl.offsetWidth;
+    tipTextEl.style.animation = 'fadeUp 0.4s ease';
+    tipTextEl.textContent = tips[tipIndex];
+    [...tipDotsEl.children].forEach((d,i) => d.classList.toggle('active', i === tipIndex));
+  }
+  renderTip();
+  setInterval(() => {
+    tipIndex = (tipIndex + 1) % tips.length;
+    renderTip();
+  }, 5000);
+
+  // ============ DRIVES ============
+  async function loadDrives(){
+    const list = document.getElementById('drivesList');
+    try{
+      const res = await fetch(`${API_BASE}/api/dashboard/drives`);
+      const data = await res.json();
+      const drives = data.drives || [];
+      list.innerHTML = drives.map(d => `
+        <div class="drive-item">
+          <span class="drive-date">${d.date_label}</span>
+          <span class="drive-title">${d.title}</span>
+        </div>
+      `).join('') || '<p style="font-size:13px;color:var(--text-muted);">No drives scheduled yet.</p>';
+    }catch(err){
+      list.innerHTML = `
+        <div class="drive-item"><span class="drive-date">Apr 16</span><span class="drive-title">NSIC Chennai</span></div>
+        <div class="drive-item"><span class="drive-date">TBA</span><span class="drive-title">To be announced</span></div>
+      `;
+    }
+  }
+
+  // ============ COMPANIES ============
+  let companiesCache = [];
+  async function loadCompanies(){
+    const grid = document.getElementById('companyGrid');
+    try{
+      const res = await fetch(`${API_BASE}/api/dashboard/companies`);
+      const data = await res.json();
+      companiesCache = data.companies || [];
+      if(!companiesCache.length) throw new Error('empty');
+      grid.innerHTML = companiesCache.map((c, i) => `
+        <div class="company-card" style="animation-delay:${i * 40}ms" data-index="${i}">${c.name}</div>
+      `).join('');
+    }catch(err){
+      companiesCache = [
+        {name:'Vikram Solar Pvt Ltd', roles:['Trainee Engineer','QA Executive']},
+        {name:'Mahle Engine Components India Pvt Ltd', roles:['Production Engineer']},
+        {name:'Dae Seung Autoparts India Pvt Ltd', roles:['Graduate Engineer Trainee']},
+        {name:'Prabha Engineering Pvt Ltd', roles:['Design Engineer']},
+        {name:'Tata Electronics', roles:['Electronics Engineer']},
+        {name:'Foxconn', roles:['Assembly Engineer']},
+        {name:'NIPPON STEEL', roles:['Process Associate']},
+        {name:'GJOBS India Pvt Ltd', roles:['Recruitment Associate']}
+      ];
+      grid.innerHTML = companiesCache.map((c, i) => `
+        <div class="company-card" style="animation-delay:${i * 40}ms" data-index="${i}">${c.name}</div>
+      `).join('');
+    }
+    attachCompanyEffects();
+  }
+
+  function attachCompanyEffects(){
+    document.querySelectorAll('.company-card').forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - 0.5;
+        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        card.style.transform = `perspective(500px) rotateX(${y * -8}deg) rotateY(${x * 8}deg) translateY(-3px)`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(500px) rotateX(0) rotateY(0) translateY(0)';
+      });
+      card.addEventListener('click', () => openCompanyModal(companiesCache[card.dataset.index]));
+    });
+  }
+
+  // ============ COMPANY MODAL ============
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  function openCompanyModal(company){
+    document.getElementById('modalCompanyName').textContent = company.name;
+    const roles = company.roles && company.roles.length ? company.roles : ['Roles will be announced soon.'];
+    document.getElementById('modalRoles').innerHTML = roles.map(r => `<span class="role-chip">${r}</span>`).join('');
+    modalBackdrop.classList.add('open');
+  }
+  document.getElementById('modalClose').addEventListener('click', () => modalBackdrop.classList.remove('open'));
+  modalBackdrop.addEventListener('click', (e) => { if(e.target === modalBackdrop) modalBackdrop.classList.remove('open'); });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') modalBackdrop.classList.remove('open'); });
+
+  // ============ PROFILE FORM ============
+  const ringFg = document.getElementById('ringFg');
+  const ringLabel = document.getElementById('ringLabel');
+  const RING_CIRCUMFERENCE = 150.8;
+
+  function updateCompleteness(profile){
+    const fields = ['full_name','mobile_number','college','degree','age'];
+    const filled = fields.filter(f => profile[f] !== null && profile[f] !== undefined && profile[f] !== '').length;
+    const extra = (profile.resume_url ? 1 : 0) + (profile.photo_url ? 1 : 0);
+    const pct = Math.round(((filled + extra) / (fields.length + 2)) * 100);
+    ringFg.style.strokeDashoffset = RING_CIRCUMFERENCE - (RING_CIRCUMFERENCE * pct / 100);
+    ringLabel.textContent = `${pct}%`;
+    document.getElementById('completenessNote').textContent =
+      pct >= 100 ? "You're all set!" : pct >= 60 ? 'Almost there' : 'Fill in your details below';
+  }
+
+  function fillForm(profile){
+    document.getElementById('pf-name').value = profile.full_name || '';
+    document.getElementById('pf-mobile').value = profile.mobile_number || '';
+    document.getElementById('pf-college').value = profile.college || '';
+    document.getElementById('pf-degree').value = profile.degree || '';
+    document.getElementById('pf-age').value = profile.age || '';
+    if(profile.resume_url) document.getElementById('resumeFileName').textContent = 'Resume on file ✓';
+    if(profile.photo_url) document.getElementById('photoFileName').textContent = 'Photo on file ✓';
+    updateCompleteness(profile);
+  }
+
+  async function loadProfile(){
+    if(!token) return;
+    try{
+      const res = await fetch(`${API_BASE}/api/student/me`, { headers: authHeaders() });
+      if(!res.ok) throw new Error('session');
+      const data = await res.json();
+      cachedProfile = data.profile;
+      sessionStorage.setItem('grove_profile', JSON.stringify(cachedProfile));
+      paintGreeting(cachedProfile);
+      fillForm(cachedProfile);
+      updateCtaBar(cachedProfile);
+    }catch(err){
+      fillForm(cachedProfile || {});
+    }
+  }
+
+  document.getElementById('pf-resume').addEventListener('change', (e) => {
+    document.getElementById('resumeFileName').textContent = e.target.files[0]?.name || 'Choose file — no file chosen';
+  });
+  document.getElementById('pf-photo').addEventListener('change', (e) => {
+    document.getElementById('photoFileName').textContent = e.target.files[0]?.name || 'Choose file — no file chosen';
+  });
+
+  function flagInvalid(field){
+    field.classList.add('field-error', 'shake');
+    setTimeout(() => field.classList.remove('shake'), 400);
+  }
+  function clearInvalid(form){
+    form.querySelectorAll('.field').forEach(f => f.classList.remove('field-error'));
+  }
+  function setLoading(btn, loading, labelWhenLoading){
+    const label = btn.querySelector('.btn-label');
+    if(loading){
+      btn.dataset.originalLabel = label.textContent;
+      label.innerHTML = `<span class="spinner"></span>${labelWhenLoading}`;
+      btn.classList.add('is-loading');
+    } else {
+      label.textContent = btn.dataset.originalLabel || label.textContent;
+      btn.classList.remove('is-loading');
+    }
+  }
+
+  const profileForm = document.getElementById('profileForm');
+  profileForm.querySelector('.submit-btn').addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    const size = Math.max(rect.width, rect.height);
+    ripple.className = 'ripple';
+    ripple.style.width = ripple.style.height = `${size}px`;
+    ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+    ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 650);
+  });
+
+  profileForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearInvalid(profileForm);
+
+    const name = document.getElementById('pf-name');
+    if(!name.value.trim()){ flagInvalid(name.closest('.field')); return; }
+
+    const payload = {
+      full_name: name.value.trim(),
+      mobile_number: document.getElementById('pf-mobile').value.trim() || null,
+      college: document.getElementById('pf-college').value.trim() || null,
+      degree: document.getElementById('pf-degree').value.trim() || null,
+      age: document.getElementById('pf-age').value ? parseInt(document.getElementById('pf-age').value, 10) : null,
+    };
+
+    const btn = profileForm.querySelector('.submit-btn');
+    setLoading(btn, true, 'Saving…');
+    try{
+      const res = await fetch(`${API_BASE}/api/student/profile`, {
+        method: 'PUT',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.detail || 'Could not save profile.');
+
+      // Upload resume / photo if newly chosen
+      const resumeFile = document.getElementById('pf-resume').files[0];
+      const photoFile = document.getElementById('pf-photo').files[0];
+      if(resumeFile){
+        const fd = new FormData(); fd.append('file', resumeFile);
+        await fetch(`${API_BASE}/api/student/upload-resume`, { method:'POST', headers: authHeaders(), body: fd });
+      }
+      if(photoFile){
+        const fd = new FormData(); fd.append('file', photoFile);
+        await fetch(`${API_BASE}/api/student/upload-photo`, { method:'POST', headers: authHeaders(), body: fd });
+      }
+
+      showToast('Profile updated and saved 🌱', 'success');
+      cachedProfile = data.profile;
+      sessionStorage.setItem('grove_profile', JSON.stringify(cachedProfile));
+      paintGreeting(cachedProfile);
+      updateCompleteness(cachedProfile);
+    }catch(err){
+      showToast(err.message, 'error');
+    }finally{
+      setLoading(btn, false);
+    }
+  });
+
+  // ============ CTA ============
+  function updateCtaBar(profile){
+    const titleEl = document.querySelector('#ctaBar .cta-title');
+    const subEl = document.getElementById('ctaBar').querySelector('.cta-sub');
+    const status = profile.assessment_status;
+    if(status === 'eligible'){
+      titleEl.textContent = `You're Eligible — ${profile.qualified_domain || 'Technical'} ✓`;
+      subEl.textContent = 'View Companies →';
+    } else if(status === 'failed'){
+      titleEl.textContent = 'Almost There';
+      subEl.textContent = 'Retake Assessment →';
+    } else {
+      titleEl.textContent = 'Ready to Get Hired?';
+      subEl.textContent = 'Take Assessment Now →';
+    }
+  }
+  updateCtaBar(cachedProfile || {});
+
+  document.getElementById('ctaBar').addEventListener('click', () => {
+    window.location.href = 'technical-assessment.html';
+  });
+
+  // ============ INIT ============
+  loadDrives();
+  loadCompanies();
+  loadProfile();
+  fillForm(cachedProfile || {});
+</script>
+
+</body>
+</html>

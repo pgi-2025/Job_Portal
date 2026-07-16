@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PGI Job Portal — Company Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A120D;
+    --forest:#0E3B2C;
+    --forest-2:#124A38;
+    --accent:#3DDC84;
+    --accent-soft:#9BE8B8;
+    --white:#FFFFFF;
+    --paper:#F5F8F6;
+    --paper-2:#EFF6F1;
+    --text-dark:#0A120D;
+    --text-muted:#5B6B62;
+    --line:#E1E9E4;
+    --gold:#FFC94A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter', sans-serif;
+    color:var(--text-dark);
+    background:
+      radial-gradient(1200px 600px at 90% -10%, rgba(61,220,132,0.10), transparent 60%),
+      linear-gradient(180deg, #F3F8F4 0%, #FBFDF9 40%);
+    min-height:100vh;
+    padding-bottom:80px;
+  }
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  input{font-family:inherit;}
+  ::selection{ background:var(--accent); color:var(--ink); }
+
+  /* ===== NAVBAR ===== */
+  .navbar{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 40px;
+    background:linear-gradient(120deg, var(--ink) 0%, var(--forest) 60%, var(--forest-2) 100%);
+    box-shadow:0 6px 24px rgba(10,18,13,0.18);
+  }
+  .nav-left{ display:flex; align-items:center; gap:16px; }
+  .nav-logo{
+    width:40px; height:40px; border-radius:10px;
+    background:var(--white);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .nav-logo svg{ width:22px; height:22px; }
+  .nav-title{ color:var(--white); font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:19px; letter-spacing:0.01em; }
+  .nav-title span{ color:var(--accent-soft); font-weight:500; font-size:14px; display:block; margin-top:1px; }
+  .nav-right{ display:flex; align-items:center; gap:14px; position:relative; }
+  .nav-hello{ color:var(--gold); font-weight:600; font-size:14.5px; }
+  .avatar-btn{
+    width:42px; height:42px; border-radius:12px;
+    background:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk', sans-serif; font-weight:700; color:var(--ink);
+    border:2px solid rgba(255,255,255,0.5);
+    overflow:hidden; transition:transform 0.2s ease;
+  }
+  .avatar-btn:hover{ transform:scale(1.06); }
+  .avatar-menu{
+    position:absolute; top:52px; right:0;
+    background:var(--white); border-radius:12px;
+    box-shadow:0 20px 44px rgba(10,18,13,0.22);
+    min-width:170px; padding:8px; display:none; flex-direction:column; z-index:60;
+  }
+  .avatar-menu.open{ display:flex; animation:fadeUp 0.2s ease; }
+  .avatar-menu button, .avatar-menu a{
+    text-align:left; padding:10px 12px; border-radius:8px;
+    font-size:13.5px; font-weight:600; color:var(--text-dark);
+    display:flex; align-items:center; gap:8px;
+  }
+  .avatar-menu button:hover, .avatar-menu a:hover{ background:var(--paper-2); }
+  .avatar-menu .logout{ color:#D64545; }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:translateY(0); } }
+
+  /* ===== SHELL ===== */
+  .shell{ max-width:1320px; margin:0 auto; padding:0 40px; }
+
+  /* ===== HERO ===== */
+  .hero{
+    margin-top:28px; border-radius:22px; padding:34px 38px;
+    background:linear-gradient(120deg, var(--ink) 0%, var(--forest) 55%, var(--forest-2) 100%);
+    color:var(--white); position:relative; overflow:hidden;
+  }
+  .hero::after{
+    content:""; position:absolute; inset:0;
+    background:radial-gradient(500px 260px at 88% 0%, rgba(61,220,132,0.35), transparent 65%);
+    animation:heroGlow 6s ease-in-out infinite;
+  }
+  @keyframes heroGlow{ 0%,100%{ opacity:0.7; } 50%{ opacity:1; } }
+  .hero-inner{ position:relative; z-index:1; }
+  .hero-eyebrow{ font-family:'JetBrains Mono', monospace; font-size:12px; letter-spacing:0.08em; color:var(--accent-soft); text-transform:uppercase; }
+  .hero h1{ font-family:'Space Grotesk', sans-serif; font-size:30px; font-weight:700; margin-top:8px; }
+  .hero p{ color:rgba(255,255,255,0.75); margin-top:8px; font-size:14.5px; max-width:560px; line-height:1.6; }
+
+  /* ===== STATS ===== */
+  .stats-row{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
+    margin-top:-26px; position:relative; z-index:2; padding:0 4px;
+  }
+  .stat-card{
+    background:var(--white); border:1px solid var(--line); border-radius:16px;
+    padding:18px 20px; box-shadow:0 14px 34px rgba(10,18,13,0.10);
+    opacity:0; animation:cardIn 0.5s ease forwards;
+  }
+  .stat-card .label{ font-size:12px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+  .stat-card .value{ font-family:'JetBrains Mono', monospace; font-size:28px; font-weight:600; color:var(--forest); margin-top:6px; }
+  @keyframes cardIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
+
+  /* ===== DOMAIN DISTRIBUTION ===== */
+  .chart-card{
+    background:var(--white); border:1px solid var(--line); border-radius:16px;
+    padding:22px; margin-top:20px; box-shadow:0 2px 14px rgba(10,18,13,0.04);
+  }
+  .chart-card h3{ font-family:'Space Grotesk', sans-serif; font-size:16px; font-weight:700; color:var(--forest); margin-bottom:16px; }
+  .bar-row{ display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .bar-row:last-child{ margin-bottom:0; }
+  .bar-label{ width:190px; font-size:13px; font-weight:600; color:var(--text-dark); display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .bar-track{ flex:1; height:10px; background:var(--paper-2); border-radius:6px; overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:6px; width:0%; transition:width 1s cubic-bezier(.65,0,.35,1); }
+  .bar-count{ width:34px; text-align:right; font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:600; color:var(--text-muted); }
+
+  /* ===== FILTER BAR ===== */
+  .filter-bar{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    margin-top:26px; margin-bottom:18px;
+  }
+  .search-box{
+    position:relative; flex:1; min-width:220px;
+  }
+  .search-box input{
+    width:100%; padding:11px 14px 11px 38px; border-radius:10px;
+    border:1px solid var(--line); background:var(--white); font-size:13.5px;
+    transition:border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .search-box input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(61,220,132,0.15); }
+  .search-box .icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:var(--text-muted); }
+  .pill-filters{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pill-filter{
+    padding:9px 16px; border-radius:999px; border:1px solid var(--line);
+    background:var(--white); font-size:13px; font-weight:600; color:var(--text-dark);
+    transition:all 0.18s ease; white-space:nowrap;
+  }
+  .pill-filter:hover{ border-color:var(--accent); }
+  .pill-filter.active{ background:var(--forest); border-color:var(--forest); color:var(--white); }
+  .toggle-wrap{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-dark); }
+  .toggle-switch{
+    width:38px; height:22px; border-radius:999px; background:var(--line);
+    position:relative; transition:background 0.2s ease; flex-shrink:0;
+  }
+  .toggle-switch::after{
+    content:""; position:absolute; top:2px; left:2px; width:18px; height:18px;
+    border-radius:50%; background:var(--white); box-shadow:0 1px 3px rgba(0,0,0,0.2);
+    transition:transform 0.2s ease;
+  }
+  .toggle-switch.on{ background:var(--accent); }
+  .toggle-switch.on::after{ transform:translateX(16px); }
+  .results-count{ font-size:12.5px; color:var(--text-muted); margin-left:auto; }
+
+  /* ===== CANDIDATE GRID ===== */
+  .candidate-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:18px;
+  }
+  .candidate-card{
+    background:var(--white); border:1px solid var(--line); border-radius:16px;
+    padding:20px; box-shadow:0 2px 14px rgba(10,18,13,0.04);
+    transition:transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    opacity:0; animation:cardIn 0.45s ease forwards; display:flex; flex-direction:column;
+  }
+  .candidate-card:hover{ transform:translateY(-4px); box-shadow:0 20px 40px rgba(10,18,13,0.12); border-color:var(--accent); }
+  .cc-top{ display:flex; align-items:flex-start; gap:12px; }
+  .cc-avatar{
+    width:52px; height:52px; border-radius:14px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:17px; color:var(--ink);
+    background:linear-gradient(135deg, var(--accent), var(--accent-soft));
+    overflow:hidden;
+  }
+  .cc-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .cc-name{ font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:15.5px; color:var(--text-dark); }
+  .cc-college{ font-size:12.5px; color:var(--text-muted); margin-top:2px; }
+  .star-btn{
+    margin-left:auto; width:34px; height:34px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+    background:var(--paper-2); transition:background 0.2s ease, transform 0.15s ease; flex-shrink:0;
+  }
+  .star-btn:hover{ transform:scale(1.08); }
+  .star-btn.active{ background:rgba(255,201,74,0.25); }
+  .domain-badge{
+    display:inline-flex; align-items:center; gap:6px; margin-top:14px;
+    padding:6px 12px; border-radius:999px; font-size:12px; font-weight:700; width:fit-content;
+  }
+  .cc-meta{ display:flex; gap:14px; margin-top:12px; font-size:12.5px; color:var(--text-muted); flex-wrap:wrap; }
+  .cc-meta span{ display:flex; align-items:center; gap:5px; }
+  .cc-actions{ display:flex; gap:10px; margin-top:16px; }
+  .cc-btn{
+    flex:1; padding:9px 0; border-radius:10px; font-size:12.5px; font-weight:700;
+    text-align:center; transition:all 0.18s ease;
+  }
+  .cc-btn.primary{ background:var(--ink); color:var(--white); }
+  .cc-btn.primary:hover{ background:var(--forest); }
+  .cc-btn.ghost{ background:var(--paper-2); color:var(--forest); }
+  .cc-btn.ghost:hover{ background:var(--line); }
+  .cc-btn[disabled]{ opacity:0.45; pointer-events:none; }
+
+  /* ===== SKELETON ===== */
+  .skeleton-card{
+    height:210px; border-radius:16px;
+    background:linear-gradient(90deg, #EEF3EF 25%, #E4EEE7 37%, #EEF3EF 63%);
+    background-size:400% 100%; animation:shimmer 1.4s ease infinite;
+  }
+  @keyframes shimmer{ 0%{ background-position:100% 50%; } 100%{ background-position:0 50%; } }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state{
+    text-align:center; padding:70px 20px; color:var(--text-muted);
+    background:var(--white); border:1px dashed var(--line); border-radius:16px;
+  }
+  .empty-state .emoji{ font-size:38px; margin-bottom:10px; }
+  .empty-state h4{ font-family:'Space Grotesk', sans-serif; color:var(--forest); font-size:16px; margin-bottom:6px; }
+
+  /* ===== MODAL ===== */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(10,18,13,0.5); backdrop-filter:blur(4px);
+    display:none; align-items:center; justify-content:center; z-index:80; padding:20px;
+  }
+  .modal-backdrop.open{ display:flex; animation:fadeUp 0.2s ease; }
+  .modal{
+    background:var(--white); border-radius:20px; padding:30px;
+    width:100%; max-width:440px; max-height:88vh; overflow-y:auto;
+    box-shadow:0 30px 60px rgba(10,18,13,0.3);
+    animation:popModal 0.28s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes popModal{ from{ transform:scale(0.9); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .modal-head{ display:flex; gap:14px; align-items:center; }
+  .modal-avatar{
+    width:64px; height:64px; border-radius:16px; flex-shrink:0; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:20px; color:var(--ink);
+    background:linear-gradient(135deg, var(--accent), var(--accent-soft));
+  }
+  .modal-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .modal h3{ font-family:'Space Grotesk', sans-serif; font-size:19px; color:var(--forest); }
+  .modal .modal-sub{ font-size:12.5px; color:var(--text-muted); margin-top:2px; }
+  .modal-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:22px; }
+  .modal-field{ background:var(--paper-2); border-radius:12px; padding:12px 14px; }
+  .modal-field .k{ font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; font-weight:600; }
+  .modal-field .v{ font-size:13.5px; font-weight:600; color:var(--text-dark); margin-top:3px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:22px; }
+  .modal-close{ margin-top:12px; width:100%; padding:11px 0; border-radius:10px; background:var(--paper-2); color:var(--forest); font-weight:600; font-size:13.5px; }
+  .modal-close:hover{ background:var(--line); }
+
+  /* ===== TOASTS ===== */
+  .toast-container{ position:fixed; top:22px; right:22px; display:flex; flex-direction:column; gap:10px; z-index:999; max-width:320px; }
+  .toast{
+    display:flex; align-items:center; gap:10px; background:var(--ink); color:var(--white);
+    padding:13px 16px; border-radius:10px; font-size:13px; line-height:1.4;
+    box-shadow:0 14px 34px rgba(0,0,0,0.28); border-left:4px solid var(--accent);
+    animation:toastIn 0.35s cubic-bezier(.34,1.56,.64,1) forwards, toastOut 0.4s ease forwards 3.4s;
+  }
+  .toast.error{ border-left-color:#FF6B6B; }
+  @keyframes toastIn{ from{ transform:translateX(120%); opacity:0; } to{ transform:translateX(0); opacity:1; } }
+  @keyframes toastOut{ to{ transform:translateX(120%); opacity:0; } }
+
+  @media (max-width: 980px){
+    .stats-row{ grid-template-columns:repeat(2,1fr); }
+  }
+  @media (max-width: 640px){
+    .navbar{ padding:14px 18px; }
+    .shell{ padding:0 16px; }
+    .hero{ padding:26px 22px; }
+    .stats-row{ grid-template-columns:1fr 1fr; margin-top:-18px; }
+    .bar-label{ width:130px; font-size:12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ============ NAVBAR ============ -->
+<nav class="navbar">
+  <div class="nav-left">
+  <div class="nav-logo">
+      <img src="assets/pgi logo.jpg" alt="Plant Green Inertia logo" style="width:100%; height:100%; object-fit:contain; border-radius:10px;">
+    </div>
+    <div class="nav-title">PGI Job Portal <span>Company Portal</span></div>
+  </div>
+  <div class="nav-right">
+    <span class="nav-hello" id="navHello">Hello, Partner</span>
+    <button class="avatar-btn" id="avatarBtn"><span id="avatarInitials">C</span></button>
+    <div class="avatar-menu" id="avatarMenu">
+      <button class="logout" id="logoutBtn">🚪 Log out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="shell">
+
+  <!-- ============ HERO ============ -->
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-eyebrow">Candidate Pipeline</div>
+      <h1 id="heroTitle">Welcome back 🏢</h1>
+      <p>Every student here has already cleared a proctored, 2-round technical assessment for their domain — no need to re-screen for basic competency.</p>
+    </div>
+  </div>
+
+  <!-- ============ STATS ============ -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card" style="animation-delay:.05s"><div class="label">Eligible Candidates</div><div class="value" id="statTotal">0</div></div>
+    <div class="stat-card" style="animation-delay:.1s"><div class="label">Shortlisted</div><div class="value" id="statShortlisted">0</div></div>
+    <div class="stat-card" style="animation-delay:.15s"><div class="label">Domains Covered</div><div class="value" id="statDomains">0</div></div>
+    <div class="stat-card" style="animation-delay:.2s"><div class="label">Newest Qualification</div><div class="value" id="statNewest" style="font-size:15px;">—</div></div>
+  </div>
+
+  <!-- ============ DOMAIN DISTRIBUTION ============ -->
+  <div class="chart-card">
+    <h3>📈 Candidates by Domain</h3>
+    <div id="domainBars"></div>
+  </div>
+
+  <!-- ============ FILTER BAR ============ -->
+  <div class="filter-bar">
+    <div class="search-box">
+      <svg class="icon" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input type="text" id="searchInput" placeholder="Search by name or college…">
+    </div>
+    <div class="pill-filters" id="domainPills"></div>
+    <div class="toggle-wrap">
+      <span>Shortlisted only</span>
+      <div class="toggle-switch" id="shortlistToggle"></div>
+    </div>
+    <div class="results-count" id="resultsCount"></div>
+  </div>
+
+  <!-- ============ CANDIDATE GRID ============ -->
+  <div class="candidate-grid" id="candidateGrid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <div class="emoji">🕵️</div>
+    <h4>No candidates match yet</h4>
+    <p>Try a different domain filter or clear your search.</p>
+  </div>
+
+</div>
+
+<!-- ============ PROFILE MODAL ============ -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-avatar" id="modalAvatar">S</div>
+      <div>
+        <h3 id="modalName">Candidate</h3>
+        <div class="modal-sub" id="modalCollege">College</div>
+      </div>
+    </div>
+    <div class="modal-grid">
+      <div class="modal-field"><div class="k">Domain</div><div class="v" id="modalDomain">—</div></div>
+      <div class="modal-field"><div class="k">Degree</div><div class="v" id="modalDegree">—</div></div>
+      <div class="modal-field"><div class="k">Age</div><div class="v" id="modalAge">—</div></div>
+      <div class="modal-field"><div class="k">Mobile</div><div class="v" id="modalMobile">—</div></div>
+      <div class="modal-field" style="grid-column:1/-1;"><div class="k">Qualified On</div><div class="v" id="modalDate">—</div></div>
+    </div>
+    <div class="modal-actions">
+      <a class="cc-btn primary" id="modalResumeBtn" href="#" target="_blank">📄 View Resume</a>
+      <button class="cc-btn ghost" id="modalShortlistBtn">☆ Shortlist</button>
+    </div>
+    <button class="modal-close" id="modalCloseBtn">Close</button>
+  </div>
+</div>
+
+<script>
+  // ============ CONFIG ============
+  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000'
+    : 'https://YOUR-BACKEND-DOMAIN';
+
+  const DOMAIN_META = {
+    swe:    { label:'Software Engineering', icon:'💻', color:'#3DDC84' },
+    ds:     { label:'Data Science & AI',    icon:'📊', color:'#FFC94A' },
+    cloud:  { label:'Cloud Computing',      icon:'☁️', color:'#4FA3E3' },
+    cyber:  { label:'Cybersecurity',        icon:'🛡️', color:'#E36B6B' },
+    mobile: { label:'Mobile App Dev',       icon:'📱', color:'#B18AF0' },
+  };
+  function domainMeta(id){ return DOMAIN_META[id] || { label: id || 'Unknown', icon:'🎯', color:'#5B6B62' }; }
+  function hexToRgba(hex, alpha){
+    const h = hex.replace('#','');
+    const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  // ============ AUTH GUARD ============
+  const token = sessionStorage.getItem('grove_token');
+  let cachedProfile = {};
+  try { cachedProfile = JSON.parse(sessionStorage.getItem('grove_profile') || '{}'); } catch(e){}
+
+  if(!token){
+    window.location.href = 'login.html';
+  } else if(cachedProfile.role && cachedProfile.role !== 'company'){
+    window.location.href = 'studentdashboard.html';
+  }
+
+  function authHeaders(extra = {}){
+    return Object.assign({ 'Authorization': `Bearer ${token}` }, extra);
+  }
+
+  // ============ TOASTS ============
+  function showToast(message, type = 'success'){
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3900);
+  }
+
+  // ============ NAVBAR ============
+  function initials(name){
+    if(!name) return 'C';
+    return name.trim().split(/\s+/).map(p => p[0]).slice(0,2).join('').toUpperCase();
+  }
+  function paintNav(profile){
+    const name = profile.company_name || 'Partner';
+    document.getElementById('navHello').textContent = `Hello, ${name}`;
+    document.getElementById('avatarInitials').textContent = initials(name);
+    document.getElementById('heroTitle').textContent = `Welcome back, ${name} 🏢`;
+  }
+  paintNav(cachedProfile);
+
+  const avatarBtn = document.getElementById('avatarBtn');
+  const avatarMenu = document.getElementById('avatarMenu');
+  avatarBtn.addEventListener('click', (e) => { e.stopPropagation(); avatarMenu.classList.toggle('open'); });
+  document.addEventListener('click', () => avatarMenu.classList.remove('open'));
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    sessionStorage.removeItem('grove_token');
+    sessionStorage.removeItem('grove_profile');
+    window.location.href = 'login.html';
+  });
+
+  // ============ STATE ============
+  let allCandidates = [];
+  let shortlistIds = new Set();
+  let activeDomain = 'all';
+  let shortlistOnly = false;
+  let searchTerm = '';
+
+  // ============ DOMAIN PILLS ============
+  function buildPills(){
+    const wrap = document.getElementById('domainPills');
+    const all = [{id:'all', label:'All Domains', icon:'🎯'}, ...Object.entries(DOMAIN_META).map(([id,m])=>({id, label:m.label, icon:m.icon}))];
+    wrap.innerHTML = all.map(d => `<button class="pill-filter ${d.id===activeDomain?'active':''}" data-domain="${d.id}">${d.icon} ${d.label}</button>`).join('');
+    wrap.querySelectorAll('.pill-filter').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        activeDomain = btn.dataset.domain;
+        buildPills();
+        renderCandidates();
+      });
+    });
+  }
+
+  // ============ SEARCH & TOGGLE ============
+  document.getElementById('searchInput').addEventListener('input', (e)=>{
+    searchTerm = e.target.value.trim().toLowerCase();
+    renderCandidates();
+  });
+  const shortlistToggleEl = document.getElementById('shortlistToggle');
+  shortlistToggleEl.addEventListener('click', ()=>{
+    shortlistOnly = !shortlistOnly;
+    shortlistToggleEl.classList.toggle('on', shortlistOnly);
+    renderCandidates();
+  });
+
+  // ============ COUNT-UP ============
+  function countUp(el, target, duration=900){
+    const start = 0;
+    const startTime = performance.now();
+    function tick(now){
+      const p = Math.min(1, (now-startTime)/duration);
+      const eased = 1 - Math.pow(1-p, 3);
+      el.textContent = Math.round(start + (target-start)*eased);
+      if(p<1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // ============ STATS + CHART ============
+  function renderStats(){
+    const total = allCandidates.length;
+    countUp(document.getElementById('statTotal'), total);
+    countUp(document.getElementById('statShortlisted'), shortlistIds.size);
+
+    const counts = {};
+    allCandidates.forEach(c=>{ const d = c.qualified_domain || 'unknown'; counts[d] = (counts[d]||0)+1; });
+    const domainsCovered = Object.keys(counts).length;
+    countUp(document.getElementById('statDomains'), domainsCovered);
+
+    const newest = allCandidates.slice().sort((a,b)=> new Date(b.updated_at||0) - new Date(a.updated_at||0))[0];
+    document.getElementById('statNewest').textContent = newest ? domainMeta(newest.qualified_domain).label : '—';
+
+    const barsEl = document.getElementById('domainBars');
+    const order = Object.keys(DOMAIN_META);
+    barsEl.innerHTML = order.map(id=>{
+      const m = DOMAIN_META[id];
+      const n = counts[id] || 0;
+      const pct = total ? Math.round((n/total)*100) : 0;
+      return `
+        <div class="bar-row">
+          <div class="bar-label">${m.icon} ${m.label}</div>
+          <div class="bar-track"><div class="bar-fill" data-pct="${pct}" style="background:${m.color};"></div></div>
+          <div class="bar-count">${n}</div>
+        </div>`;
+    }).join('');
+    requestAnimationFrame(()=>{
+      barsEl.querySelectorAll('.bar-fill').forEach(el=>{ el.style.width = el.dataset.pct + '%'; });
+    });
+  }
+
+  // ============ CANDIDATE GRID ============
+  function renderCandidates(){
+    let list = allCandidates.filter(c=>{
+      if(activeDomain!=='all' && c.qualified_domain !== activeDomain) return false;
+      if(shortlistOnly && !shortlistIds.has(c.id)) return false;
+      if(searchTerm){
+        const hay = `${c.full_name||''} ${c.college||''}`.toLowerCase();
+        if(!hay.includes(searchTerm)) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('resultsCount').textContent = `${list.length} candidate${list.length===1?'':'s'}`;
+    const grid = document.getElementById('candidateGrid');
+    const empty = document.getElementById('emptyState');
+
+    if(list.length===0){
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    grid.innerHTML = list.map((c,i)=>{
+      const m = domainMeta(c.qualified_domain);
+      const isStar = shortlistIds.has(c.id);
+      const avatarInner = c.photo_url ? `<img src="${c.photo_url}" alt="${c.full_name||''}">` : initials(c.full_name);
+      return `
+        <div class="candidate-card" style="animation-delay:${Math.min(i*0.04,0.4)}s">
+          <div class="cc-top">
+            <div class="cc-avatar">${avatarInner}</div>
+            <div>
+              <div class="cc-name">${c.full_name || 'Unnamed Candidate'}</div>
+              <div class="cc-college">${c.college || 'College not listed'}</div>
+            </div>
+            <button class="star-btn ${isStar?'active':''}" data-id="${c.id}" title="Shortlist">${isStar?'★':'☆'}</button>
+          </div>
+          <div class="domain-badge" style="background:${hexToRgba(m.color,0.14)}; color:${m.color};">${m.icon} ${m.label}</div>
+          <div class="cc-meta">
+            ${c.degree ? `<span>🎓 ${c.degree}</span>` : ''}
+            ${c.age ? `<span>🎂 ${c.age} yrs</span>` : ''}
+            ${c.mobile_number ? `<span>📞 ${c.mobile_number}</span>` : ''}
+          </div>
+          <div class="cc-actions">
+            <button class="cc-btn primary" data-open="${c.id}">View Profile</button>
+            <a class="cc-btn ghost" href="${c.resume_url || '#'}" target="_blank" ${c.resume_url ? '' : 'style="pointer-events:none; opacity:.4;"'}>Resume</a>
+          </div>
+        </div>`;
+    }).join('');
+
+    grid.querySelectorAll('[data-open]').forEach(btn=>{
+      btn.addEventListener('click', ()=> openModal(btn.dataset.open));
+    });
+    grid.querySelectorAll('.star-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=> toggleShortlist(btn.dataset.id));
+    });
+  }
+
+  // ============ SHORTLIST ============
+  async function toggleShortlist(id){
+    const wasStarred = shortlistIds.has(id);
+    if(wasStarred) shortlistIds.delete(id); else shortlistIds.add(id);
+    renderCandidates();
+    renderStats();
+    try{
+      if(wasStarred){
+        await fetch(`${API_BASE}/api/company/shortlist/${id}`, { method:'DELETE', headers: authHeaders() });
+      } else {
+        await fetch(`${API_BASE}/api/company/shortlist`, {
+          method:'POST', headers: authHeaders({'Content-Type':'application/json'}),
+          body: JSON.stringify({ student_id: id })
+        });
+      }
+    }catch(e){
+      // revert on failure
+      if(wasStarred) shortlistIds.add(id); else shortlistIds.delete(id);
+      renderCandidates(); renderStats();
+      showToast('Could not update shortlist. Try again.', 'error');
+    }
+  }
+
+  // ============ MODAL ============
+  function openModal(id){
+    const c = allCandidates.find(x=>x.id===id);
+    if(!c) return;
+    const m = domainMeta(c.qualified_domain);
+    document.getElementById('modalAvatar').innerHTML = c.photo_url ? `<img src="${c.photo_url}" alt="">` : initials(c.full_name);
+    document.getElementById('modalName').textContent = c.full_name || 'Unnamed Candidate';
+    document.getElementById('modalCollege').textContent = c.college || 'College not listed';
+    document.getElementById('modalDomain').textContent = `${m.icon} ${m.label}`;
+    document.getElementById('modalDegree').textContent = c.degree || '—';
+    document.getElementById('modalAge').textContent = c.age || '—';
+    document.getElementById('modalMobile').textContent = c.mobile_number || '—';
+    document.getElementById('modalDate').textContent = c.updated_at ? new Date(c.updated_at).toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'}) : '—';
+
+    const resumeBtn = document.getElementById('modalResumeBtn');
+    if(c.resume_url){ resumeBtn.href = c.resume_url; resumeBtn.style.opacity = 1; resumeBtn.style.pointerEvents = 'auto'; }
+    else{ resumeBtn.href = '#'; resumeBtn.style.opacity = 0.4; resumeBtn.style.pointerEvents = 'none'; }
+
+    const shortlistBtn = document.getElementById('modalShortlistBtn');
+    function paintShortlistBtn(){
+      const active = shortlistIds.has(c.id);
+      shortlistBtn.textContent = active ? '★ Shortlisted' : '☆ Shortlist';
+    }
+    paintShortlistBtn();
+    shortlistBtn.onclick = async () => { await toggleShortlist(c.id); paintShortlistBtn(); };
+
+    document.getElementById('modalBackdrop').classList.add('open');
+  }
+  document.getElementById('modalCloseBtn').addEventListener('click', ()=> document.getElementById('modalBackdrop').classList.remove('open'));
+  document.getElementById('modalBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='modalBackdrop') e.currentTarget.classList.remove('open'); });
+
+  // ============ SKELETONS ============
+  function showSkeletons(){
+    const grid = document.getElementById('candidateGrid');
+    grid.innerHTML = Array.from({length:6}).map(()=>'<div class="skeleton-card"></div>').join('');
+    document.getElementById('emptyState').style.display = 'none';
+  }
+
+  // ============ INIT ============
+  async function loadCandidates(){
+    if(!token) return;
+    showSkeletons();
+    try{
+      const res = await fetch(`${API_BASE}/api/company/candidates`, { headers: authHeaders() });
+      if(!res.ok) throw new Error('session');
+      const data = await res.json();
+      allCandidates = data.candidates || [];
+    }catch(e){
+      allCandidates = [];
+      showToast('Could not load candidates. Is the backend running?', 'error');
+    }
+    renderStats();
+    renderCandidates();
+  }
+  async function loadShortlist(){
+    if(!token) return;
+    try{
+      const res = await fetch(`${API_BASE}/api/company/shortlist`, { headers: authHeaders() });
+      const data = await res.json();
+      shortlistIds = new Set(data.student_ids || []);
+    }catch(e){ shortlistIds = new Set(); }
+  }
+  async function loadCompanyProfile(){
+    if(!token) return;
+    try{
+      const res = await fetch(`${API_BASE}/api/company/me`, { headers: authHeaders() });
+      if(!res.ok) throw new Error('session');
+      const data = await res.json();
+      cachedProfile = data.profile;
+      sessionStorage.setItem('grove_profile', JSON.stringify(cachedProfile));
+      paintNav(cachedProfile);
+    }catch(e){ /* keep cached */ }
+  }
+
+  buildPills();
+  loadCompanyProfile();
+  (async () => {
+    await loadShortlist();
+    await loadCandidates();
+  })();
+</script>
+</body>
+</html>

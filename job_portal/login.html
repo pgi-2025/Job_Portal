@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plant Green Inertia — Log in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0A120D;
+    --forest:#0E3B2C;
+    --forest-2:#124A38;
+    --accent:#3DDC84;
+    --accent-soft:#9BE8B8;
+    --white:#FFFFFF;
+    --paper:#F5F8F6;
+    --text-dark:#0A120D;
+    --text-muted:#5B6B62;
+    --line:#E1E9E4;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Inter', sans-serif;
+    color:var(--text-dark);
+    background:var(--paper);
+    overflow-x:hidden;
+  }
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit; cursor:pointer; border:none; background:none;}
+  input{font-family:inherit;}
+
+  .page{
+    display:grid;
+    grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
+    min-height:100vh;
+  }
+
+  /* ===== BRAND PANEL ===== */
+  .brand-panel{
+    position:relative;
+    background:
+      radial-gradient(120% 140% at 15% -10%, #1A5A42 0%, transparent 55%),
+      linear-gradient(160deg, var(--ink) 0%, var(--forest) 55%, var(--forest-2) 100%);
+    color:var(--white);
+    padding:48px 56px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    overflow:hidden;
+  }
+  .brand-panel::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size:26px 26px;
+    opacity:0.5;
+    pointer-events:none;
+  }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700; font-size:20px; letter-spacing:0.01em;
+    z-index:2; position:relative;
+  }
+  .logo svg{width:26px; height:26px;}
+
+  .network-anim{
+    position:absolute;
+    top:0; left:0; width:100%; height:100%;
+    z-index:1;
+    opacity:0.9;
+  }
+  .network-anim circle{
+    filter:drop-shadow(0 0 6px rgba(61,220,132,0.5));
+  }
+  .network-anim .node-core{
+    fill:var(--accent);
+  }
+  .network-anim .node-dim{
+    fill:rgba(255,255,255,0.55);
+  }
+  .network-anim line{
+    stroke:rgba(155,232,184,0.35);
+    stroke-width:1;
+  }
+  .network-anim .pulse-line{
+    stroke:var(--accent);
+    stroke-width:1.4;
+    stroke-dasharray:6 10;
+    animation:dashmove 3.4s linear infinite;
+    opacity:0.8;
+  }
+  @keyframes dashmove{ to{ stroke-dashoffset:-160; } }
+  @keyframes floaty{
+    0%,100%{ transform:translateY(0); }
+    50%{ transform:translateY(-9px); }
+  }
+  .network-anim .float-a{ animation:floaty 5.5s ease-in-out infinite; }
+  .network-anim .float-b{ animation:floaty 6.5s ease-in-out infinite 0.6s; }
+  .network-anim .float-c{ animation:floaty 4.8s ease-in-out infinite 1.2s; }
+
+  .brand-copy{
+    position:relative; z-index:2;
+    max-width:460px;
+    margin-top:auto;
+    padding-top:180px;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.18em;
+    color:var(--accent-soft);
+    display:inline-block;
+    padding-bottom:14px;
+  }
+  .brand-copy h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:44px;
+    line-height:1.12;
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  .brand-copy p{
+    margin-top:18px;
+    font-size:15.5px;
+    line-height:1.65;
+    color:rgba(255,255,255,0.72);
+    max-width:400px;
+  }
+
+  .stats-row{
+    position:relative; z-index:2;
+    display:flex;
+    gap:36px;
+    margin-top:44px;
+    padding-top:28px;
+    border-top:1px solid rgba(255,255,255,0.14);
+  }
+  .stat strong{
+    display:block;
+    font-family:'Space Grotesk', sans-serif;
+    font-size:26px;
+    font-weight:700;
+    color:var(--white);
+  }
+  .stat span{
+    font-size:12.5px;
+    color:rgba(255,255,255,0.55);
+  }
+
+  /* ===== FORM PANEL ===== */
+  .form-panel{
+    background:var(--paper);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 32px;
+  }
+  .form-panel-inner{
+    width:100%;
+    max-width:400px;
+  }
+  .mobile-logo{
+    display:none;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:20px;
+    color:var(--forest);
+    margin-bottom:28px;
+  }
+
+  .role-switch{
+    position:relative;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:4px;
+    margin-bottom:32px;
+  }
+  .role-switch button{
+    position:relative;
+    z-index:2;
+    padding:11px 0;
+    font-size:14px;
+    font-weight:600;
+    color:var(--text-muted);
+    border-radius:9px;
+    transition:color 0.25s ease;
+  }
+  .role-switch button.active{ color:var(--ink); }
+  .role-pill{
+    position:absolute;
+    top:4px; left:4px;
+    width:calc(50% - 4px);
+    height:calc(100% - 8px);
+    background:var(--accent);
+    border-radius:9px;
+    transition:transform 0.32s cubic-bezier(.65,0,.35,1);
+    z-index:1;
+  }
+  .role-switch.company .role-pill{ transform:translateX(100%); }
+
+  .auth-form{
+    display:none;
+    flex-direction:column;
+    animation:fadeUp 0.4s ease;
+  }
+  .auth-form.active{ display:flex; }
+  @keyframes fadeUp{
+    from{ opacity:0; transform:translateY(8px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  .auth-form h2{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:25px;
+    font-weight:600;
+  }
+  .auth-form .sub{
+    margin-top:6px;
+    font-size:13.5px;
+    color:var(--text-muted);
+    margin-bottom:22px;
+  }
+
+  .google-btn{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%;
+    padding:11px 0;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:var(--white);
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--text-dark);
+    transition:border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .google-btn:hover{ border-color:var(--forest); box-shadow:0 2px 10px rgba(14,59,44,0.08); }
+
+  .divider{
+    display:flex; align-items:center; gap:12px;
+    font-size:11.5px;
+    color:var(--text-muted);
+    margin:18px 0;
+  }
+  .divider::before, .divider::after{
+    content:""; flex:1; height:1px; background:var(--line);
+  }
+
+  .field{
+    display:flex; flex-direction:column; gap:6px;
+    margin-bottom:15px;
+  }
+  .field label{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--text-dark);
+  }
+  .field input{
+    padding:11px 13px;
+    border:1px solid var(--line);
+    border-radius:9px;
+    font-size:14px;
+    background:var(--white);
+    transition:border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .field input:focus{
+    outline:none;
+    border-color:var(--forest);
+    box-shadow:0 0 0 3px rgba(61,220,132,0.18);
+  }
+  .row-between{
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:12.5px;
+    margin:2px 0 20px;
+  }
+  .checkbox-line{
+    display:flex; align-items:center; gap:7px;
+    color:var(--text-muted);
+  }
+  .checkbox-line input{ accent-color:var(--forest); width:14px; height:14px; }
+  .forgot{ color:var(--forest); font-weight:600; }
+  .forgot:hover{ text-decoration:underline; }
+
+  .terms-line{
+    display:flex; align-items:flex-start; gap:8px;
+    font-size:12px;
+    color:var(--text-muted);
+    margin:4px 0 20px;
+    line-height:1.5;
+  }
+  .terms-line input{ margin-top:3px; accent-color:var(--forest); }
+  .terms-line a{ color:var(--forest); font-weight:600; }
+
+  .submit-btn{
+    width:100%;
+    padding:12.5px 0;
+    border-radius:10px;
+    background:var(--ink);
+    color:var(--white);
+    font-size:14.5px;
+    font-weight:600;
+    transition:transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .submit-btn:hover{
+    background:var(--forest);
+    box-shadow:0 8px 20px rgba(14,59,44,0.25);
+    transform:translateY(-1px);
+  }
+  .submit-btn.dark{ background:var(--forest); }
+  .submit-btn.dark:hover{ background:var(--ink); }
+
+  .switch-line{
+    text-align:center;
+    font-size:13px;
+    color:var(--text-muted);
+    margin-top:20px;
+  }
+  .switch-line a{
+    color:var(--forest);
+    font-weight:700;
+    cursor:pointer;
+  }
+  .switch-line a:hover{ text-decoration:underline; }
+
+  .company-note{
+    margin-top:22px;
+    padding:14px 16px;
+    background:rgba(61,220,132,0.08);
+    border:1px solid rgba(14,59,44,0.15);
+    border-radius:10px;
+    font-size:12.5px;
+    color:var(--text-muted);
+    line-height:1.6;
+  }
+  .company-note a{ color:var(--forest); font-weight:700; }
+  .company-note a:hover{ text-decoration:underline; }
+
+  .name-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+
+  /* ===== TOASTS ===== */
+  .toast-container{
+    position:fixed;
+    top:22px; right:22px;
+    display:flex; flex-direction:column; gap:10px;
+    z-index:999;
+    max-width:320px;
+  }
+  .toast{
+    display:flex; align-items:center; gap:10px;
+    background:var(--ink);
+    color:var(--white);
+    padding:13px 16px;
+    border-radius:10px;
+    font-size:13px;
+    line-height:1.4;
+    box-shadow:0 14px 34px rgba(0,0,0,0.28);
+    border-left:4px solid var(--accent);
+    animation:toastIn 0.35s cubic-bezier(.34,1.56,.64,1) forwards, toastOut 0.4s ease forwards 3.4s;
+  }
+  .toast.error{ border-left-color:#FF6B6B; }
+  .toast-icon{ flex-shrink:0; width:16px; height:16px; }
+  @keyframes toastIn{
+    from{ transform:translateX(120%); opacity:0; }
+    to{ transform:translateX(0); opacity:1; }
+  }
+  @keyframes toastOut{
+    to{ transform:translateX(120%); opacity:0; }
+  }
+
+  /* ===== BUTTON LOADING / RIPPLE ===== */
+  .submit-btn{ position:relative; overflow:hidden; }
+  .submit-btn .btn-label{ display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .submit-btn.is-loading{ pointer-events:none; opacity:0.85; }
+  .spinner{
+    width:15px; height:15px;
+    border:2px solid rgba(255,255,255,0.35);
+    border-top-color:#fff;
+    border-radius:50%;
+    display:inline-block;
+    animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .ripple{
+    position:absolute;
+    border-radius:50%;
+    background:rgba(255,255,255,0.45);
+    transform:scale(0);
+    animation:rippleAnim 0.6s ease-out forwards;
+    pointer-events:none;
+  }
+  @keyframes rippleAnim{
+    to{ transform:scale(2.6); opacity:0; }
+  }
+
+  /* ===== VALIDATION SHAKE ===== */
+  .field.field-error input{
+    border-color:#FF6B6B !important;
+    box-shadow:0 0 0 3px rgba(255,107,107,0.15) !important;
+  }
+  .shake{ animation:shakeX 0.4s ease; }
+  @keyframes shakeX{
+    10%,90%{ transform:translateX(-1px); }
+    20%,80%{ transform:translateX(2px); }
+    30%,50%,70%{ transform:translateX(-4px); }
+    40%,60%{ transform:translateX(4px); }
+  }
+
+  /* ===== SUCCESS CHECK OVERLAY ===== */
+  .success-check{
+    display:flex; flex-direction:column; align-items:center; gap:14px;
+    text-align:center;
+    padding:30px 0;
+    animation:fadeUp 0.4s ease;
+  }
+  .success-check .circle{
+    width:56px; height:56px;
+    border-radius:50%;
+    background:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    animation:popIn 0.5s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes popIn{
+    from{ transform:scale(0); }
+    to{ transform:scale(1); }
+  }
+  .success-check h3{ font-family:'Space Grotesk', sans-serif; font-size:19px; }
+  .success-check p{ font-size:13px; color:var(--text-muted); max-width:280px; }
+
+  @media (max-width: 920px){
+    .page{ grid-template-columns:1fr; }
+    .brand-panel{ display:none; }
+    .mobile-logo{ display:block; }
+    .form-panel{ padding:36px 22px; min-height:100vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="page">
+
+  <!-- ============ BRAND / VISUAL PANEL ============ -->
+  <div class="brand-panel" id="brandPanel">
+    <div class="logo">
+      <img src="assets/pgi logo.jpg" alt="Plant Green Inertia logo" style="width:26px; height:26px; object-fit:contain; border-radius:6px;">
+      Plant Green Inertia
+    </div>
+
+    <svg class="network-anim" id="networkAnim" viewBox="0 0 640 760" preserveAspectRatio="xMidYMid slice">
+      <line class="pulse-line" x1="100" y1="140" x2="300" y2="260"/>
+      <line x1="300" y1="260" x2="520" y2="180"/>
+      <line class="pulse-line" x1="300" y1="260" x2="230" y2="420"/>
+      <line x1="230" y1="420" x2="440" y2="460"/>
+      <line class="pulse-line" x1="440" y1="460" x2="560" y2="360"/>
+      <line x1="230" y1="420" x2="120" y2="540"/>
+      <line class="pulse-line" x1="440" y1="460" x2="400" y2="600"/>
+
+      <circle class="node-dim float-a" cx="100" cy="140" r="5"/>
+      <circle class="node-core float-b" cx="300" cy="260" r="7"/>
+      <circle class="node-dim float-c" cx="520" cy="180" r="4.5"/>
+      <circle class="node-core float-a" cx="230" cy="420" r="6"/>
+      <circle class="node-dim float-b" cx="440" cy="460" r="6.5"/>
+      <circle class="node-core float-c" cx="560" cy="360" r="4.5"/>
+      <circle class="node-dim float-a" cx="120" cy="540" r="4.5"/>
+      <circle class="node-core float-b" cx="400" cy="600" r="5.5"/>
+    </svg>
+
+    <div class="brand-copy">
+      <span class="eyebrow">CAMPUS → CAREER</span>
+      <h1>Where careers<br>take root.</h1>
+      <p>PGI Job Portal connects ambitious students with companies who are ready to grow talent from day one — internships, placements, and everything after.</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><strong data-count="12400">0</strong><span>Students placed</span></div>
+      <div class="stat"><strong data-count="850">0</strong><span>Partner companies</span></div>
+      <div class="stat"><strong data-count="96">0</strong><span>% offer satisfaction</span></div>
+    </div>
+  </div>
+
+  <!-- ============ FORM PANEL ============ -->
+  <div class="form-panel">
+    <div class="form-panel-inner">
+      <div class="mobile-logo">🌱 PGI Job Portal</div>
+
+      <div class="role-switch" id="roleSwitch">
+        <button type="button" class="active" data-role="student">Student</button>
+        <button type="button" data-role="company">Company</button>
+        <span class="role-pill"></span>
+      </div>
+
+      <!-- STUDENT LOGIN -->
+      <form class="auth-form active" id="student-login">
+        <div class="form-body">
+        <h2>Welcome back</h2>
+        <p class="sub">Log in to keep building your path.</p>
+
+        <button type="button" class="google-btn">
+          <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 5.1 29.5 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 7.1 29.5 5 24 5c-7.6 0-14.1 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 43c5.3 0 10.2-2 13.9-5.4l-6.4-5.4C29.4 33.7 26.8 35 24 35c-5.3 0-9.7-3.6-11.2-8.5l-6.6 5.1C9.8 38.5 16.3 43 24 43z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.4 5.4C39.9 37 43 31 43 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
+          Continue with Google
+        </button>
+        <div class="divider">or use your email</div>
+
+        <div class="field" data-field="email">
+          <label>College email</label>
+          <input type="email" id="sl-email" placeholder="you@university.edu" required>
+        </div>
+        <div class="field" data-field="password">
+          <label>Password</label>
+          <input type="password" id="sl-password" placeholder="Enter your password" required>
+        </div>
+        <div class="row-between">
+          <span class="checkbox-line"><input type="checkbox">Remember me</span>
+          <a class="forgot" href="#">Forgot password?</a>
+        </div>
+        <button type="submit" class="submit-btn"><span class="btn-label">Log in</span></button>
+        <p class="switch-line">New to PGI Job Portal? <a data-switch="student-signup">Create a student account</a></p>
+        </div>
+      </form>
+
+      <!-- STUDENT SIGNUP -->
+      <form class="auth-form" id="student-signup">
+        <div class="form-body">
+        <h2>Start growing</h2>
+        <p class="sub">Create your student profile in a minute.</p>
+
+        <div class="field" data-field="name">
+          <label>Full name</label>
+          <input type="text" id="ss-name" placeholder="Ananya Sharma" required>
+        </div>
+        <div class="field" data-field="college">
+          <label>College / university</label>
+          <input type="text" id="ss-college" placeholder="e.g. Anna University" required>
+        </div>
+        <div class="field" data-field="email">
+          <label>College email</label>
+          <input type="email" id="ss-email" placeholder="you@university.edu" required>
+        </div>
+        <div class="field" data-field="password">
+          <label>Password</label>
+          <input type="password" id="ss-password" placeholder="Create a password (min. 6 characters)" required>
+        </div>
+        <div class="terms-line">
+          <input type="checkbox" id="ss-terms" required>
+          <span>I agree to PGI Job Portal's <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</span>
+        </div>
+        <button type="submit" class="submit-btn"><span class="btn-label">Create account</span></button>
+        <p class="switch-line">Already have an account? <a data-switch="student-login">Log in</a></p>
+        </div>
+      </form>
+
+      <!-- COMPANY LOGIN -->
+      <form class="auth-form" id="company-login">
+        <div class="form-body">
+        <h2>Company sign in</h2>
+        <p class="sub">Access your hiring dashboard.</p>
+
+        <div class="field" data-field="email">
+          <label>Work email</label>
+          <input type="email" id="cl-email" placeholder="hr@company.com" required>
+        </div>
+        <div class="field" data-field="password">
+          <label>Password</label>
+          <input type="password" id="cl-password" placeholder="Enter your password" required>
+        </div>
+        <div class="row-between">
+          <span class="checkbox-line"><input type="checkbox">Remember me</span>
+          <a class="forgot" href="#">Forgot password?</a>
+        </div>
+        <button type="submit" class="submit-btn dark"><span class="btn-label">Log in</span></button>
+
+        <div class="company-note">
+          Company accounts are provisioned directly by the PGI Job Portal team — there's no self-signup. If your organisation is new to PGI Job Portal, <a href="#">request access</a> and we'll set up your login.
+        </div>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ============ CONFIG ============
+  // Point this at your running FastAPI backend (see /grove-backend).
+  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000'
+    : 'https://YOUR-BACKEND-DOMAIN'; // <-- replace when you deploy the backend
+
+  // ============ ROLE SWITCH ============
+  const roleSwitch = document.getElementById('roleSwitch');
+  const roleButtons = roleSwitch.querySelectorAll('button');
+
+  function showForm(id){
+    document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  roleButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      roleButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const role = btn.dataset.role;
+      roleSwitch.classList.toggle('company', role === 'company');
+      showForm(role === 'company' ? 'company-login' : 'student-login');
+    });
+  });
+
+  document.querySelectorAll('[data-switch]').forEach(link => {
+    link.addEventListener('click', () => showForm(link.dataset.switch));
+  });
+
+  // ============ ANIMATED STAT COUNTERS ============
+  function animateCount(el){
+    const target = parseInt(el.dataset.count, 10);
+    const duration = 1400;
+    const start = performance.now();
+    function tick(now){
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.floor(eased * target).toLocaleString();
+      if(progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.stat strong').forEach(animateCount);
+  });
+
+  // ============ TOASTS ============
+  function showToast(message, type = 'success'){
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    const icon = type === 'success'
+      ? '<svg class="toast-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#3DDC84"/><path d="M8 12.5l2.5 2.5L16 9" stroke="#0A120D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      : '<svg class="toast-icon" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#FF6B6B"/><path d="M12 7v6M12 16.5v.01" stroke="#0A120D" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    toast.innerHTML = `${icon}<span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3900);
+  }
+
+  // ============ BUTTON RIPPLE ============
+  document.querySelectorAll('.submit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const rect = btn.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      const size = Math.max(rect.width, rect.height);
+      ripple.className = 'ripple';
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+      ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+      btn.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 650);
+    });
+  });
+
+  // ============ LOADING / SHAKE HELPERS ============
+  function setLoading(btn, loading, labelWhenLoading){
+    const label = btn.querySelector('.btn-label');
+    if(loading){
+      btn.dataset.originalLabel = label.textContent;
+      label.innerHTML = `<span class="spinner"></span>${labelWhenLoading}`;
+      btn.classList.add('is-loading');
+    } else {
+      label.textContent = btn.dataset.originalLabel || label.textContent;
+      btn.classList.remove('is-loading');
+    }
+  }
+
+  function flagInvalid(field){
+    field.classList.add('field-error', 'shake');
+    setTimeout(() => field.classList.remove('shake'), 400);
+  }
+  function clearInvalid(form){
+    form.querySelectorAll('.field').forEach(f => f.classList.remove('field-error'));
+  }
+
+  async function callApi(path, payload){
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(() => ({}));
+    if(!res.ok){
+      throw new Error(data.detail || 'Something went wrong. Please try again.');
+    }
+    return data;
+  }
+
+  // ============ STUDENT LOGIN ============
+  const studentLoginForm = document.getElementById('student-login');
+  studentLoginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearInvalid(studentLoginForm);
+    const email = document.getElementById('sl-email');
+    const password = document.getElementById('sl-password');
+    if(!email.value){ flagInvalid(email.closest('.field')); return; }
+    if(!password.value){ flagInvalid(password.closest('.field')); return; }
+
+    const btn = studentLoginForm.querySelector('.submit-btn');
+    setLoading(btn, true, 'Logging in…');
+    try{
+      const data = await callApi('/api/auth/student/login', { email: email.value, password: password.value });
+      showToast(`Welcome back, ${data.profile?.full_name || 'student'} 🌱`, 'success');
+      sessionStorage.setItem('grove_token', data.access_token);
+      sessionStorage.setItem('grove_profile', JSON.stringify(data.profile || {}));
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);    }catch(err){
+      showToast(err.message, 'error');
+    }finally{
+      setLoading(btn, false);
+    }
+  });
+
+  // ============ STUDENT SIGNUP ============
+  const studentSignupForm = document.getElementById('student-signup');
+  studentSignupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearInvalid(studentSignupForm);
+    const name = document.getElementById('ss-name');
+    const college = document.getElementById('ss-college');
+    const email = document.getElementById('ss-email');
+    const password = document.getElementById('ss-password');
+    const terms = document.getElementById('ss-terms');
+
+    let hasError = false;
+    [ [name,''], [college,''], [email,''], [password,''] ].forEach(([field]) => {
+      if(!field.value){ flagInvalid(field.closest('.field')); hasError = true; }
+    });
+    if(password.value && password.value.length < 6){
+      flagInvalid(password.closest('.field'));
+      hasError = true;
+    }
+    if(!terms.checked){
+      showToast('Please accept the Terms of Service to continue.', 'error');
+      hasError = true;
+    }
+    if(hasError) return;
+
+    const btn = studentSignupForm.querySelector('.submit-btn');
+    setLoading(btn, true, 'Creating account…');
+    try{
+      await callApi('/api/auth/student/signup', {
+        full_name: name.value,
+        college: college.value,
+        email: email.value,
+        password: password.value
+      });
+      showToast('Account created! Check your email to confirm 🎉', 'success');
+      studentSignupForm.reset();
+      setTimeout(() => showForm('student-login'), 900);
+    }catch(err){
+      showToast(err.message, 'error');
+    }finally{
+      setLoading(btn, false);
+    }
+  });
+
+  // ============ COMPANY LOGIN ============
+  const companyLoginForm = document.getElementById('company-login');
+
+companyLoginForm.addEventListener('submit', async (e) => {
+
+    e.preventDefault();
+
+    clearInvalid(companyLoginForm);
+
+    const email = document.getElementById('cl-email');
+    const password = document.getElementById('cl-password');
+
+    if(!email.value){
+        flagInvalid(email.closest('.field'));
+        return;
+    }
+
+    if(!password.value){
+        flagInvalid(password.closest('.field'));
+        return;
+    }
+
+    const btn = companyLoginForm.querySelector('.submit-btn');
+
+    setLoading(btn,true,'Signing in...');
+
+    try{
+
+        const data = await callApi('/api/auth/company/login',{
+
+            email:email.value,
+
+            password:password.value
+
+        });
+
+        sessionStorage.setItem(
+            'grove_token',
+            data.access_token
+        );
+
+        sessionStorage.setItem(
+            'grove_profile',
+            JSON.stringify(data.profile)
+        );
+
+        showToast(
+            `Welcome back ${data.profile.company_name}`,
+            'success'
+        );
+
+        setTimeout(() => {
+
+            window.location.href = "companydb.html";
+
+        },800);
+
+    }
+    catch(err){
+
+        showToast(err.message,'error');
+
+    }
+    finally{
+
+        setLoading(btn,false);
+
+    }
+
+});
+
+  // ============ PARALLAX ON BRAND PANEL ============
+  const brandPanel = document.getElementById('brandPanel');
+  const networkAnim = document.getElementById('networkAnim');
+  if(brandPanel && window.matchMedia('(min-width: 920px)').matches){
+    brandPanel.addEventListener('mousemove', (e) => {
+      const rect = brandPanel.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      networkAnim.style.transform = `translate(${x * 14}px, ${y * 14}px) scale(1.02)`;
+    });
+    brandPanel.addEventListener('mouseleave', () => {
+      networkAnim.style.transform = 'translate(0,0) scale(1)';
+    });
+    networkAnim.style.transition = 'transform 0.3s ease-out';
+  }
+</script>
+
+</body>
+</html>

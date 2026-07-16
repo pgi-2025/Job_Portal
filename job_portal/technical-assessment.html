@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PGI Job Portal — Assessment Engine</title>
+<style>
+  :root{
+    --forest-dark:#102b17;
+    --forest:#1b5e20;
+    --forest-mid:#2e7d32;
+    --forest-soft:#3f8a45;
+    --mint:#d7ecd9;
+    --mint-dark:#bfe2c4;
+    --cream-top:#f4f8d6;
+    --cream-bot:#ffffff;
+    --ink:#123018;
+    --ink-soft:#4a5c4d;
+    --danger:#c0392b;
+    --danger-soft:#fdecea;
+    --warn:#c9860a;
+    --gold:#e8b923;
+    --card-radius:18px;
+    --shadow:0 10px 30px rgba(16,43,23,0.12);
+    --shadow-lg:0 20px 50px rgba(16,43,23,0.22);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:linear-gradient(180deg,var(--cream-top) 0%, var(--cream-bot) 55%);
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{font-family:'Poppins',Inter,system-ui,sans-serif;margin:0;letter-spacing:-0.02em;}
+  ::selection{background:var(--mint-dark);}
+
+  /* ---------- Header ---------- */
+  header.topbar{
+    background:linear-gradient(120deg,var(--forest-dark),var(--forest) 65%,var(--forest-mid));
+    color:#fff;
+    padding:18px 32px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    box-shadow:0 4px 18px rgba(16,43,23,0.25);
+    position:sticky;top:0;z-index:40;
+  }
+  header.topbar .brand{font-weight:800;font-size:1.35rem;display:flex;align-items:center;gap:10px;}
+  header.topbar .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(232,185,35,0.25);}
+  .back-btn{
+    background:rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.25);
+    color:#fff;font-weight:700;font-size:0.9rem;
+    padding:10px 18px;border-radius:12px;cursor:pointer;
+    display:flex;align-items:center;gap:8px;
+    transition:background .2s ease, transform .15s ease;
+  }
+  .back-btn:hover{background:rgba(255,255,255,0.22);transform:translateY(-1px);}
+
+  /* ---------- Stepper ---------- */
+  .stepper{
+    display:flex;justify-content:center;gap:10px;
+    padding:22px 20px 0;flex-wrap:wrap;
+  }
+  .step-pill{
+    display:flex;align-items:center;gap:8px;
+    background:#fff;border:1.5px solid var(--mint-dark);
+    color:var(--ink-soft);font-weight:700;font-size:0.82rem;
+    padding:8px 16px;border-radius:999px;
+    transition:all .25s ease;
+  }
+  .step-pill .num{
+    width:20px;height:20px;border-radius:50%;background:var(--mint);
+    color:var(--forest);display:flex;align-items:center;justify-content:center;
+    font-size:0.72rem;font-weight:800;
+  }
+  .step-pill.active{background:var(--forest);color:#fff;border-color:var(--forest);box-shadow:0 6px 16px rgba(27,94,32,0.3);}
+  .step-pill.active .num{background:var(--gold);color:var(--forest-dark);}
+  .step-pill.done{background:var(--mint);border-color:var(--mint-dark);color:var(--forest-dark);}
+  .step-pill.done .num{background:var(--forest);color:#fff;}
+
+  main{max-width:1180px;margin:0 auto;padding:36px 24px 90px;}
+  .screen{display:none;animation:fadeUp .45s ease;}
+  .screen.visible{display:block;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ---------- Category / Domain selection ---------- */
+  .hero-title{text-align:center;font-size:2.6rem;font-weight:800;color:var(--forest-dark);}
+  .hero-sub{text-align:center;color:var(--ink-soft);font-size:1.05rem;margin-top:10px;}
+  .change-cat-row{text-align:center;margin-bottom:6px;}
+  .domain-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+    gap:26px;margin-top:40px;
+  }
+  .domain-card{
+    background:#fff;border-radius:var(--card-radius);overflow:hidden;
+    box-shadow:var(--shadow);transition:transform .25s ease, box-shadow .25s ease;
+    display:flex;flex-direction:column;cursor:pointer;border:1px solid rgba(0,0,0,0.03);
+  }
+  .domain-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg);}
+  .domain-banner{
+    height:150px;display:flex;align-items:center;justify-content:center;font-size:3.4rem;
+    background:linear-gradient(135deg,var(--forest-dark),var(--forest-mid));
+    position:relative;overflow:hidden;
+  }
+  .domain-banner::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 30% 20%, rgba(255,255,255,0.18), transparent 55%);
+  }
+  .domain-body{padding:22px 22px 24px;flex:1;display:flex;flex-direction:column;}
+  .domain-body h3{font-size:1.25rem;color:var(--forest-dark);}
+  .domain-body p{color:var(--ink-soft);font-size:0.92rem;line-height:1.5;margin:10px 0 18px;flex:1;}
+  .pill-btn{
+    align-self:flex-start;background:var(--mint);color:var(--forest-dark);
+    border:none;padding:10px 18px;border-radius:999px;font-weight:700;font-size:0.88rem;
+    cursor:pointer;transition:background .2s ease, transform .15s ease;
+  }
+  .pill-btn:hover{background:var(--mint-dark);transform:translateX(2px);}
+  .pill-btn.dark{background:var(--forest);color:#fff;}
+  .pill-btn.dark:hover{background:var(--forest-mid);}
+
+  /* ---------- Instruction / intermediate screens ---------- */
+  .panel{
+    background:#fff;border-radius:22px;box-shadow:var(--shadow);
+    padding:44px;max-width:720px;margin:20px auto;text-align:center;
+  }
+  .panel .badge{
+    display:inline-block;background:var(--mint);color:var(--forest-dark);
+    font-weight:700;font-size:0.8rem;padding:6px 14px;border-radius:999px;margin-bottom:16px;
+  }
+  .panel h2{font-size:1.7rem;color:var(--forest-dark);}
+  .panel p{color:var(--ink-soft);line-height:1.6;margin-top:12px;}
+  .rules-list{text-align:left;margin:24px 0;padding:20px;background:var(--cream-top);border-radius:14px;}
+  .rules-list li{margin-bottom:10px;color:var(--ink);font-size:0.94rem;line-height:1.5;}
+  .cta-row{display:flex;gap:14px;justify-content:center;margin-top:26px;flex-wrap:wrap;}
+  .btn-primary{
+    background:var(--forest);color:#fff;border:none;padding:14px 28px;border-radius:14px;
+    font-weight:800;font-size:1rem;cursor:pointer;transition:transform .15s ease, box-shadow .2s ease;
+    box-shadow:0 10px 24px rgba(27,94,32,0.28);
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(27,94,32,0.36);}
+  .btn-ghost{
+    background:transparent;color:var(--forest);border:2px solid var(--mint-dark);
+    padding:12px 26px;border-radius:14px;font-weight:700;cursor:pointer;
+  }
+  .btn-ghost.small{padding:8px 16px;font-size:0.85rem;border-radius:10px;}
+
+  /* ---------- Test screen ---------- */
+  .test-wrap{max-width:920px;margin:0 auto;user-select:none;}
+  .test-top{
+    display:flex;justify-content:space-between;align-items:center;
+    background:#fff;padding:16px 22px;border-radius:16px;box-shadow:var(--shadow);margin-bottom:18px;
+    flex-wrap:wrap;gap:12px;
+  }
+  .test-top .r-label{font-weight:800;color:var(--forest-dark);font-size:1.05rem;}
+  .timer{
+    font-family:'Courier New',monospace;font-weight:800;font-size:1.15rem;
+    background:var(--forest-dark);color:#fff;padding:8px 16px;border-radius:10px;letter-spacing:1px;
+  }
+  .timer.low{background:var(--danger);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
+  .progress-bar{height:8px;border-radius:6px;background:var(--mint);overflow:hidden;margin-bottom:22px;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--forest),var(--gold));width:0%;transition:width .35s ease;}
+
+  .q-card{background:#fff;border-radius:18px;padding:30px;box-shadow:var(--shadow);}
+  .q-card .q-index{color:var(--forest-mid);font-weight:700;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.06em;}
+  .q-card h3{margin-top:10px;font-size:1.25rem;color:var(--ink);line-height:1.4;}
+  .options{display:grid;gap:12px;margin-top:22px;}
+  .option{
+    border:2px solid var(--mint-dark);border-radius:12px;padding:14px 18px;cursor:pointer;
+    transition:all .18s ease;font-weight:600;color:var(--ink);background:var(--cream-top);
+  }
+  .option:hover{border-color:var(--forest-mid);}
+  .option.selected{border-color:var(--forest);background:var(--mint);color:var(--forest-dark);}
+  .nav-row{display:flex;justify-content:space-between;margin-top:26px;}
+
+  /* code round */
+  .code-shell{background:#0f2314;border-radius:16px;overflow:hidden;box-shadow:var(--shadow-lg);}
+  .code-head{background:#0a1b0d;color:#cfe9d2;padding:10px 18px;font-size:0.82rem;font-weight:700;display:flex;justify-content:space-between;}
+  textarea#codeArea{
+    width:100%;min-height:260px;background:#0f2314;color:#eafcec;border:none;padding:20px;
+    font-family:'Courier New',monospace;font-size:0.95rem;line-height:1.55;resize:vertical;outline:none;
+  }
+  .test-cases{background:#fff;border-radius:14px;padding:18px 20px;margin-top:16px;box-shadow:var(--shadow);}
+  .tc-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--mint);font-size:0.88rem;}
+  .tc-row:last-child{border-bottom:none;}
+  .tc-pass{color:var(--forest);font-weight:800;}
+  .tc-fail{color:var(--danger);font-weight:800;}
+  .run-row{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap;}
+
+  /* ---------- Integrity HUD (signature element) ---------- */
+  #hud{
+    position:fixed;top:90px;right:22px;width:210px;background:rgba(16,43,23,0.94);
+    color:#eafcec;border-radius:16px;padding:16px 16px 14px;z-index:50;
+    box-shadow:0 14px 34px rgba(0,0,0,0.35);backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  #hud h4{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--gold);display:flex;align-items:center;gap:8px;}
+  #hud .radar{width:9px;height:9px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,0.6);animation:radar 1.6s infinite;}
+  @keyframes radar{0%{box-shadow:0 0 0 0 rgba(74,222,128,0.55);}70%{box-shadow:0 0 0 9px rgba(74,222,128,0);}100%{box-shadow:0 0 0 0 rgba(74,222,128,0);}}
+  #hud .hud-row{display:flex;justify-content:space-between;font-size:0.78rem;margin-top:10px;color:#cfe9d2;}
+  #hud .hud-row span.val{font-weight:800;color:#fff;}
+  #hud .hud-row span.val.bad{color:#ff8b7d;}
+  #hud .viol-dots{display:flex;gap:5px;margin-top:4px;}
+  #hud .viol-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.18);}
+  #hud .viol-dot.hit{background:var(--danger);}
+
+  /* ---------- Violation flash ---------- */
+  #flash{position:fixed;inset:0;background:rgba(192,57,43,0.28);z-index:80;display:none;pointer-events:none;}
+  #flash.show{display:block;animation:flashfade .6s ease forwards;}
+  @keyframes flashfade{from{opacity:1;}to{opacity:0;}}
+  .shake{animation:shakeAnim .4s;}
+  @keyframes shakeAnim{10%,90%{transform:translateX(-2px);}20%,80%{transform:translateX(4px);}30%,50%,70%{transform:translateX(-8px);}40%,60%{transform:translateX(8px);}}
+
+  /* ---------- Result screens ---------- */
+  .result-icon{font-size:4rem;}
+  .result-pass{color:var(--forest);}
+  .result-fail{color:var(--danger);}
+  .score-ring{
+    width:130px;height:130px;border-radius:50%;margin:18px auto;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.5rem;
+    background:conic-gradient(var(--forest) calc(var(--pct)*1%), var(--mint) 0);
+    color:var(--forest-dark);position:relative;
+  }
+  .score-ring::before{content:"";position:absolute;inset:10px;background:#fff;border-radius:50%;}
+  .score-ring span{position:relative;z-index:1;}
+
+  #confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:90;}
+
+  footer.note{text-align:center;color:var(--ink-soft);font-size:0.8rem;margin-top:40px;}
+
+  @media (max-width:720px){
+    #hud{position:static;width:100%;margin-bottom:16px;}
+    .hero-title{font-size:1.9rem;}
+  }
+</style>
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>  
+
+<canvas id="confetti-canvas"></canvas>
+<div id="flash"></div>
+
+<div id="proctorPanel" style="position:fixed; bottom:16px; right:16px; z-index:9999;">
+  <video id="proctorVideo" width="160" height="120" autoplay muted playsinline
+         style="border-radius:8px; border:2px solid #333; background:#000;"></video>
+  <div id="proctorStatusDot" style="width:10px; height:10px; border-radius:50%; background:red; display:inline-block; margin-top:4px;"></div>
+</div>
+<div id="proctorWarnings" style="position:fixed; top:16px; right:16px; z-index:9999;"></div>
+
+<div id="proctorBlockOverlay" style="position:fixed; inset:0; background:#000d; color:#fff;
+     display:none; align-items:center; justify-content:center; z-index:99999;">
+  <div style="text-align:center; max-width:400px;">
+    <p id="proctorBlockMessage">Camera access is mandatory to attend this assessment. Please allow camera access to continue.</p>
+    <button id="proctorRetryBtn" class="btn-primary">Allow Camera</button>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> PGI Job Portal</div>
+  <button class="back-btn" onclick="goToDashboard()">&larr; Back to Dashboard</button>
+</header>
+
+<div class="stepper" id="stepper"></div>
+
+<main>
+
+  <!-- SCREEN -1: CATEGORY SELECTION (Technical vs Non-Technical) -->
+  <section class="screen" id="screen-category">
+    <h1 class="hero-title">Choose Your Track 🎯</h1>
+    <p class="hero-sub">Select the type of assessment that matches the roles you're applying for.</p>
+    <div class="domain-grid" id="categoryGrid" style="max-width:840px;margin:40px auto 0;"></div>
+  </section>
+
+  <!-- SCREEN 0: DOMAIN SELECTION -->
+  <section class="screen" id="screen-domains">
+    <div class="change-cat-row">
+      <button class="btn-ghost small" onclick="showCategoryScreen()">← Change Track</button>
+    </div>
+    <h1 class="hero-title" id="domainsHeroTitle">Technical Specializations 💻</h1>
+    <p class="hero-sub" id="domainsHeroSub">Select your specific area of expertise to generate your targeted assessment.</p>
+    <div class="domain-grid" id="domainGrid"></div>
+  </section>
+
+  <!-- SCREEN 1: ROUND INTRO -->
+  <section class="screen" id="screen-intro">
+    <div class="panel">
+      <span class="badge" id="introBadge">Round 1 · MCQ</span>
+      <h2 id="introTitle">Get ready</h2>
+      <p id="introDesc">This round is proctored by our Anti-Cheat Engine.</p>
+      <ul class="rules-list" id="introRules"></ul>
+      <div class="cta-row">
+        <button class="btn-ghost" onclick="resetToDomains()">Cancel</button>
+        <button class="btn-primary" onclick="beginProctoredAssessment()">Enter Fullscreen &amp; Begin →</button>      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 2: MCQ / SCENARIO TEST (shared for Round 1 MCQ and Round 2 Situational Judgement) -->
+  <section class="screen" id="screen-mcq">
+    <div class="test-wrap">
+      <div class="test-top">
+        <div class="r-label" id="mcqLabel">Round 1 · MCQ Assessment</div>
+        <div class="timer" id="mcqTimer">10:00</div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="mcqProgress"></div></div>
+      <div class="q-card">
+        <div class="q-index" id="mcqIndex">Question 1 of 5</div>
+        <h3 id="mcqQuestion">—</h3>
+        <div class="options" id="mcqOptions"></div>
+      </div>
+      <div class="nav-row">
+        <button class="btn-ghost" onclick="prevQ()">← Previous</button>
+        <button class="btn-primary" id="mcqNextBtn" onclick="nextQ()">Next →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 3: CODE TEST (technical domains only) -->
+  <section class="screen" id="screen-code">
+    <div class="test-wrap">
+      <div class="test-top">
+        <div class="r-label">Round 2 · Coding Challenge</div>
+        <div class="timer" id="codeTimer">15:00</div>
+      </div>
+      <div class="q-card" style="margin-bottom:16px;">
+        <div class="q-index">Problem</div>
+        <h3 id="codeTitle">—</h3>
+        <p id="codeDesc" style="color:var(--ink-soft);margin-top:10px;line-height:1.6;"></p>
+      </div>
+      <div class="code-shell">
+        <div class="code-head"><span>solution.js</span><span>JavaScript</span></div>
+        <textarea id="codeArea" spellcheck="false"></textarea>
+      </div>
+      <div class="test-cases" id="testCaseBox">
+        <strong style="color:var(--forest-dark);">Test Results</strong>
+        <div id="tcList" style="margin-top:8px;color:var(--ink-soft);font-size:0.85rem;">Run your code to see results.</div>
+      </div>
+      <div class="run-row">
+        <button class="btn-ghost" onclick="runCode()">▶ Run Tests</button>
+        <button class="btn-primary" onclick="submitCode()">Submit Round 2 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 4: RESULT -->
+  <section class="screen" id="screen-result">
+    <div class="panel" id="resultPanel"></div>
+  </section>
+
+  <!-- SCREEN 5: FLAGGED (cheat) -->
+  <section class="screen" id="screen-flagged">
+    <div class="panel">
+      <div class="result-icon result-fail">🚫</div>
+      <h2 style="color:var(--danger);margin-top:10px;">Assessment Flagged</h2>
+      <p>Our Anti-Cheat Engine detected repeated integrity violations (tab switching, exiting fullscreen, or blocked clipboard actions) during this round. The attempt has been auto-submitted and marked as failed for review.</p>
+      <div class="cta-row">
+        <button class="btn-primary" onclick="routeToLMS()">Continue to LMS →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 6: LMS REDIRECT -->
+  <section class="screen" id="screen-lms">
+    <div class="panel">
+      <div class="result-icon result-fail">📘</div>
+      <h2 style="color:var(--forest-dark);margin-top:10px;">Let's close the gap</h2>
+      <p id="lmsText">You didn't clear the required score this time. That's okay — sharpen your skills with our curated learning path and try again soon.</p>
+      <div class="cta-row">
+        <a class="btn-primary" id="lmsLink" href="#" target="_blank" style="text-decoration:none;">Go to LMS →</a>
+        <button class="btn-ghost" onclick="resetToDomains()">Choose Another Domain</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 7: SUCCESS -->
+  <section class="screen" id="screen-success">
+    <div class="panel">
+      <div class="result-icon result-pass">🎉</div>
+      <h2 style="color:var(--forest-dark);margin-top:10px;">You're through!</h2>
+      <p id="successText">Both rounds cleared. Your profile is on its way to the company.</p>
+      <div class="cta-row">
+        <button class="btn-primary" onclick="goToDashboard()">Back to Dashboard</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="note">PGI Job Portal · Assessment Engine · Proctored by Anti-Cheat AI</footer>
+
+<script>
+/* ============================================================
+   CONFIG — edit these to plug into your real backend / LMS
+============================================================ */
+const LMS_LINK = "https://your-lms-platform.com/technical-skills"; // <-- put your real LMS URL here
+const MCQ_PASS_PCT = 60;        // % required to pass Round 1
+const ROUND2_PASS_PCT = 60;     // % required to pass Round 2 (scenario domains) / all tests must pass for code domains
+const MAX_VIOLATIONS = 3;       // strikes before auto-fail/flag
+const MCQ_TIME_LIMIT = 10*60;   // seconds — Round 1
+const CODE_TIME_LIMIT = 15*60;  // seconds — Round 2 (coding domains)
+const SCENARIO_TIME_LIMIT = 8*60; // seconds — Round 2 (situational judgement domains)
+
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000'
+  : 'https://YOUR-BACKEND-DOMAIN';
+
+// ---- Auth guard: this page requires a logged-in student session ----
+const token = sessionStorage.getItem('grove_token');
+let cachedProfile = {};
+try { cachedProfile = JSON.parse(sessionStorage.getItem('grove_profile') || '{}'); } catch(e){}
+if(!token){
+  window.location.href = 'login.html';
+}
+function authHeaders(extra = {}){
+  return Object.assign({ 'Authorization': `Bearer ${token}` }, extra);
+}
+function goToDashboard(){
+  window.location.href = 'dashboard.html';
+}
+
+// ---- Save the attempt result to the backend (fire-and-forget, deduped) ----
+let resultSubmitted = false;
+async function submitAssessmentResult(payload){
+  if(resultSubmitted) return;
+  resultSubmitted = true;
+  try{
+    await fetch(`${API_BASE}/api/student/assessment/submit`, {
+      method:'POST',
+      headers: authHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify(payload)
+    });
+    if(payload.overall_passed){
+      cachedProfile.assessment_status = 'eligible';
+      cachedProfile.qualified_domain = payload.domain;
+    } else {
+      cachedProfile.assessment_status = 'failed';
+    }
+    sessionStorage.setItem('grove_profile', JSON.stringify(cachedProfile));
+  }catch(e){
+    console.error('Could not save assessment result:', e);
+  }
+}
+
+/* ============================================================
+   DATA — TECHNICAL DOMAINS (Round 2 = Coding Challenge)
+============================================================ */
+const TECH_DOMAINS = [
+  {
+    id:'swe', type:'code', name:'Software Engineering', icon:'💻',
+    desc:'Full-stack development, algorithms, system architecture, and application design.',
+    mcq:[
+      {q:'Which data structure follows LIFO (Last-In-First-Out) order?', options:['Queue','Stack','Linked List','Heap'], a:1},
+      {q:'What is the time complexity of binary search on a sorted array?', options:['O(n)','O(n log n)','O(log n)','O(1)'], a:2},
+      {q:'Which SOLID principle states a class should have only one reason to change?', options:['Open/Closed','Liskov Substitution','Single Responsibility','Dependency Inversion'], a:2},
+      {q:'Which HTTP method is considered idempotent?', options:['POST','GET','PATCH','CONNECT'], a:1},
+      {q:'Which design pattern restricts a class to a single instance?', options:['Factory','Observer','Singleton','Adapter'], a:2},
+    ],
+    code:{
+      title:'Reverse a String',
+      desc:'Write a function reverseString(str) that returns the input string reversed. Example: reverseString("hello") → "olleh".',
+      starter:'function reverseString(str) {\n  // your code here\n}',
+      tests:[
+        {args:['hello'], expected:'olleh'},
+        {args:['Portal'], expected:'latroP'},
+        {args:[''], expected:''},
+      ]
+    }
+  },
+  {
+    id:'ds', type:'code', name:'Data Science & AI', icon:'📊',
+    desc:'Machine learning, statistical analysis, Python processing, and neural networks.',
+    mcq:[
+      {q:'Which algorithm is based on Bayes\' theorem and is often used for classification?', options:['K-Means','Naive Bayes','Linear Regression','DBSCAN'], a:1},
+      {q:'"Overfitting" refers to a model that:', options:['Performs poorly on all data','Performs well on training data but poorly on unseen data','Trains too fast','Has too few parameters'], a:1},
+      {q:'Which activation function outputs a value between 0 and 1?', options:['ReLU','Tanh','Sigmoid','Softplus'], a:2},
+      {q:'What technique is commonly used to reduce the number of features while preserving variance?', options:['PCA','One-Hot Encoding','Bagging','Cross Validation'], a:0},
+      {q:'For a highly imbalanced classification problem, which metric is usually most informative?', options:['Accuracy','F1 Score','Mean Squared Error','R²'], a:1},
+    ],
+    code:{
+      title:'Compute the Mean',
+      desc:'Write a function mean(arr) that returns the average of an array of numbers. Example: mean([2,4,6]) → 4.',
+      starter:'function mean(arr) {\n  // your code here\n}',
+      tests:[
+        {args:[[2,4,6]], expected:4},
+        {args:[[10]], expected:10},
+        {args:[[1,2,3,4]], expected:2.5},
+      ]
+    }
+  },
+  {
+    id:'cloud', type:'code', name:'Cloud Computing', icon:'☁️',
+    desc:'AWS/Azure infrastructure, DevOps pipelines, containerization, and networking.',
+    mcq:[
+      {q:'Which AWS service is primarily used for scalable object storage?', options:['EC2','S3','Lambda','RDS'], a:1},
+      {q:'What does "IaaS" stand for?', options:['Internet as a Service','Infrastructure as a Service','Integration as a Service','Identity as a Service'], a:1},
+      {q:'Which tool is the industry standard for container orchestration?', options:['Docker Compose','Jenkins','Kubernetes','Terraform'], a:2},
+      {q:'Automatically adding/removing compute instances based on load is called:', options:['Load Balancing','Auto Scaling','Sharding','Failover'], a:1},
+      {q:'Which protocol is commonly used for secure remote server access?', options:['FTP','SSH','HTTP','SMTP'], a:1},
+    ],
+    code:{
+      title:'Validate an IPv4 Address',
+      desc:'Write a function isValidIP(ip) that returns true for a basic valid IPv4 (4 dot-separated numbers 0-255), false otherwise. Example: isValidIP("192.168.1.1") → true.',
+      starter:'function isValidIP(ip) {\n  // your code here\n}',
+      tests:[
+        {args:['192.168.1.1'], expected:true},
+        {args:['999.1.1.1'], expected:false},
+        {args:['10.0.0.5'], expected:true},
+        {args:['abc.1.1.1'], expected:false},
+      ]
+    }
+  },
+  {
+    id:'cyber', type:'code', name:'Cybersecurity', icon:'🛡️',
+    desc:'Threat detection, network defense, ethical hacking, and secure system design.',
+    mcq:[
+      {q:'The "CIA" triad in security stands for:', options:['Confidentiality, Integrity, Availability','Control, Integration, Access','Cyber, Internet, Authentication','Confidentiality, Isolation, Auditing'], a:0},
+      {q:'An attack that floods a server with traffic to make it unavailable is called:', options:['Phishing','DDoS','SQL Injection','Man-in-the-Middle'], a:1},
+      {q:'In two-factor authentication, the second factor commonly used alongside a password is:', options:['A username','A one-time code (OTP)','An email address','A CAPTCHA'], a:1},
+      {q:'An encryption scheme that uses the same key to encrypt and decrypt is called:', options:['Asymmetric','Symmetric','Hashing','Digital Signature'], a:1},
+      {q:'A common defense against SQL injection is:', options:['Minifying code','Parameterized queries','Increasing timeout','Disabling HTTPS'], a:1},
+    ],
+    code:{
+      title:'Check Password Strength',
+      desc:'Write a function isStrongPassword(pw) that returns true if the password is at least 8 characters AND contains at least one digit AND at least one uppercase letter.',
+      starter:'function isStrongPassword(pw) {\n  // your code here\n}',
+      tests:[
+        {args:['Passw0rd'], expected:true},
+        {args:['weak'], expected:false},
+        {args:['alllower1'], expected:false},
+        {args:['NOLOWER1'], expected:true},
+      ]
+    }
+  },
+  {
+    id:'mobile', type:'code', name:'Mobile App Development', icon:'📱',
+    desc:'Native and cross-platform apps for Android & iOS, UI performance, and app architecture.',
+    mcq:[
+      {q:'Which language is the modern standard for native iOS development?', options:['Objective-C','Swift','Kotlin','Dart'], a:1},
+      {q:'Which cross-platform framework uses Dart and a single codebase for iOS & Android?', options:['React Native','Flutter','Xamarin','Ionic'], a:1},
+      {q:'On Android (Jetpack), which component is designed to hold UI-related data that survives configuration changes?', options:['Activity','Fragment','ViewModel','Intent'], a:2},
+      {q:'A UI that reflows to fit different screen sizes and orientations is called:', options:['Adaptive/Responsive UI','Static UI','Fixed UI','Legacy UI'], a:0},
+      {q:'Small key-value data on mobile devices is typically stored using:', options:['A full SQL cluster','SharedPreferences / UserDefaults','A remote data warehouse','Raw binary files only'], a:1},
+    ],
+    code:{
+      title:'Format a Phone Number',
+      desc:'Write a function formatPhone(num) that takes a 10-digit numeric string and returns it formatted as XXX-XXX-XXXX. Example: formatPhone("9876543210") → "987-654-3210".',
+      starter:'function formatPhone(num) {\n  // your code here\n}',
+      tests:[
+        {args:['9876543210'], expected:'987-654-3210'},
+        {args:['1234567890'], expected:'123-456-7890'},
+      ]
+    }
+  },
+];
+
+/* ============================================================
+   DATA — NON-TECHNICAL DOMAINS (Round 2 = Situational Judgement)
+============================================================ */
+const NONTECH_DOMAINS = [
+  {
+    id:'hr', type:'scenario', name:'HR & Talent Acquisition', icon:'🧑\u200d💼',
+    desc:'Recruitment, onboarding, employee relations, and talent management fundamentals.',
+    mcq:[
+      {q:'Which of these is typically the FIRST stage of the recruitment process?', options:['Onboarding','Sourcing candidates','Offer negotiation','Performance review'], a:1},
+      {q:'What does "attrition rate" measure in HR?', options:['Rate of employees leaving an organization','Rate of new hires','Average salary growth','Training completion rate'], a:0},
+      {q:'A "structured interview" is best described as:', options:['An interview with no set questions','An interview using a consistent set of pre-decided questions for all candidates','A panel-only interview','An interview conducted via email'], a:1},
+      {q:'Which document typically outlines the terms of employment before joining?', options:['Resume','Offer letter','Exit interview form','Payslip'], a:1},
+      {q:'"Employer branding" primarily helps an organization to:', options:['Reduce operating costs','Attract and retain talent','File tax returns','Automate payroll'], a:1},
+    ],
+    round2mcq:[
+      {q:'A new hire tells you privately they\'re overwhelmed and considering quitting in week one. What\'s the best first step?', options:['Ignore it and hope it passes','Immediately begin termination paperwork','Have a supportive one-on-one to understand their concerns','Tell their manager to cut their workload publicly'], a:2},
+      {q:'Two candidates are equally qualified, but one\'s referral is a senior manager\'s relative. What should you do?', options:['Automatically hire the referral','Evaluate both fairly through the same process','Reject the referral to avoid any appearance of bias','Ask the manager to decide'], a:1},
+      {q:'An employee raises a harassment complaint against their manager. What is the appropriate first action?', options:['Tell them to sort it out with the manager directly','Follow the organization\'s formal, confidential complaint procedure','Mention it to the team for awareness','Wait and see if it happens again'], a:1},
+      {q:'During onboarding, a new hire seems confused about their role expectations. Best approach?', options:['Assume they\'ll figure it out over time','Schedule a clear expectation-setting conversation with defined goals','Give them no feedback for three months','Reassign them to a different role immediately'], a:1},
+    ]
+  },
+  {
+    id:'marketing', type:'scenario', name:'Marketing & Brand Management', icon:'📣',
+    desc:'Brand strategy, digital marketing, campaigns, and customer engagement.',
+    mcq:[
+      {q:'Which of the following is NOT one of the classic 4 Ps of marketing?', options:['Product','Price','Promotion','Personnel'], a:3},
+      {q:'A brand\'s "USP" stands for:', options:['Unique Selling Proposition','Universal Sales Plan','User Service Policy','Unit Sales Price'], a:0},
+      {q:'Which metric measures how many people took a desired action after seeing an ad?', options:['Impressions','Conversion rate','Reach','Bounce rate'], a:1},
+      {q:'"SEO" primarily helps improve:', options:['Office productivity','Organic search engine visibility','Employee retention','Supply chain speed'], a:1},
+      {q:'A/B testing in marketing is used to:', options:['Compare two versions to see which performs better','Audit financial statements','Manage inventory','Schedule shipments'], a:0},
+    ],
+    round2mcq:[
+      {q:'A campaign is getting high impressions but very low conversions. What should you check first?', options:['Increase the ad budget immediately','Review targeting, messaging, and landing page relevance','Cancel the campaign with no analysis','Change the company logo'], a:1},
+      {q:'A competitor launches a similar product at a lower price right before your launch. Best response?', options:['Delay your launch indefinitely','Reassess your differentiation and messaging around unique value','Match their price exactly without analysis','Ignore it completely'], a:1},
+      {q:'Comments on a recent social media post are turning negative. What\'s the best approach?', options:['Delete all comments','Respond calmly, acknowledge concerns, and clarify facts professionally','Argue with commenters directly','Turn off comments and stay silent'], a:1},
+      {q:'You have a limited budget and must pick one channel to promote a new product. How do you decide?', options:['Pick your personal favorite platform','Analyze where your target audience is most active and engaged','Use whichever channel is cheapest regardless of audience','Ask a competitor for advice'], a:1},
+    ]
+  },
+  {
+    id:'sales', type:'scenario', name:'Sales & Business Development', icon:'🤝',
+    desc:'Lead generation, negotiation, client relationships, and closing deals.',
+    mcq:[
+      {q:'In sales, "lead qualification" refers to:', options:['Closing the deal','Determining if a prospect is a good fit before investing more time','Filing paperwork after a sale','Setting sales targets'], a:1},
+      {q:'What does "B2B" stand for?', options:['Business to Business','Back to Basics','Buyer to Broker','Bid to Buy'], a:0},
+      {q:'A "sales funnel" typically represents:', options:['The customer journey from awareness to purchase','A company\'s org chart','A pricing model','An inventory system'], a:0},
+      {q:'"Upselling" means:', options:['Convincing a customer to buy a higher-value product or upgrade','Lowering prices for volume','Processing a product return','Cold-calling only'], a:0},
+      {q:'Which of these is a common objection-handling technique?', options:['Ignoring the objection','Acknowledge, clarify, and address the concern with facts','Ending the call immediately','Arguing with the customer'], a:1},
+    ],
+    round2mcq:[
+      {q:'A prospect says your price is too high compared to a competitor. Best response?', options:['Immediately match the competitor\'s price','Reiterate the unique value and ROI your product provides before discussing price','Criticize the competitor\'s product','End the conversation'], a:1},
+      {q:'You\'re close to hitting your monthly target, and a client asks for an unrealistic discount to close today. What do you do?', options:['Agree to any discount to hit target','Evaluate if the discount is sustainable and negotiate value-based terms','Refuse to negotiate at all','Pass the client to someone else immediately'], a:1},
+      {q:'A long-time client hasn\'t responded to your last three follow-ups. Best next step?', options:['Give up on the account entirely','Try a different, more relevant approach — a call or a value-focused check-in','Send the exact same email again','Escalate straight to legal'], a:1},
+      {q:'During a client meeting, you realize you can\'t answer a technical question. What should you do?', options:['Make up an answer confidently','Admit you\'ll confirm with your team and follow up promptly','Avoid the question entirely','End the meeting'], a:1},
+    ]
+  },
+  {
+    id:'finance', type:'scenario', name:'Finance & Accounting', icon:'💰',
+    desc:'Financial statements, bookkeeping, budgeting, and analysis fundamentals.',
+    mcq:[
+      {q:'What does "P&L" stand for in finance?', options:['Profit and Loss','Payables and Liabilities','Pricing and Logistics','Personnel and Leave'], a:0},
+      {q:'Which financial statement shows a company\'s assets, liabilities, and equity at a point in time?', options:['Income statement','Balance sheet','Cash flow statement','Payslip'], a:1},
+      {q:'"Accounts receivable" represents:', options:['Money a company owes to suppliers','Money owed to the company by customers','The company\'s cash reserves','Employee salaries'], a:1},
+      {q:'A "debit" in double-entry bookkeeping typically:', options:['Always decreases every account','Increases assets/expenses and decreases liabilities/equity','Only applies to cash accounts','Is identical to a credit'], a:1},
+      {q:'What does "ROI" measure?', options:['Rate of Inflation','Return on Investment','Ratio of Income','Revenue over Inventory'], a:1},
+    ],
+    round2mcq:[
+      {q:'You notice a small discrepancy in a monthly expense report. What\'s the right first step?', options:['Ignore it since it\'s minor','Investigate and verify the discrepancy before reporting','Delete the entry','Assume it\'s someone else\'s error and move on'], a:1},
+      {q:'A department head asks you to approve an over-budget expense without proper documentation. What do you do?', options:['Approve it immediately since they asked','Politely decline and request proper documentation/approval per policy','Approve it but tell no one','Ignore the request entirely'], a:1},
+      {q:'At month-end close, you\'re short on time and a report has minor unverified data. What should you do?', options:['Submit as-is and hope it\'s fine','Flag the uncertainty, submit with a note, and follow up once verified','Delay all reporting indefinitely','Guess the missing figures'], a:1},
+      {q:'A client requests an invoice be backdated to a previous quarter. Best response?', options:['Backdate it as requested','Decline, since this would misrepresent the accounting period, and explain why','Do it quietly just this once','Ask a colleague to do it instead'], a:1},
+    ]
+  },
+  {
+    id:'ops', type:'scenario', name:'Operations & Supply Chain', icon:'📦',
+    desc:'Logistics, process efficiency, inventory management, and vendor coordination.',
+    mcq:[
+      {q:'"Just-in-Time" (JIT) inventory aims to:', options:['Stockpile as much inventory as possible','Minimize inventory by receiving goods only as needed','Ignore demand forecasting entirely','Maximize warehouse space usage'], a:1},
+      {q:'What does "SLA" stand for in operations?', options:['Service Level Agreement','Supply Logistics Analysis','Stock Level Adjustment','Sales Lead Automation'], a:0},
+      {q:'A "bottleneck" in a process refers to:', options:['The fastest step in a workflow','A stage that limits the overall throughput of the process','An unused resource','A quality certification'], a:1},
+      {q:'Which metric measures how often deliveries arrive as promised?', options:['On-time delivery rate','Employee turnover','Net profit margin','Customer acquisition cost'], a:0},
+      {q:'"Lean" operations primarily focus on:', options:['Increasing waste','Eliminating waste while maximizing value','Reducing customer service levels','Increasing headcount'], a:1},
+    ],
+    round2mcq:[
+      {q:'A key supplier informs you of a 2-week delay right before a major order deadline. Best first step?', options:['Do nothing and hope it resolves itself','Assess the impact, inform affected stakeholders, and explore alternatives','Cancel the entire order immediately','Publicly blame the supplier'], a:1},
+      {q:'You notice one step in a process is causing repeated delays across the team. What should you do?', options:['Ignore it since it\'s not your job','Analyze the root cause and propose a process improvement','Speed up other steps to compensate without addressing it','Assign blame to whoever is on that step'], a:1},
+      {q:'A shipment arrives with a portion of items damaged. What\'s the appropriate action?', options:['Accept the shipment as-is without documentation','Document the damage, report it, and initiate the return/replacement process','Discard the damaged items quietly','Refuse the entire shipment without communication'], a:1},
+      {q:'Demand for a product suddenly spikes beyond forecast. What\'s the best response?', options:['Do nothing and let stock run out','Quickly reassess forecasts and coordinate with suppliers/production to adjust supply','Raise prices without informing customers','Halt production entirely'], a:1},
+    ]
+  },
+];
+
+const DOMAINS_BY_CATEGORY = { tech: TECH_DOMAINS, nontech: NONTECH_DOMAINS };
+
+const CATEGORIES = [
+  { id:'tech', name:'Technical', icon:'💻', desc:'Software engineering, data science, cloud, cybersecurity, and mobile development — MCQ round plus a hands-on coding challenge.' },
+  { id:'nontech', name:'Non-Technical', icon:'🧭', desc:'HR, marketing, sales, finance, and operations — MCQ round plus a situational judgement round.' },
+];
+
+/* ============================================================
+   STATE
+============================================================ */
+let state = {
+  category:null, domain:null, round:1, mcqRound:1,
+  mcqIdx:0, mcqAnswers:[],
+  timerInterval:null, timeLeft:0,
+  violations:0, testActive:false,
+  lastCodeResult:false, round1Score:0,
+};
+
+/* ============================================================
+   NAVIGATION / SCREENS
+============================================================ */
+const screens = ['screen-category','screen-domains','screen-intro','screen-mcq','screen-code','screen-result','screen-flagged','screen-lms','screen-success'];
+function show(id){
+  screens.forEach(s=>document.getElementById(s).classList.toggle('visible', s===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+  renderStepper(id);
+  removeHUD();
+  if(id==='screen-mcq'||id==='screen-code') mountHUD();
+}
+function renderStepper(activeId){
+  const labels = ['Track','Domain','Round 1','Round 2','Result'];
+  let cur;
+  if(activeId==='screen-category') cur=0;
+  else if(activeId==='screen-domains') cur=1;
+  else if(activeId==='screen-intro' || activeId==='screen-mcq') cur = state.round===1 ? 2 : 3;
+  else if(activeId==='screen-code') cur=3;
+  else cur=4; // result / flagged / lms / success
+  const el = document.getElementById('stepper');
+  el.innerHTML = labels.map((l,i)=>{
+    const cls = i<cur?'done':(i===cur?'active':'');
+    return `<div class="step-pill ${cls}"><span class="num">${i+1}</span>${l}</div>`;
+  }).join('');
+}
+
+function freshState(category){
+  return {category, domain:null, round:1, mcqRound:1, mcqIdx:0, mcqAnswers:[], timerInterval:null, timeLeft:0, violations:0, testActive:false, lastCodeResult:false, round1Score:0};
+}
+
+function showCategoryScreen(){
+  exitFullscreenSafe();
+  stopTimer();
+  resultSubmitted = false;
+  state = freshState(null);
+  buildCategoryGrid();
+  show('screen-category');
+}
+function resetToDomains(){
+  exitFullscreenSafe();
+  stopTimer();
+  resultSubmitted = false;
+  state = freshState(state.category || 'tech');
+  buildDomainGrid();
+  show('screen-domains');
+}
+
+/* ============================================================
+   CATEGORY GRID
+============================================================ */
+function buildCategoryGrid(){
+  const grid = document.getElementById('categoryGrid');
+  grid.innerHTML = CATEGORIES.map(c=>`
+    <div class="domain-card" onclick="selectCategory('${c.id}')">
+      <div class="domain-banner">${c.icon}</div>
+      <div class="domain-body">
+        <h3>${c.name}</h3>
+        <p>${c.desc}</p>
+        <button class="pill-btn dark">Choose ${c.name} →</button>
+      </div>
+    </div>`).join('');
+}
+function selectCategory(id){
+  state = freshState(id);
+  const cat = CATEGORIES.find(c=>c.id===id);
+  document.getElementById('domainsHeroTitle').textContent = `${cat.name} Specializations ${cat.icon}`;
+  document.getElementById('domainsHeroSub').textContent = 'Select your specific area of expertise to generate your targeted assessment.';
+  buildDomainGrid();
+  show('screen-domains');
+}
+
+/* ============================================================
+   DOMAIN GRID
+============================================================ */
+function buildDomainGrid(){
+  const list = DOMAINS_BY_CATEGORY[state.category] || TECH_DOMAINS;
+  const grid = document.getElementById('domainGrid');
+  grid.innerHTML = list.map(d=>`
+    <div class="domain-card" onclick="selectDomain('${d.id}')">
+      <div class="domain-banner">${d.icon}</div>
+      <div class="domain-body">
+        <h3>${d.name}</h3>
+        <p>${d.desc}</p>
+        <button class="pill-btn">Select Path →</button>
+      </div>
+    </div>`).join('');
+}
+function selectDomain(id){
+  const list = DOMAINS_BY_CATEGORY[state.category] || TECH_DOMAINS;
+  state.domain = list.find(d=>d.id===id);
+  state.round = 1;
+  showIntro();
+}
+
+/* ============================================================
+   INTRO SCREEN
+============================================================ */
+function showIntro(){
+  const d = state.domain;
+  const isCode = d.type === 'code';
+  document.getElementById('introBadge').textContent = state.round===1
+    ? 'Round 1 · MCQ'
+    : (isCode ? 'Round 2 · Coding Challenge' : 'Round 2 · Situational Judgement');
+  document.getElementById('introTitle').textContent = state.round===1
+    ? `${d.name} — Concept Check`
+    : (isCode ? `${d.name} — Hands-on Coding` : `${d.name} — Judgement & Scenarios`);
+  document.getElementById('introDesc').textContent = state.round===1
+    ? `${d.mcq.length} multiple-choice questions, ${MCQ_TIME_LIMIT/60} minutes. You need ${MCQ_PASS_PCT}% or higher to advance.`
+    : (isCode
+        ? `1 coding problem, ${CODE_TIME_LIMIT/60} minutes. All test cases must pass to advance.`
+        : `${d.round2mcq.length} scenario-based questions, ${SCENARIO_TIME_LIMIT/60} minutes. You need ${ROUND2_PASS_PCT}% or higher to advance.`);
+  document.getElementById('introRules').innerHTML = `
+    <li>🔒 The test runs in <strong>fullscreen mode</strong> — exiting it counts as a violation.</li>
+    <li>👁️ Switching tabs or minimizing the window is detected and logged.</li>
+    <li>🚫 Copy, paste, and right-click are disabled during the assessment.</li>
+    <li>⚠️ ${MAX_VIOLATIONS} violations in a round auto-submits and flags your attempt.</li>
+    <li>⏱️ The timer auto-submits your answers when it reaches zero.</li>
+  `;
+  show('screen-intro');
+}
+
+/* ============================================================
+   ANTI-CHEAT ENGINE
+============================================================ */
+function requestFS(){
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  if(req) req.call(el).catch(()=>{});
+}
+function exitFullscreenSafe(){
+  if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+}
+function onFullscreenChange(){
+  if(!state.testActive) return;
+  if(!document.fullscreenElement) registerViolation('Exited fullscreen');
+}
+function onVisibilityChange(){
+  if(!state.testActive) return;
+  if(document.hidden) registerViolation('Switched tab / minimized window');
+}
+function onBlur(){
+  if(!state.testActive) return;
+  registerViolation('Window lost focus');
+}
+function blockContext(e){ if(state.testActive) e.preventDefault(); }
+function blockKeys(e){
+  if(!state.testActive) return;
+  const k = e.key.toLowerCase();
+  if((e.ctrlKey||e.metaKey) && ['c','v','x','u','s'].includes(k)){ e.preventDefault(); registerViolation('Blocked clipboard/devtools shortcut'); }
+  if(k==='f12'){ e.preventDefault(); registerViolation('Blocked devtools shortcut'); }
+}
+function blockCopyPaste(e){ if(state.testActive) e.preventDefault(); }
+
+document.addEventListener('fullscreenchange', onFullscreenChange);
+document.addEventListener('visibilitychange', onVisibilityChange);
+window.addEventListener('blur', onBlur);
+document.addEventListener('contextmenu', blockContext);
+document.addEventListener('keydown', blockKeys);
+document.addEventListener('copy', blockCopyPaste);
+document.addEventListener('cut', blockCopyPaste);
+document.addEventListener('paste', blockCopyPaste);
+
+let violCooldown = false;
+function registerViolation(reason){
+  if(violCooldown) return; // avoid double counting rapid-fire events
+  violCooldown = true; setTimeout(()=>violCooldown=false, 900);
+  state.violations++;
+  flashViolation();
+  updateHUD();
+  if(state.violations >= MAX_VIOLATIONS){
+    state.testActive = false;
+    stopTimer();
+    exitFullscreenSafe();
+    if(window.__proctorStop) window.__proctorStop();
+    submitAssessmentResult({
+      domain: state.domain.id,
+      round1_score: state.round1Score,
+      round1_passed: state.round===1 ? false : true,
+      round2_passed: state.round===2 ? false : null,
+      overall_passed: false,
+      violations: state.violations,
+      flagged: true,
+    });
+    show('screen-flagged');
+  } else if(document.fullscreenElement === null && state.testActive){
+    // gentle nudge back to fullscreen after a real violation
+    setTimeout(()=>{ if(state.testActive) requestFS(); }, 400);
+  }
+}
+function flashViolation(){
+  const f = document.getElementById('flash');
+  f.classList.remove('show'); void f.offsetWidth; f.classList.add('show');
+  document.body.classList.remove('shake'); void document.body.offsetWidth; document.body.classList.add('shake');
+}
+
+/* ---------- Integrity HUD ---------- */
+function mountHUD(){
+  if(document.getElementById('hud')) return;
+  const hud = document.createElement('div');
+  hud.id = 'hud';
+  hud.innerHTML = `
+    <h4><span class="radar"></span> Integrity Monitor</h4>
+    <div class="hud-row"><span>Fullscreen</span><span class="val" id="hudFS">Active</span></div>
+    <div class="hud-row"><span>Window Focus</span><span class="val" id="hudFocus">Locked</span></div>
+    <div class="hud-row"><span>Violations</span><span class="val" id="hudViolText">0 / ${MAX_VIOLATIONS}</span></div>
+    <div class="viol-dots" id="hudDots">${Array.from({length:MAX_VIOLATIONS}).map(()=>'<div class="viol-dot"></div>').join('')}</div>
+  `;
+  document.body.appendChild(hud);
+  updateHUD();
+}
+function removeHUD(){ const h=document.getElementById('hud'); if(h) h.remove(); }
+function updateHUD(){
+  const fs = document.getElementById('hudFS'), fc = document.getElementById('hudFocus'), vt = document.getElementById('hudViolText');
+  if(!fs) return;
+  fs.textContent = document.fullscreenElement ? 'Active' : 'Inactive';
+  fs.className = 'val' + (document.fullscreenElement ? '' : ' bad');
+  fc.textContent = document.hidden ? 'Lost' : 'Locked';
+  fc.className = 'val' + (document.hidden ? ' bad' : '');
+  vt.textContent = `${state.violations} / ${MAX_VIOLATIONS}`;
+  vt.className = 'val' + (state.violations>0 ? ' bad':'');
+  document.querySelectorAll('#hudDots .viol-dot').forEach((el,i)=>{
+    el.classList.toggle('hit', i < state.violations);
+  });
+}
+
+/* ============================================================
+   TIMER
+============================================================ */
+function startTimer(seconds, tickEl, onExpire){
+  state.timeLeft = seconds;
+  stopTimer();
+  updateTimerDisplay(tickEl);
+  state.timerInterval = setInterval(()=>{
+    state.timeLeft--;
+    updateTimerDisplay(tickEl);
+    if(state.timeLeft<=0){ stopTimer(); onExpire(); }
+  },1000);
+}
+function stopTimer(){ if(state.timerInterval){ clearInterval(state.timerInterval); state.timerInterval=null; } }
+function updateTimerDisplay(elId){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const m = Math.floor(state.timeLeft/60), s = state.timeLeft%60;
+  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.classList.toggle('low', state.timeLeft<=30);
+}
+
+/* ============================================================
+   ROUND START
+============================================================ */
+function startRound(){
+  requestFS();
+  state.violations = 0;
+  state.testActive = true;
+  updateHUD();
+  if(state.round===1){
+    startMCQ(1);
+  } else if(state.domain.type === 'code'){
+    startCode();
+  } else {
+    startMCQ(2);
+  }
+}
+
+/* ============================================================
+   MCQ / SITUATIONAL JUDGEMENT ROUND (shared renderer)
+============================================================ */
+function currentQuestionSet(){
+  return state.mcqRound === 1 ? state.domain.mcq : state.domain.round2mcq;
+}
+function startMCQ(round){
+  state.mcqRound = round;
+  const qs = currentQuestionSet();
+  state.mcqIdx = 0;
+  state.mcqAnswers = new Array(qs.length).fill(null);
+  document.getElementById('mcqLabel').textContent = round===1
+    ? `Round 1 · ${state.domain.name} MCQ`
+    : `Round 2 · ${state.domain.name} Situational Judgement`;
+  renderMCQ();
+  show('screen-mcq');
+  const limit = round===1 ? MCQ_TIME_LIMIT : SCENARIO_TIME_LIMIT;
+  startTimer(limit, 'mcqTimer', ()=>finishMCQ(true));
+}
+function renderMCQ(){
+  const qs = currentQuestionSet();
+  const i = state.mcqIdx, q = qs[i];
+  document.getElementById('mcqIndex').textContent = `Question ${i+1} of ${qs.length}`;
+  document.getElementById('mcqQuestion').textContent = q.q;
+  document.getElementById('mcqProgress').style.width = `${(i/qs.length)*100}%`;
+  const opts = document.getElementById('mcqOptions');
+  opts.innerHTML = q.options.map((o,idx)=>`
+    <div class="option ${state.mcqAnswers[i]===idx?'selected':''}" onclick="chooseOption(${idx})">${o}</div>
+  `).join('');
+  const isLast = (i === qs.length-1);
+  document.getElementById('mcqNextBtn').textContent = isLast
+    ? (state.mcqRound===1 ? 'Submit Round 1 →' : 'Submit Round 2 →')
+    : 'Next →';
+}
+function chooseOption(idx){
+  state.mcqAnswers[state.mcqIdx] = idx;
+  renderMCQ();
+}
+function nextQ(){
+  const qs = currentQuestionSet();
+  if(state.mcqIdx < qs.length-1){ state.mcqIdx++; renderMCQ(); }
+  else { finishMCQ(false); }
+}
+function prevQ(){ if(state.mcqIdx>0){ state.mcqIdx--; renderMCQ(); } }
+
+function finishMCQ(timedOut){
+  stopTimer();
+  state.testActive = false;
+  exitFullscreenSafe();
+  if(window.__proctorStop) window.__proctorStop();
+  const d = state.domain;
+  const round = state.mcqRound;
+  const qs = currentQuestionSet();
+  let correct = 0;
+  qs.forEach((q,i)=>{ if(state.mcqAnswers[i]===q.a) correct++; });
+  const pct = Math.round((correct/qs.length)*100);
+
+  if(round === 1){
+    const passed = pct >= MCQ_PASS_PCT;
+    state.round1Score = pct;
+    if(!passed){
+      submitAssessmentResult({
+        domain: d.id,
+        round1_score: pct,
+        round1_passed: false,
+        round2_passed: null,
+        overall_passed: false,
+        violations: state.violations,
+        flagged: false,
+      });
+    }
+    showResult({
+      round:1, passed, pct,
+      passLine:`You scored ${correct}/${qs.length} (${pct}%) — that clears the ${MCQ_PASS_PCT}% bar for Round 1.`,
+      failLine:`You scored ${correct}/${qs.length} (${pct}%) — Round 1 needs ${MCQ_PASS_PCT}% or higher.${timedOut?' (Time expired.)':''}`,
+      onAdvance:()=>{ state.round=2; showIntro(); }
+    });
+  } else {
+    // Round 2 — Situational Judgement (non-technical domains)
+    const passed = pct >= ROUND2_PASS_PCT;
+    submitAssessmentResult({
+      domain: d.id,
+      round1_score: state.round1Score,
+      round1_passed: true,
+      round2_passed: passed,
+      overall_passed: passed,
+      violations: state.violations,
+      flagged: false,
+    });
+    showResult({
+      round:2, passed, pct,
+      passLine:`You scored ${correct}/${qs.length} (${pct}%) on the Situational Judgement round.`,
+      failLine:`You scored ${correct}/${qs.length} (${pct}%) — Round 2 needs ${ROUND2_PASS_PCT}% or higher.${timedOut?' (Time expired.)':''}`,
+      onAdvance:()=>showSuccess()
+    });
+  }
+}
+
+/* ============================================================
+   ROUND 2 — CODE (technical domains only)
+============================================================ */
+function startCode(){
+  const c = state.domain.code;
+  document.getElementById('codeTitle').textContent = c.title;
+  document.getElementById('codeDesc').textContent = c.desc;
+  document.getElementById('codeArea').value = c.starter;
+  document.getElementById('tcList').innerHTML = 'Run your code to see results.';
+  state.lastCodeResult = false;
+  show('screen-code');
+  startTimer(CODE_TIME_LIMIT, 'codeTimer', ()=>finishCode(true));
+}
+function runCode(){
+  const c = state.domain.code;
+  const code = document.getElementById('codeArea').value;
+  const fnNameMatch = c.starter.match(/function\s+(\w+)/);
+  const fnName = fnNameMatch ? fnNameMatch[1] : null;
+  let results = [];
+  let allPass = true;
+  try{
+    const fn = new Function(code + `\nreturn typeof ${fnName} !== 'undefined' ? ${fnName} : null;`)();
+    if(typeof fn !== 'function') throw new Error('Function not found');
+    c.tests.forEach(t=>{
+      let out, ok=false, errText='';
+      try{
+        out = fn(...t.args);
+        ok = JSON.stringify(out) === JSON.stringify(t.expected);
+      }catch(e){ errText = e.message; ok=false; }
+      if(!ok) allPass = false;
+      results.push({args:t.args, expected:t.expected, out, ok, errText});
+    });
+  }catch(e){
+    allPass = false;
+    results = [{args:[], expected:'', out:'Error: '+e.message, ok:false}];
+  }
+  state.lastCodeResult = allPass;
+  document.getElementById('tcList').innerHTML = results.map((r,i)=>`
+    <div class="tc-row">
+      <span>Test ${i+1}: ${fnName}(${r.args.map(a=>JSON.stringify(a)).join(', ')}) → expected ${JSON.stringify(r.expected)}, got ${JSON.stringify(r.out)}</span>
+      <span class="${r.ok?'tc-pass':'tc-fail'}">${r.ok?'PASS':'FAIL'}</span>
+    </div>
+  `).join('');
+}
+function submitCode(){ finishCode(false); }
+function finishCode(timedOut){
+  stopTimer();
+  state.testActive = false;
+  exitFullscreenSafe();
+  if(window.__proctorStop) window.__proctorStop();
+  if(!document.getElementById('tcList').textContent.includes('PASS') && !document.getElementById('tcList').textContent.includes('FAIL')){
+    runCode(); // ensure evaluated at least once on submit/timeout
+  }
+  const passed = state.lastCodeResult;
+  submitAssessmentResult({
+    domain: state.domain.id,
+    round1_score: state.round1Score,
+    round1_passed: true,
+    round2_passed: passed,
+    overall_passed: passed,
+    violations: state.violations,
+    flagged: false,
+  });
+  showResult({
+    round:2, passed, pct: passed?100:0,
+    passLine:`All test cases passed. Round 2 complete.`,
+    failLine:`One or more test cases failed.${timedOut?' (Time expired.)':''}`,
+    onAdvance:()=>showSuccess()
+  });
+}
+
+/* ============================================================
+   RESULT / ROUTING
+============================================================ */
+function showResult({round, passed, pct, passLine, failLine, onAdvance}){
+  const panel = document.getElementById('resultPanel');
+  if(passed){
+    panel.innerHTML = `
+      <div class="result-icon result-pass">✅</div>
+      <div class="score-ring" style="--pct:${pct}"><span>${pct}%</span></div>
+      <h2 style="color:var(--forest-dark);">Round ${round} cleared!</h2>
+      <p>${passLine}</p>
+      <div class="cta-row"><button class="btn-primary" id="advanceBtn">Continue →</button></div>
+    `;
+    show('screen-result');
+    document.getElementById('advanceBtn').onclick = onAdvance;
+  } else {
+    panel.innerHTML = `
+      <div class="result-icon result-fail">❌</div>
+      <div class="score-ring" style="--pct:${pct}"><span>${pct}%</span></div>
+      <h2 style="color:var(--danger);">Round ${round} not cleared</h2>
+      <p>${failLine}</p>
+      <div class="cta-row"><button class="btn-primary" id="lmsGoBtn">Go to LMS →</button></div>
+    `;
+    show('screen-result');
+    document.getElementById('lmsGoBtn').onclick = routeToLMS;
+  }
+}
+function routeToLMS(){
+  document.getElementById('lmsText').textContent =
+    `Your attempt in ${state.domain?.name || 'this domain'} didn't clear the required bar. Sharpen up with the recommended learning path below, then come back and try again.`;
+  document.getElementById('lmsLink').href = LMS_LINK;
+  show('screen-lms');
+}
+function showSuccess(){
+  document.getElementById('successText').textContent =
+    `Both rounds cleared for ${state.domain.name}. Your profile has been forwarded directly to the hiring company — no further action needed. Redirecting you to your dashboard…`;
+  show('screen-success');
+  launchConfetti();
+  setTimeout(goToDashboard, 3500);
+}
+
+/* ============================================================
+   CONFETTI EFFECT
+============================================================ */
+function launchConfetti(){
+  const canvas = document.getElementById('confetti-canvas');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#1b5e20','#2e7d32','#e8b923','#d7ecd9','#3f8a45'];
+  let pieces = Array.from({length:140}).map(()=>({
+    x:Math.random()*canvas.width, y:-20-Math.random()*canvas.height*0.5,
+    r:4+Math.random()*5, c:colors[Math.floor(Math.random()*colors.length)],
+    vy:2+Math.random()*3, vx:-1.5+Math.random()*3, rot:Math.random()*360, vr:-6+Math.random()*12
+  }));
+  let frames = 0;
+  function tick(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.c; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.6); ctx.restore();
+    });
+    frames++;
+    if(frames<220) requestAnimationFrame(tick); else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  tick();
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+buildCategoryGrid();
+show('screen-category');
+
+// --- exposed for proctoring module (added) ---
+window.appAPIBase = API_BASE;
+window.getCurrentAssessmentId = () => state.domain ? state.domain.id : null;
+</script>
+<script type="module">
+import { ProctorCamera } from './proctoring/camera.js';
+import { FaceDetectionMonitor } from './proctoring/faceDetection.js';
+import { HeadPoseMonitor } from './proctoring/headPose.js';
+import { PhoneDetectionMonitor } from './proctoring/phoneDetection.js';
+import { ViolationManager } from './proctoring/violationManager.js';
+
+const violationManager = new ViolationManager({
+  apiBase: window.appAPIBase,
+  authHeaders: window.authHeaders,
+  getAssessmentId: window.getCurrentAssessmentId,
+});
+
+const faceMonitor = new FaceDetectionMonitor({
+  onNoFaceViolation: (meta) => violationManager.report('no_face', meta),
+  onMultipleFacesViolation: (meta) => violationManager.report('multiple_faces', meta),
+  onWarning: (msg) => violationManager.showWarning(msg),
+});
+
+const headPoseMonitor = new HeadPoseMonitor({
+  onLookingAwayViolation: (meta) => violationManager.report('looking_away', meta),
+  onWarning: (msg) => violationManager.showWarning(msg),
+});
+
+const phoneMonitor = new PhoneDetectionMonitor({
+  onPhoneViolation: (meta) => violationManager.report('phone', meta),
+  onWarning: (msg) => violationManager.showWarning(msg),
+});
+
+const cam = new ProctorCamera({
+  videoElementId: 'proctorVideo',
+  onFrame: (videoEl) => {
+    faceMonitor.processFrame(videoEl);
+    headPoseMonitor.processFrame(videoEl);
+    phoneMonitor.processFrame(videoEl);
+  },
+  onStatusChange: (connected) => {
+    const dot = document.getElementById('proctorStatusDot');
+    if (dot) dot.style.background = connected ? 'limegreen' : 'red';
+  },
+  onPermissionBlocked: (message) => {
+    document.getElementById('proctorBlockMessage').textContent = message;
+    document.getElementById('proctorBlockOverlay').style.display = 'flex';
+  },
+  frameIntervalMs: 500,
+});
+
+window.beginProctoredAssessment = async function () {
+  const granted = await cam.requestPermission();
+  if (!granted) return;
+
+  document.getElementById('proctorBlockOverlay').style.display = 'none';
+
+  await Promise.all([
+    faceMonitor.init(),
+    headPoseMonitor.init(),
+    phoneMonitor.init(),
+  ]);
+
+  cam.start();
+  violationManager.enable();
+
+  window.startRound(); // your existing function, unchanged
+};
+
+document.getElementById('proctorRetryBtn').addEventListener('click', window.beginProctoredAssessment);
+
+window.__proctorStop = () => {
+  cam.stop();
+  violationManager.disable();
+  faceMonitor.dispose();
+  headPoseMonitor.dispose();
+  phoneMonitor.dispose();
+};
+</script>
+</body>
+</html>
