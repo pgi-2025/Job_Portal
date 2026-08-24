@@ -396,7 +396,7 @@
 /* ============================================================
    CONFIG — edit these to plug into your real backend / LMS
 ============================================================ */
-const LMS_LINK = "https://lms.plantgreeninertia.com"; // <-- put your real LMS URL here
+const LMS_LINK = "https://lms.plantgreeninertia.com/"; // <-- put your real LMS URL here
 const MCQ_PASS_PCT = 60;        // % required to pass Round 1
 const ROUND2_PASS_PCT = 60;     // % required to pass Round 2 (scenario domains) / all tests must pass for code domains
 const MAX_VIOLATIONS = 3;       // strikes before auto-fail/flag
@@ -790,10 +790,30 @@ function showIntro(){
 /* ============================================================
    ANTI-CHEAT ENGINE
 ============================================================ */
-function requestFS(){
+async function requestFS(){
   const el = document.documentElement;
-  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-  if(req) req.call(el).catch(()=>{});
+
+  const req =
+    el.requestFullscreen ||
+    el.webkitRequestFullscreen ||
+    el.msRequestFullscreen;
+
+  if(!req){
+    console.error('Fullscreen is not supported by this browser.');
+    return false;
+  }
+
+  if(document.fullscreenElement){
+    return true;
+  }
+
+  try{
+    await req.call(el);
+    return true;
+  }catch(err){
+    console.error('Fullscreen request failed:', err);
+    return false;
+  }
 }
 function exitFullscreenSafe(){
   if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
@@ -917,7 +937,6 @@ function updateTimerDisplay(elId){
    ROUND START
 ============================================================ */
 function startRound(){
-  requestFS();
   state.violations = 0;
   state.testActive = true;
   updateHUD();
@@ -1225,11 +1244,43 @@ const cam = new ProctorCamera({
 });
 
 window.beginProctoredAssessment = async function () {
+
+  // Request fullscreen immediately from the user's button click.
+  // DO NOT put an await before this call.
+  const fullscreenStarted = requestFS();
+
+  // Keep the existing camera permission functionality.
   const granted = await cam.requestPermission();
-  if (!granted) return;
+
+  if (!granted) {
+    await fullscreenStarted;
+    exitFullscreenSafe();
+    return;
+  }
+
+  // Wait for the fullscreen request to finish.
+  const fullscreenOk = await fullscreenStarted;
+
+  if (!fullscreenOk) {
+    const message = document.getElementById('proctorBlockMessage');
+
+    if (message) {
+      message.textContent =
+        'Fullscreen mode could not be enabled. Please allow fullscreen access and click "Enter Fullscreen & Begin" again.';
+    }
+
+    const overlay = document.getElementById('proctorBlockOverlay');
+
+    if (overlay) {
+      overlay.style.display = 'flex';
+    }
+
+    return;
+  }
 
   document.getElementById('proctorBlockOverlay').style.display = 'none';
 
+  // Keep the existing proctoring initialization unchanged.
   await Promise.all([
     faceMonitor.init(),
     headPoseMonitor.init(),
