@@ -798,21 +798,39 @@ async function requestFS(){
     el.webkitRequestFullscreen ||
     el.msRequestFullscreen;
 
-  if(!req){
-    console.error('Fullscreen is not supported by this browser.');
-    return false;
+  if (!req) {
+    console.error('Fullscreen API is not supported.');
+    return {
+      success: false,
+      reason: 'unsupported'
+    };
   }
 
-  if(document.fullscreenElement){
-    return true;
+  if (document.fullscreenElement) {
+    return {
+      success: true,
+      reason: 'already-fullscreen'
+    };
   }
 
-  try{
+  try {
     await req.call(el);
-    return true;
-  }catch(err){
-    console.error('Fullscreen request failed:', err);
-    return false;
+
+    return {
+      success: true,
+      reason: 'started'
+    };
+
+  } catch (error) {
+
+    console.error('FULLSCREEN REQUEST FAILED:', error);
+
+    return {
+      success: false,
+      reason: error?.name || 'fullscreen-failed',
+      message: error?.message || 'Unknown fullscreen error',
+      error
+    };
   }
 }
 function exitFullscreenSafe(){
@@ -1245,42 +1263,93 @@ const cam = new ProctorCamera({
 
 window.beginProctoredAssessment = async function () {
 
-  // Request fullscreen immediately from the user's button click.
-  // DO NOT put an await before this call.
-  const fullscreenStarted = requestFS();
+  console.log('=== FULLSCREEN ENVIRONMENT CHECK ===');
 
-  // Keep the existing camera permission functionality.
+  console.log({
+    url: window.location.href,
+    protocol: window.location.protocol,
+    hostname: window.location.hostname,
+    isSecureContext: window.isSecureContext,
+    fullscreenEnabled: document.fullscreenEnabled,
+    fullscreenElement: document.fullscreenElement,
+    inIframe: window.self !== window.top,
+    userAgent: navigator.userAgent
+  });
+
+  console.log(
+    'requestFullscreen available:',
+    !!document.documentElement.requestFullscreen
+  );
+
+  console.log(
+    'webkitRequestFullscreen available:',
+    !!document.documentElement.webkitRequestFullscreen
+  );
+
+  console.log('Fullscreen: requesting from user click');
+
+  const fullscreenPromise = requestFS();
+
   const granted = await cam.requestPermission();
 
   if (!granted) {
-    await fullscreenStarted;
-    exitFullscreenSafe();
+
+    const fullscreenResult = await fullscreenPromise;
+
+    if (fullscreenResult.success) {
+      exitFullscreenSafe();
+    }
+
     return;
   }
 
-  // Wait for the fullscreen request to finish.
-  const fullscreenOk = await fullscreenStarted;
+  const fullscreenResult = await fullscreenPromise;
 
-  if (!fullscreenOk) {
-    const message = document.getElementById('proctorBlockMessage');
+  console.log('Fullscreen result:', fullscreenResult);
+
+  if (!fullscreenResult.success) {
+
+    const message =
+      document.getElementById('proctorBlockMessage');
 
     if (message) {
-      message.textContent =
-        'Fullscreen mode could not be enabled. Please allow fullscreen access and click "Enter Fullscreen & Begin" again.';
+
+      if (fullscreenResult.reason === 'unsupported') {
+
+        message.textContent =
+          'Fullscreen is not supported by this browser. Please use the latest version of Google Chrome or Microsoft Edge.';
+
+      } else if (
+        fullscreenResult.reason === 'NotAllowedError'
+      ) {
+
+        message.textContent =
+          'Fullscreen access was blocked by your browser. Please allow fullscreen for this website and click "Enter Fullscreen & Begin" again.';
+
+      } else {
+
+        message.textContent =
+          'Fullscreen could not be enabled. Please allow fullscreen access and try again.';
+      }
     }
 
-    const overlay = document.getElementById('proctorBlockOverlay');
+    const overlay =
+      document.getElementById('proctorBlockOverlay');
 
     if (overlay) {
       overlay.style.display = 'flex';
     }
+
+    console.error(
+      'Assessment cannot start because fullscreen failed:',
+      fullscreenResult
+    );
 
     return;
   }
 
   document.getElementById('proctorBlockOverlay').style.display = 'none';
 
-  // Keep the existing proctoring initialization unchanged.
   await Promise.all([
     faceMonitor.init(),
     headPoseMonitor.init(),
@@ -1290,7 +1359,7 @@ window.beginProctoredAssessment = async function () {
   cam.start();
   violationManager.enable();
 
-  window.startRound(); // your existing function, unchanged
+  window.startRound();
 };
 
 document.getElementById('proctorRetryBtn').addEventListener('click', window.beginProctoredAssessment);
