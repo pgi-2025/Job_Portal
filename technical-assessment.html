@@ -1288,22 +1288,13 @@ window.beginProctoredAssessment = async function () {
 
   console.log('Fullscreen: requesting from user click');
 
-  const fullscreenPromise = requestFS();
+const granted = await cam.requestPermission();
 
-  const granted = await cam.requestPermission();
+if (!granted) {
+  return;
+}
 
-  if (!granted) {
-
-    const fullscreenResult = await fullscreenPromise;
-
-    if (fullscreenResult.success) {
-      exitFullscreenSafe();
-    }
-
-    return;
-  }
-
-  const fullscreenResult = await fullscreenPromise;
+const fullscreenResult = await requestFS();
 
   console.log('Fullscreen result:', fullscreenResult);
 
