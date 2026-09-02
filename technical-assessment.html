@@ -1215,11 +1215,11 @@ window.appAPIBase = API_BASE;
 window.getCurrentAssessmentId = () => state.domain ? state.domain.id : null;
 </script>
 <script type="module">
-import { ProctorCamera } from './proctoring/camera.js';
-import { FaceDetectionMonitor } from './proctoring/facedetection.js';
-import { HeadPoseMonitor } from './proctoring/headpose.js';
-import { PhoneDetectionMonitor } from './proctoring/phonedetection.js';
-import { ViolationManager } from './proctoring/violationManager.js';
+import { ProctorCamera } from '/proctoring/camera.js';
+import { FaceDetectionMonitor } from '/proctoring/facedetection.js';
+import { HeadPoseMonitor } from '/proctoring/headpose.js';
+import { PhoneDetectionMonitor } from '/proctoring/phonedetection.js';
+import { ViolationManager } from '/proctoring/violationManager.js';
 
 const violationManager = new ViolationManager({
   apiBase: window.appAPIBase,
