@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Add Company - Admin</title>
+<style>
+  body{ font-family:Arial, sans-serif; background:#f3f5f3; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
+  .box{ background:#fff; padding:32px; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,0.08); width:100%; max-width:380px; }
+  h2{ margin-top:0; }
+  label{ display:block; font-size:13px; font-weight:600; margin:14px 0 6px; }
+  input{ width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; box-sizing:border-box; font-size:14px; }
+  button{ width:100%; margin-top:20px; padding:12px; background:#0e3b2c; color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:14px; }
+  button:disabled{ opacity:0.6; cursor:default; }
+  #msg{ margin-top:14px; font-size:13px; padding:10px; border-radius:8px; display:none; }
+  #msg.ok{ background:#e6f6ec; color:#0e3b2c; display:block; }
+  #msg.err{ background:#fdeaea; color:#a4243b; display:block; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h2>Add a Company</h2>
+
+    <label>Admin Secret</label>
+    <input id="secret" type="password" placeholder="Your ADMIN_PROVISION_SECRET" autocomplete="off">
+
+    <label>Company Name</label>
+    <input id="name" type="text" placeholder="e.g. New Company Pvt Ltd">
+
+    <label>Work Email</label>
+    <input id="email" type="email" placeholder="hr@newcompany.com">
+
+    <label>Password</label>
+    <input id="password" type="text" placeholder="e.g. changeme123">
+
+    <button id="submitBtn" onclick="addCompany()">Add Company</button>
+
+    <div id="msg"></div>
+  </div>
+
+<script>
+async function addCompany(){
+  const secret = document.getElementById('secret').value.trim();
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('submitBtn');
+
+  msg.style.display = 'none';
+
+  if(!secret || !name || !email || !password){
+    msg.className = 'err';
+    msg.textContent = 'Please fill in every field.';
+    msg.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Adding...';
+
+  try{
+    const res = await fetch('/api/admin/company/provision', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Secret': secret
+      },
+      body: JSON.stringify({ company_name: name, email: email, password: password })
+    });
+    const data = await res.json();
+
+    if(res.ok && data.success){
+      msg.className = 'ok';
+      msg.textContent = `Success! ${name} can now log in with ${email}.`;
+      msg.style.display = 'block';
+      document.getElementById('name').value = '';
+      document.getElementById('email').value = '';
+      document.getElementById('password').value = '';
+    } else {
+      msg.className = 'err';
+      msg.textContent = data.detail || data.error || 'Something went wrong. Check the admin secret and try again.';
+      msg.style.display = 'block';
+    }
+  } catch(e){
+    msg.className = 'err';
+    msg.textContent = 'Could not reach the server. Is app.py running?';
+    msg.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Add Company';
+  }
+}
+</script>
+</body>
+</html>

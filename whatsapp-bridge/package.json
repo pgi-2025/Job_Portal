@@ -1,0 +1,17 @@
+{
+  "name": "whatsapp-channel-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Free, self-hosted bridge that posts text to a WhatsApp Channel using Baileys, exposed as a tiny HTTP API the Flask backend calls.",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "baileys": "^7.0.0-rc14",
+    "express": "^4.19.2",
+    "pino": "^9.3.2",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
