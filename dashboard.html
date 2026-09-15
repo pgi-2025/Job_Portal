@@ -457,6 +457,9 @@
     .cta-bar .cta-title{ font-size:15px; }
     .cta-bar .cta-sub{ font-size:13px; }
   }
+body.profile-incomplete .dash-grid>div:not(#profileColumn),body.profile-incomplete #ctaBar{display:none!important}
+body.profile-incomplete .dash-grid{grid-template-columns:1fr;max-width:640px;margin:0 auto}
+.gate-note{background:#fff3cd;border:1px solid #ffe08a;color:#7a5c00;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;text-align:center}
 </style>
 </head>
 <body>
@@ -530,6 +533,7 @@
   <!-- RIGHT COLUMN -->
   <div id="profileColumn">
     <div class="card">
+      <p class="gate-note" id="gateNote" style="display:none;">Please complete your full profile before you can access the dashboard.</p>
       <h3>Profile Update</h3>
 
       <div class="completeness">
@@ -562,7 +566,7 @@
           <input type="text" id="pf-degree" placeholder="Degree" required>
         </div>
         <div class="field" data-field="mobile_number">
-          <label>Contact Number * <span style="font-weight:400;color:var(--muted,#7a8a7d);">(private — never shown to companies)</span></label>
+          <label>Contact Number *</label>
           <input type="tel" id="pf-mobile" placeholder="10-digit mobile number" required>
         </div>
         <div class="field" data-field="age">
@@ -605,7 +609,7 @@
           <label>Resume — Projects *</label>
           <textarea id="pf-resume-projects" rows="3" placeholder="One per line" required></textarea>
         </div>
-        <p class="resume-note" id="resumeFileName" style="font-size:12px;color:var(--muted,#7a8a7d);margin:-6px 0 14px;">We'll auto-build your resume in our company format from these details. Your contact number is kept private and never shared with companies.</p>
+        <p class="resume-note" id="resumeFileName" style="font-size:12px;color:var(--muted,#7a8a7d);margin:-6px 0 14px;">We'll auto-build your resume in our company format from these details, including your contact number and email.</p>
 
         <div class="upload-row field" data-field="photo">
           <label>Upload Photo *</label>
@@ -729,6 +733,11 @@
       doc.text(lines, 24, sy); sy += lines.length * 12 + 8;
     };
 
+    if(profile.mobile_number || profile.email){
+      sbSection('Contact');
+      if(profile.mobile_number) sbLine(profile.mobile_number);
+      if(profile.email) sbLine(profile.email);
+    }
     if(profile.resume_skills){
       sbSection('Skills');
       profile.resume_skills.split(',').map(s => s.trim()).filter(Boolean).forEach(skill => sbLine(`•  ${skill}`));
@@ -1164,6 +1173,18 @@
     document.getElementById('pfYearsField').style.display = e.target.value === 'Experienced' ? 'flex' : 'none';
   });
 
+  const REQUIRED_PROFILE_FIELDS = ['full_name','college','degree','mobile_number','age','employment_type','salary_expectation','resume_summary','resume_skills','resume_experience','resume_projects','photo_url'];
+  function isProfileComplete(p){
+    if(!p) return false;
+    return REQUIRED_PROFILE_FIELDS.every(f => p[f] !== null && p[f] !== undefined && String(p[f]).trim() !== '');
+  }
+  function applyProfileGate(profile){
+    const complete = isProfileComplete(profile);
+    document.body.classList.toggle('profile-incomplete', !complete);
+    document.getElementById('gateNote').style.display = complete ? 'none' : 'block';
+    if(!complete) document.getElementById('profileColumn').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
   async function loadProfile(){
     if(!token) return;
     try{
@@ -1175,8 +1196,10 @@
       paintGreeting(cachedProfile);
       fillForm(cachedProfile);
       updateCtaBar(cachedProfile);
+      applyProfileGate(cachedProfile);
     }catch(err){
       fillForm(cachedProfile || {});
+      applyProfileGate(cachedProfile);
     }
   }
 
@@ -1283,7 +1306,7 @@
 
       // Auto-build resume PDF in company format and upload; upload photo if newly chosen
       if(payload.resume_summary || payload.resume_skills || payload.resume_experience || payload.resume_projects){
-        const pdfBlob = await buildResumePdf({ ...payload, photo_url: data.profile?.photo_url });
+        const pdfBlob = await buildResumePdf({ ...payload, photo_url: data.profile?.photo_url, email: cachedProfile.email });
         const fd = new FormData(); fd.append('file', pdfBlob, 'resume.pdf');
         await fetch(`${API_BASE}/api/student/upload-resume`, { method:'POST', headers: authHeaders(), body: fd });
       }
@@ -1311,6 +1334,7 @@
       sessionStorage.setItem('grove_profile', JSON.stringify(cachedProfile));
       paintGreeting(cachedProfile);
       updateCompleteness(cachedProfile);
+      applyProfileGate(cachedProfile);
     }catch(err){
       showToast(err.message, 'error');
     }finally{
@@ -1335,6 +1359,7 @@
     }
   }
   updateCtaBar(cachedProfile || {});
+  applyProfileGate(cachedProfile);
 
   document.getElementById('ctaBar').addEventListener('click', () => {
     window.location.href = 'technical-assessment.html';
