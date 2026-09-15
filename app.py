@@ -230,7 +230,7 @@ def _login(payload: dict, expected_role: str):
         "access_token": session.access_token,
         "refresh_token": session.refresh_token,
         "role": role,
-        "profile": profile,
+        "profile": {**(profile or {}), "email": user.email},
     })
 
 
@@ -444,7 +444,7 @@ def get_me():
     profile = _require_student()
     if profile is None:
         return error("Student profile not found.", 403)
-    return jsonify({"profile": profile})
+    return jsonify({"profile": {**profile, "email": g.user.email}})
 
 
 @app.route("/api/student/profile", methods=["PUT"])
@@ -622,8 +622,11 @@ def submit_assessment():
             "round1_score": payload.get("round1_score"),
             "round1_correct": payload.get("round1_correct"),
             "round1_total": payload.get("round1_total"),
+            "round1_breakdown": payload.get("round1_breakdown"),
             "round1_passed": payload.get("round1_passed"),
             "round2_passed": payload.get("round2_passed"),
+            "round2_correct": payload.get("round2_correct"),
+            "round2_total": payload.get("round2_total"),
             "overall_passed": overall_passed,
             "violations": payload.get("violations", 0),
             "flagged": payload.get("flagged", False),
@@ -657,6 +660,9 @@ def submit_assessment():
         updates["qualified_domain"] = payload["domain"]
         updates["round1_correct"] = payload.get("round1_correct")
         updates["round1_total"] = payload.get("round1_total")
+        updates["round1_breakdown"] = payload.get("round1_breakdown")
+        updates["round2_correct"] = payload.get("round2_correct")
+        updates["round2_total"] = payload.get("round2_total")
 
     supabase_admin.table("profiles").update(updates).eq("id", g.user.id).execute()
 
@@ -1070,7 +1076,7 @@ def company_candidates():
         .select(
             "id, full_name, college, degree, age, "
             "resume_url, photo_url, qualified_domain, assessment_status, updated_at, "
-            "round1_correct, round1_total, employment_type, experience_years, salary_expectation, "
+            "round1_correct, round1_total, round1_breakdown, round2_correct, round2_total, employment_type, experience_years, salary_expectation, "
             "is_placed, selected_by_company_id, company_confirmed_hire"
         )
         .eq("role", "student")
@@ -1323,4 +1329,4 @@ def admin_selected_candidates():
 
 if __name__ == "__main__":
     # Matches the API_BASE your HTML files hardcode: http://localhost:8000
-    app.run(host="127.0.0.1", port=8000, debug=True)
+    app.run(host="127.0.0.1", port=8000, debug=True, use_reloader=False, threaded=False)
