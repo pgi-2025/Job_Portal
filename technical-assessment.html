@@ -400,7 +400,7 @@ const LMS_LINK = "https://lms.plantgreeninertia.com/"; // <-- put your real LMS 
 const MCQ_PASS_PCT = 60;        // % required to pass Round 1
 const ROUND2_PASS_PCT = 60;     // % required to pass Round 2 (scenario domains) / all tests must pass for code domains
 const MAX_VIOLATIONS = 3;       // strikes before auto-fail/flag
-const MCQ_TIME_LIMIT = 10*60;   // seconds — Round 1
+const MCQ_TIME_LIMIT = 25*60;   // seconds — Round 1 (50 questions)
 const CODE_TIME_LIMIT = 15*60;  // seconds — Round 2 (coding domains)
 const SCENARIO_TIME_LIMIT = 8*60; // seconds — Round 2 (situational judgement domains)
 
@@ -414,6 +414,10 @@ let cachedProfile = {};
 try { cachedProfile = JSON.parse(sessionStorage.getItem('grove_profile') || '{}'); } catch(e){}
 if(!token){
   window.location.href = 'login.html';
+}
+const REQUIRED_PROFILE_FIELDS = ['full_name','college','degree','mobile_number','age','employment_type','salary_expectation','resume_summary','resume_skills','resume_experience','resume_projects','photo_url'];
+if(!REQUIRED_PROFILE_FIELDS.every(f => cachedProfile[f] !== null && cachedProfile[f] !== undefined && String(cachedProfile[f]).trim() !== '')){
+  window.location.href = 'dashboard.html';
 }
 function authHeaders(extra = {}){
   return Object.assign({ 'Authorization': `Bearer ${token}` }, extra);
@@ -447,207 +451,872 @@ async function submitAssessmentResult(payload){
 
 /* ============================================================
    DATA — TECHNICAL DOMAINS (Round 2 = Coding Challenge)
+   Each domain now has 5 question sets (mcqSets / codeSets) —
+   one is picked at random per attempt so candidates sitting
+   together are far less likely to see the same paper.
 ============================================================ */
 const TECH_DOMAINS = [
   {
     id:'swe', type:'code', name:'Software Engineering', icon:'💻',
+    areas:['Data Structures','Algorithms & Complexity','OOP & Design Patterns','Web & APIs'],
     desc:'Full-stack development, algorithms, system architecture, and application design.',
-    mcq:[
-      {q:'Which data structure follows LIFO (Last-In-First-Out) order?', options:['Queue','Stack','Linked List','Heap'], a:1},
-      {q:'What is the time complexity of binary search on a sorted array?', options:['O(n)','O(n log n)','O(log n)','O(1)'], a:2},
-      {q:'Which SOLID principle states a class should have only one reason to change?', options:['Open/Closed','Liskov Substitution','Single Responsibility','Dependency Inversion'], a:2},
-      {q:'Which HTTP method is considered idempotent?', options:['POST','GET','PATCH','CONNECT'], a:1},
-      {q:'Which design pattern restricts a class to a single instance?', options:['Factory','Observer','Singleton','Adapter'], a:2},
-    ],
-    code:{
-      title:'Reverse a String',
-      desc:'Write a function reverseString(str) that returns the input string reversed. Example: reverseString("hello") → "olleh".',
-      starter:'function reverseString(str) {\n  // your code here\n}',
-      tests:[
-        {args:['hello'], expected:'olleh'},
-        {args:['Portal'], expected:'latroP'},
-        {args:[''], expected:''},
+    mcqSets:[
+      [
+
+      // --- Company Loyalty (10) ---
+        {q:'What best reflects genuine commitment to an organization you join?', options:['Consistently showing up only when convenient','Understanding the company\'s goals and contributing reliably over time','Leaving immediately after any minor disagreement','Doing the minimum required to avoid being fired'], a:1},
+        {q:'If you disagree with a company decision, the most professional approach is to:', options:['Complain to colleagues without raising it formally','Ignore it and quietly disengage','Raise your concern respectfully through the right channel','Refuse to follow it publicly'], a:2},
+        {q:'Why do companies value employees who stay and grow within the organization?', options:['It reduces hiring/training costs and builds deeper expertise','It has no real benefit to the company','It only benefits the employee','It guarantees promotions regardless of performance'], a:0},
+        {q:'You\'re offered a slightly higher salary elsewhere right after joining a company that invested in your training. What shows integrity?', options:['Leave immediately without informing anyone','Weigh the offer honestly and communicate transparently with your employer','Take the new job and ghost your current employer','Accept both jobs secretly'], a:1},
+        {q:'A strong sense of company loyalty is best shown by:', options:['Publicly criticizing the company on social media','Protecting company reputation while still giving honest, constructive feedback internally','Never having any opinions of your own','Sharing confidential company information freely'], a:1},
+        {q:'If you make a mistake at work, the most loyal and professional response is to:', options:['Hide it and hope no one notices','Blame a colleague to protect yourself','Own up to it, report it, and help fix it','Quit immediately'], a:2},
+        {q:'Which behavior best demonstrates long-term commitment to an employer?', options:['Job-hopping every few months for tiny pay bumps','Investing effort to learn the role and grow with the company','Doing only tasks that get public recognition','Avoiding all teamwork'], a:1},
+        {q:'How should an employee handle confidential company information?', options:['Share it with friends if asked casually','Post it online to build a personal brand','Protect it and only share on a need-to-know basis as per policy','Sell it to a competitor for personal gain'], a:2},
+        {q:'What is the healthiest way to build trust with a new employer?', options:['Overpromise and underdeliver','Be consistent, honest, and deliver on commitments','Avoid all communication with managers','Take credit for others\' work'], a:1},
+        {q:'Why might an employee choose to stay with a company through a difficult period rather than leave immediately?', options:['Because loyalty and shared problem-solving often strengthen long-term trust and growth','Because leaving is always illegal','Because staying guarantees an instant raise','Because it has no effect on their career'], a:0},
+      // --- Data Structures (10) ---
+        {q:'Which data structure follows LIFO (Last-In-First-Out) order?', options:['Queue','Stack','Linked List','Heap'], a:1},
+        {q:'What is the time complexity of binary search on a sorted array?', options:['O(n)','O(n log n)','O(log n)','O(1)'], a:2},
+        {q:'Which SOLID principle states a class should have only one reason to change?', options:['Open/Closed','Liskov Substitution','Single Responsibility','Dependency Inversion'], a:2},
+        {q:'Which HTTP method is considered idempotent?', options:['POST','GET','PATCH','CONNECT'], a:1},
+        {q:'Which design pattern restricts a class to a single instance?', options:['Factory','Observer','Singleton','Adapter'], a:2},
+        {q:'Which data structure follows FIFO (First-In-First-Out) order?', options:['Stack','Queue','Tree','Graph'], a:1},
+        {q:'What is the time complexity of accessing an element in an array by index?', options:['O(n)','O(log n)','O(1)','O(n^2)'], a:2},
+        {q:'Which data structure uses a First-In-First-Out order for elements added to a circular buffer?', options:['Stack','Circular Queue','Binary Tree','Trie'], a:1},
+        {q:'A Trie is most commonly used to efficiently store and search:', options:['Strings/prefixes','Graph edges','Floating point numbers','Images'], a:0},
+        {q:'Which structure gives O(1) average insertion and lookup by key?', options:['Hash Map','Sorted Array','Linked List','Binary Search Tree'], a:0},
+      // --- Algorithms & Complexity (10) ---
+        {q:'Which SOLID principle states subtypes must be substitutable for their base types?', options:['Single Responsibility','Liskov Substitution','Interface Segregation','Open/Closed'], a:1},
+        {q:'Which HTTP status code indicates a successful resource creation?', options:['200','201','301','404'], a:1},
+        {q:'Which design pattern defines a one-to-many dependency so dependents are notified of state changes?', options:['Singleton','Factory','Observer','Adapter'], a:2},
+        {q:'Which data structure uses key-value pairs for O(1) average lookup?', options:['Array','Linked List','Hash Map','Stack'], a:2},
+        {q:'What is the worst-case time complexity of quicksort?', options:['O(n log n)','O(n)','O(n^2)','O(log n)'], a:2},
+        {q:'Which SOLID principle says entities should be open for extension but closed for modification?', options:['Single Responsibility','Open/Closed','Dependency Inversion','Interface Segregation'], a:1},
+        {q:'What is the time complexity of merge sort in the average and worst case?', options:['O(n)','O(n log n)','O(n^2)','O(log n)'], a:1},
+        {q:'Which technique solves problems by breaking them into overlapping subproblems and caching results?', options:['Dynamic Programming','Brute Force','Bubble Sort','Linear Search'], a:0},
+        {q:'What is the space complexity of an in-place quicksort implementation (excluding recursion stack)?', options:['O(1)','O(n)','O(n log n)','O(n^2)'], a:0},
+        {q:'Big-O notation primarily describes:', options:['Exact runtime in seconds','The growth rate of an algorithm\'s resource usage as input grows','The programming language used','The number of lines of code'], a:1},
+      // --- OOP & Design Patterns (10) ---
+        {q:'Which HTTP method is used to partially update a resource?', options:['GET','PUT','PATCH','DELETE'], a:2},
+        {q:'Which pattern provides an interface for creating objects without specifying their exact class?', options:['Singleton','Factory','Decorator','Proxy'], a:1},
+        {q:'Which data structure is best suited for implementing undo functionality?', options:['Queue','Stack','Hash Map','Tree'], a:1},
+        {q:'What is the space complexity of an iterative Fibonacci implementation using two variables?', options:['O(n)','O(1)','O(log n)','O(n^2)'], a:1},
+        {q:'Which SOLID principle discourages forcing a class to implement interfaces it doesn\'t use?', options:['Interface Segregation','Single Responsibility','Liskov Substitution','Open/Closed'], a:0},
+        {q:'Which HTTP method is NOT idempotent?', options:['GET','PUT','DELETE','POST'], a:3},
+        {q:'Which principle encourages depending on abstractions rather than concrete implementations?', options:['Dependency Inversion','Single Responsibility','Liskov Substitution','Interface Segregation'], a:0},
+        {q:'The MVC pattern separates an application into:', options:['Model, View, Controller','Menu, Value, Component','Method, Variable, Class','Module, Version, Config'], a:0},
+        {q:'Which design pattern lets you build complex objects step by step?', options:['Builder','Singleton','Observer','Adapter'], a:0},
+        {q:'Encapsulation in OOP primarily means:', options:['Exposing all internal data publicly','Bundling data and methods while restricting direct access to internals','Deleting unused classes','Compiling code faster'], a:1},
+      // --- Web & APIs (10) ---
+        {q:'Which pattern wraps an object to add behavior dynamically without altering its class?', options:['Decorator','Singleton','Factory','Observer'], a:0},
+        {q:'Which traversal visits a binary tree\'s root before its children?', options:['In-order','Pre-order','Post-order','Level-order'], a:1},
+        {q:'What is the average time complexity of searching in a balanced binary search tree?', options:['O(n)','O(log n)','O(1)','O(n log n)'], a:1},
+        {q:'Which SOLID principle states high-level modules should not depend directly on low-level modules?', options:['Dependency Inversion','Single Responsibility','Open/Closed','Liskov Substitution'], a:0},
+        {q:'Which HTTP header specifies the format of the request body?', options:['Accept','Content-Type','Authorization','Host'], a:1},
+        {q:'Which pattern separates an abstraction from its implementation so both can vary independently?', options:['Bridge','Singleton','Facade','Command'], a:0},
+        {q:'Which HTTP status code range indicates a client error?', options:['1xx','2xx','4xx','5xx'], a:2},
+        {q:'REST APIs commonly use which format for exchanging structured data?', options:['JSON','EXE','MP3','ZIP'], a:0},
+        {q:'What does \'idempotent\' mean for an HTTP method like PUT?', options:['Repeating the same request produces the same result each time','It can never fail','It always creates a new resource','It only works once'], a:0},
+        {q:'Which HTTP header is used to send authentication credentials?', options:['Authorization','Content-Length','User-Agent','Host'], a:0},
+    
       ]
-    }
+    ],
+    codeSets:[
+      { title:'Reverse a String', desc:'Write a function reverseString(str) that returns the input string reversed. Example: reverseString("hello") → "olleh".', starter:'function reverseString(str) {\n  // your code here\n}', tests:[{args:['hello'], expected:'olleh'},{args:['Portal'], expected:'latroP'},{args:[''], expected:''}] },
+      { title:'Sum an Array', desc:'Write a function sumArray(arr) that returns the sum of all numbers in the array. Example: sumArray([1,2,3]) → 6.', starter:'function sumArray(arr) {\n  // your code here\n}', tests:[{args:[[1,2,3]], expected:6},{args:[[]], expected:0},{args:[[5,-2,3]], expected:6}] },
+      { title:'Check Palindrome', desc:'Write a function isPalindrome(str) that returns true if the string reads the same forwards and backwards (case-sensitive), false otherwise. Example: isPalindrome("level") → true.', starter:'function isPalindrome(str) {\n  // your code here\n}', tests:[{args:['level'], expected:true},{args:['hello'], expected:false},{args:[''], expected:true}] },
+      { title:'Find the Maximum', desc:'Write a function findMax(arr) that returns the largest number in the array. Example: findMax([3,7,2]) → 7.', starter:'function findMax(arr) {\n  // your code here\n}', tests:[{args:[[3,7,2]], expected:7},{args:[[-5,-1,-9]], expected:-1},{args:[[4]], expected:4}] },
+      { title:'Count Vowels', desc:'Write a function countVowels(str) that returns the number of vowels (a,e,i,o,u, case-insensitive) in the string. Example: countVowels("Hello") → 2.', starter:'function countVowels(str) {\n  // your code here\n}', tests:[{args:['Hello'], expected:2},{args:['xyz'], expected:0},{args:['AEIOU'], expected:5}] },
+    ]
   },
   {
     id:'ds', type:'code', name:'Data Science & AI', icon:'📊',
+    areas:['Statistics & Probability','Machine Learning Basics','Data Processing with Python','Neural Networks & Deep Learning'],
     desc:'Machine learning, statistical analysis, Python processing, and neural networks.',
-    mcq:[
-      {q:'Which algorithm is based on Bayes\' theorem and is often used for classification?', options:['K-Means','Naive Bayes','Linear Regression','DBSCAN'], a:1},
-      {q:'"Overfitting" refers to a model that:', options:['Performs poorly on all data','Performs well on training data but poorly on unseen data','Trains too fast','Has too few parameters'], a:1},
-      {q:'Which activation function outputs a value between 0 and 1?', options:['ReLU','Tanh','Sigmoid','Softplus'], a:2},
-      {q:'What technique is commonly used to reduce the number of features while preserving variance?', options:['PCA','One-Hot Encoding','Bagging','Cross Validation'], a:0},
-      {q:'For a highly imbalanced classification problem, which metric is usually most informative?', options:['Accuracy','F1 Score','Mean Squared Error','R²'], a:1},
-    ],
-    code:{
-      title:'Compute the Mean',
-      desc:'Write a function mean(arr) that returns the average of an array of numbers. Example: mean([2,4,6]) → 4.',
-      starter:'function mean(arr) {\n  // your code here\n}',
-      tests:[
-        {args:[[2,4,6]], expected:4},
-        {args:[[10]], expected:10},
-        {args:[[1,2,3,4]], expected:2.5},
+    mcqSets:[
+      [
+
+      // --- Company Loyalty (10) ---
+        {q:'What best reflects genuine commitment to an organization you join?', options:['Consistently showing up only when convenient','Understanding the company\'s goals and contributing reliably over time','Leaving immediately after any minor disagreement','Doing the minimum required to avoid being fired'], a:1},
+        {q:'If you disagree with a company decision, the most professional approach is to:', options:['Complain to colleagues without raising it formally','Ignore it and quietly disengage','Raise your concern respectfully through the right channel','Refuse to follow it publicly'], a:2},
+        {q:'Why do companies value employees who stay and grow within the organization?', options:['It reduces hiring/training costs and builds deeper expertise','It has no real benefit to the company','It only benefits the employee','It guarantees promotions regardless of performance'], a:0},
+        {q:'You\'re offered a slightly higher salary elsewhere right after joining a company that invested in your training. What shows integrity?', options:['Leave immediately without informing anyone','Weigh the offer honestly and communicate transparently with your employer','Take the new job and ghost your current employer','Accept both jobs secretly'], a:1},
+        {q:'A strong sense of company loyalty is best shown by:', options:['Publicly criticizing the company on social media','Protecting company reputation while still giving honest, constructive feedback internally','Never having any opinions of your own','Sharing confidential company information freely'], a:1},
+        {q:'If you make a mistake at work, the most loyal and professional response is to:', options:['Hide it and hope no one notices','Blame a colleague to protect yourself','Own up to it, report it, and help fix it','Quit immediately'], a:2},
+        {q:'Which behavior best demonstrates long-term commitment to an employer?', options:['Job-hopping every few months for tiny pay bumps','Investing effort to learn the role and grow with the company','Doing only tasks that get public recognition','Avoiding all teamwork'], a:1},
+        {q:'How should an employee handle confidential company information?', options:['Share it with friends if asked casually','Post it online to build a personal brand','Protect it and only share on a need-to-know basis as per policy','Sell it to a competitor for personal gain'], a:2},
+        {q:'What is the healthiest way to build trust with a new employer?', options:['Overpromise and underdeliver','Be consistent, honest, and deliver on commitments','Avoid all communication with managers','Take credit for others\' work'], a:1},
+        {q:'Why might an employee choose to stay with a company through a difficult period rather than leave immediately?', options:['Because loyalty and shared problem-solving often strengthen long-term trust and growth','Because leaving is always illegal','Because staying guarantees an instant raise','Because it has no effect on their career'], a:0},
+      // --- Statistics & Probability (10) ---
+        {q:'Which algorithm is based on Bayes\' theorem and is often used for classification?', options:['K-Means','Naive Bayes','Linear Regression','DBSCAN'], a:1},
+        {q:'"Overfitting" refers to a model that:', options:['Performs poorly on all data','Performs well on training data but poorly on unseen data','Trains too fast','Has too few parameters'], a:1},
+        {q:'Which activation function outputs a value between 0 and 1?', options:['ReLU','Tanh','Sigmoid','Softplus'], a:2},
+        {q:'What technique is commonly used to reduce the number of features while preserving variance?', options:['PCA','One-Hot Encoding','Bagging','Cross Validation'], a:0},
+        {q:'For a highly imbalanced classification problem, which metric is usually most informative?', options:['Accuracy','F1 Score','Mean Squared Error','R²'], a:1},
+        {q:'Which algorithm builds an ensemble of decision trees and averages their predictions?', options:['K-Means','Random Forest','Linear Regression','Naive Bayes'], a:1},
+        {q:'"Underfitting" refers to a model that:', options:['Fits training data too closely','Is too simple to capture the underlying pattern','Has too many parameters','Always achieves 100% accuracy'], a:1},
+        {q:'The \'mean\' of a dataset is best described as:', options:['The middle value when sorted','The most frequent value','The sum divided by the number of values','The range of values'], a:2},
+        {q:'Standard deviation measures:', options:['The average value','How spread out data points are from the mean','The total count of data points','The median value'], a:1},
+        {q:'A p-value close to 0 in hypothesis testing typically suggests:', options:['Strong evidence against the null hypothesis','No relationship exists','The sample size is too small','The data is not numeric'], a:0},
+      // --- Machine Learning Basics (10) ---
+        {q:'Which activation function can output negative values and is prone to the "dying neuron" problem?', options:['Sigmoid','Softmax','ReLU','Softplus'], a:2},
+        {q:'Which technique splits data into training and validation folds to assess model performance?', options:['Cross-validation','One-Hot Encoding','PCA','Normalization'], a:0},
+        {q:'Which metric balances precision and recall into a single score?', options:['Accuracy','F1 Score','R²','Mean Absolute Error'], a:1},
+        {q:'Which unsupervised algorithm groups data into a specified number of clusters based on distance?', options:['K-Means','Naive Bayes','Logistic Regression','Random Forest'], a:0},
+        {q:'What does "regularization" primarily help prevent in machine learning models?', options:['Underfitting','Overfitting','Data leakage','Class imbalance'], a:1},
+        {q:'Which function converts a vector of raw scores into a probability distribution across classes?', options:['Sigmoid','ReLU','Softmax','Tanh'], a:2},
+        {q:'Overfitting in machine learning occurs when a model:', options:['Performs well on training data but poorly on unseen data','Performs poorly on all data','Trains too quickly','Uses too little data intentionally'], a:0},
+        {q:'Which of these is a supervised learning task?', options:['Predicting house prices from labeled examples','Clustering customers with no labels','Reducing dimensionality of data','Generating random noise'], a:0},
+        {q:'A \'confusion matrix\' is used to evaluate:', options:['Classification model performance','Database schema design','Network latency','Server uptime'], a:0},
+        {q:'What does \'feature engineering\' refer to?', options:['Creating or transforming input variables to improve model performance','Designing the user interface','Writing unit tests','Deploying servers'], a:0},
+      // --- Data Processing with Python (10) ---
+        {q:'Which technique combines predictions from multiple weak models to improve accuracy?', options:['Ensemble learning','PCA','One-Hot Encoding','Normalization'], a:0},
+        {q:'Which metric measures average squared difference between predicted and actual values in regression?', options:['F1 Score','Mean Squared Error','Precision','Recall'], a:1},
+        {q:'Which algorithm is a supervised method used to predict a continuous numeric value?', options:['K-Means','Linear Regression','DBSCAN','Apriori'], a:1},
+        {q:'A model with high variance and low bias typically:', options:['Underfits the data','Overfits the data','Ignores the data','Always generalizes well'], a:1},
+        {q:'Which neural network layer type is primarily used to reduce spatial dimensions of image data?', options:['Fully Connected','Pooling','Embedding','Recurrent'], a:1},
+        {q:'Which preprocessing step converts categorical variables into binary columns?', options:['Normalization','One-Hot Encoding','PCA','Standardization'], a:1},
+        {q:'Which Python library is most commonly used for dataframes and tabular data manipulation?', options:['pandas','tkinter','socket','threading'], a:0},
+        {q:'NumPy arrays are preferred over plain Python lists for numerical work mainly because they are:', options:['Faster and more memory-efficient for vectorized operations','Always smaller in file size','Only usable for text','Slower but easier to read'], a:0},
+        {q:'\'Data cleaning\' typically includes:', options:['Handling missing values and correcting inconsistent entries','Only renaming file extensions','Encrypting all data','Deleting the entire dataset'], a:0},
+        {q:'Which of these best describes \'normalization\' of data?', options:['Scaling values to a common range for fair comparison','Deleting outliers only','Converting text to images','Increasing dataset size'], a:0},
+      // --- Neural Networks & Deep Learning (10) ---
+        {q:'In a confusion matrix, "recall" measures:', options:['True positives out of all predicted positives','True positives out of all actual positives','Overall accuracy','False positive rate'], a:1},
+        {q:'Which algorithm is commonly used for anomaly detection based on density of points?', options:['DBSCAN','Linear Regression','Naive Bayes','Decision Tree'], a:0},
+        {q:'"Feature engineering" refers to:', options:['Deleting all features randomly','Creating or transforming input variables to improve model performance','Only used in deep learning','Removing the target variable'], a:1},
+        {q:'Which neural network architecture is best suited for sequential data like text or time series?', options:['CNN','RNN','Autoencoder','GAN'], a:1},
+        {q:'Which technique standardizes features to have zero mean and unit variance?', options:['One-Hot Encoding','Standardization','PCA','Bagging'], a:1},
+        {q:'In classification, "precision" measures:', options:['True positives out of all predicted positives','True positives out of all actual positives','Overall accuracy','Total sample size'], a:0},
+        {q:'A neural network\'s \'activation function\' primarily serves to:', options:['Introduce non-linearity so the network can learn complex patterns','Store the training data','Compile the code','Reduce the file size'], a:0},
+        {q:'\'Backpropagation\' is used in neural networks to:', options:['Update weights by propagating the error gradient backward','Randomly initialize weights','Visualize the network','Store data in a database'], a:0},
+        {q:'A Convolutional Neural Network (CNN) is most commonly applied to:', options:['Image data','Only text translation','Only tabular spreadsheets','Only audio compression'], a:0},
+        {q:'\'Epochs\' in neural network training refer to:', options:['The number of complete passes through the training dataset','The number of layers','The learning rate value','The size of the test set'], a:0},
+    
       ]
-    }
+    ],
+    codeSets:[
+      { title:'Compute the Mean', desc:'Write a function mean(arr) that returns the average of an array of numbers. Example: mean([2,4,6]) → 4.', starter:'function mean(arr) {\n  // your code here\n}', tests:[{args:[[2,4,6]], expected:4},{args:[[10]], expected:10},{args:[[1,2,3,4]], expected:2.5}] },
+      { title:'Compute the Median', desc:'Write a function median(arr) that returns the median of an array of numbers. Example: median([3,1,2]) → 2.', starter:'function median(arr) {\n  // your code here\n}', tests:[{args:[[3,1,2]], expected:2},{args:[[1,2,3,4]], expected:2.5},{args:[[5]], expected:5}] },
+      { title:'Count Occurrences', desc:'Write a function countOccurrences(arr, val) that returns how many times val appears in arr. Example: countOccurrences([1,2,2,3],2) → 2.', starter:'function countOccurrences(arr, val) {\n  // your code here\n}', tests:[{args:[[1,2,2,3],2], expected:2},{args:[[1,1,1],2], expected:0},{args:[[],5], expected:0}] },
+      { title:'Compute the Range', desc:'Write a function range(arr) that returns the difference between the max and min values in the array. Example: range([4,1,9,3]) → 8.', starter:'function range(arr) {\n  // your code here\n}', tests:[{args:[[4,1,9,3]], expected:8},{args:[[5,5,5]], expected:0},{args:[[10]], expected:0}] },
+      { title:'Compute Dot Product', desc:'Write a function dotProduct(a, b) that returns the dot product of two equal-length numeric arrays. Example: dotProduct([1,2,3],[4,5,6]) → 32.', starter:'function dotProduct(a, b) {\n  // your code here\n}', tests:[{args:[[1,2,3],[4,5,6]], expected:32},{args:[[1,0],[0,1]], expected:0},{args:[[2],[3]], expected:6}] },
+    ]
   },
   {
     id:'cloud', type:'code', name:'Cloud Computing', icon:'☁️',
+    areas:['Cloud Service Models','Networking Fundamentals','Storage & Databases','Cloud Security'],
     desc:'AWS/Azure infrastructure, DevOps pipelines, containerization, and networking.',
-    mcq:[
-      {q:'Which AWS service is primarily used for scalable object storage?', options:['EC2','S3','Lambda','RDS'], a:1},
-      {q:'What does "IaaS" stand for?', options:['Internet as a Service','Infrastructure as a Service','Integration as a Service','Identity as a Service'], a:1},
-      {q:'Which tool is the industry standard for container orchestration?', options:['Docker Compose','Jenkins','Kubernetes','Terraform'], a:2},
-      {q:'Automatically adding/removing compute instances based on load is called:', options:['Load Balancing','Auto Scaling','Sharding','Failover'], a:1},
-      {q:'Which protocol is commonly used for secure remote server access?', options:['FTP','SSH','HTTP','SMTP'], a:1},
-    ],
-    code:{
-      title:'Validate an IPv4 Address',
-      desc:'Write a function isValidIP(ip) that returns true for a basic valid IPv4 (4 dot-separated numbers 0-255), false otherwise. Example: isValidIP("192.168.1.1") → true.',
-      starter:'function isValidIP(ip) {\n  // your code here\n}',
-      tests:[
-        {args:['192.168.1.1'], expected:true},
-        {args:['999.1.1.1'], expected:false},
-        {args:['10.0.0.5'], expected:true},
-        {args:['abc.1.1.1'], expected:false},
+    mcqSets:[
+      [
+
+      // --- Company Loyalty (10) ---
+        {q:'What best reflects genuine commitment to an organization you join?', options:['Consistently showing up only when convenient','Understanding the company\'s goals and contributing reliably over time','Leaving immediately after any minor disagreement','Doing the minimum required to avoid being fired'], a:1},
+        {q:'If you disagree with a company decision, the most professional approach is to:', options:['Complain to colleagues without raising it formally','Ignore it and quietly disengage','Raise your concern respectfully through the right channel','Refuse to follow it publicly'], a:2},
+        {q:'Why do companies value employees who stay and grow within the organization?', options:['It reduces hiring/training costs and builds deeper expertise','It has no real benefit to the company','It only benefits the employee','It guarantees promotions regardless of performance'], a:0},
+        {q:'You\'re offered a slightly higher salary elsewhere right after joining a company that invested in your training. What shows integrity?', options:['Leave immediately without informing anyone','Weigh the offer honestly and communicate transparently with your employer','Take the new job and ghost your current employer','Accept both jobs secretly'], a:1},
+        {q:'A strong sense of company loyalty is best shown by:', options:['Publicly criticizing the company on social media','Protecting company reputation while still giving honest, constructive feedback internally','Never having any opinions of your own','Sharing confidential company information freely'], a:1},
+        {q:'If you make a mistake at work, the most loyal and professional response is to:', options:['Hide it and hope no one notices','Blame a colleague to protect yourself','Own up to it, report it, and help fix it','Quit immediately'], a:2},
+        {q:'Which behavior best demonstrates long-term commitment to an employer?', options:['Job-hopping every few months for tiny pay bumps','Investing effort to learn the role and grow with the company','Doing only tasks that get public recognition','Avoiding all teamwork'], a:1},
+        {q:'How should an employee handle confidential company information?', options:['Share it with friends if asked casually','Post it online to build a personal brand','Protect it and only share on a need-to-know basis as per policy','Sell it to a competitor for personal gain'], a:2},
+        {q:'What is the healthiest way to build trust with a new employer?', options:['Overpromise and underdeliver','Be consistent, honest, and deliver on commitments','Avoid all communication with managers','Take credit for others\' work'], a:1},
+        {q:'Why might an employee choose to stay with a company through a difficult period rather than leave immediately?', options:['Because loyalty and shared problem-solving often strengthen long-term trust and growth','Because leaving is always illegal','Because staying guarantees an instant raise','Because it has no effect on their career'], a:0},
+      // --- Cloud Service Models (10) ---
+        {q:'Which AWS service is primarily used for scalable object storage?', options:['EC2','S3','Lambda','RDS'], a:1},
+        {q:'What does "IaaS" stand for?', options:['Internet as a Service','Infrastructure as a Service','Integration as a Service','Identity as a Service'], a:1},
+        {q:'Which tool is the industry standard for container orchestration?', options:['Docker Compose','Jenkins','Kubernetes','Terraform'], a:2},
+        {q:'Automatically adding/removing compute instances based on load is called:', options:['Load Balancing','Auto Scaling','Sharding','Failover'], a:1},
+        {q:'Which protocol is commonly used for secure remote server access?', options:['FTP','SSH','HTTP','SMTP'], a:1},
+        {q:'Which AWS service provides serverless compute that runs code in response to events?', options:['EC2','Lambda','S3','RDS'], a:1},
+        {q:'What does "PaaS" stand for?', options:['Platform as a Service','Product as a Service','Provisioning as a Service','Private as a Service'], a:0},
+        {q:'Which cloud service model provides virtualized computing infrastructure over the internet?', options:['IaaS','SaaS','PaaS','FaaS-only'], a:0},
+        {q:'SaaS (Software as a Service) means the provider manages:', options:['The complete software application, so users just use it via the internet','Only the physical hardware','Only the network cables','Nothing at all'], a:0},
+        {q:'\'Auto-scaling\' in the cloud refers to:', options:['Automatically adjusting compute resources based on demand','Manually resizing servers once a year','Deleting unused accounts','Encrypting all traffic'], a:0},
+      // --- Networking Fundamentals (10) ---
+        {q:'Which tool is commonly used to define infrastructure as code declaratively?', options:['Kubernetes','Terraform','Jenkins','Docker Compose'], a:1},
+        {q:'Distributing incoming traffic across multiple servers is called:', options:['Auto Scaling','Load Balancing','Sharding','Caching'], a:1},
+        {q:'Which protocol is used to securely transfer files over a network?', options:['HTTP','SFTP','SMTP','DNS'], a:1},
+        {q:'Which AWS service is a managed relational database offering?', options:['S3','RDS','Lambda','CloudFront'], a:1},
+        {q:'What does "SaaS" stand for?', options:['Software as a Service','System as a Service','Storage as a Service','Security as a Service'], a:0},
+        {q:'Which technology packages an application with its dependencies into a portable, isolated unit?', options:['Kubernetes','Docker','Terraform','Jenkins'], a:1},
+        {q:'What is the purpose of a \'load balancer\'?', options:['Distribute incoming traffic across multiple servers','Store files permanently','Encrypt passwords','Compile source code'], a:0},
+        {q:'A \'CDN\' (Content Delivery Network) primarily helps to:', options:['Serve content from servers geographically closer to users for speed','Store financial records','Manage payroll','Train machine learning models'], a:0},
+        {q:'Which protocol is commonly used to securely transfer files?', options:['SFTP','HTTP','SMTP','DNS'], a:0},
+        {q:'What does \'latency\' measure in networking?', options:['The delay before data transfer begins following an instruction','The total storage capacity','The number of users online','The cost of bandwidth'], a:0},
+      // --- Storage & Databases (10) ---
+        {q:'Splitting a database across multiple machines to improve scalability is called:', options:['Sharding','Load Balancing','Caching','Failover'], a:0},
+        {q:'Which port is conventionally used for HTTPS traffic?', options:['21','80','443','22'], a:2},
+        {q:'Which AWS service delivers content via a global network of edge locations (CDN)?', options:['CloudFront','EC2','IAM','VPC'], a:0},
+        {q:'A CI/CD pipeline primarily helps teams:', options:['Automate building, testing, and deploying code','Manually review every commit','Replace version control','Only manage databases'], a:0},
+        {q:'Which Kubernetes object manages a set of identical, replicated pods?', options:['Service','Deployment','ConfigMap','Ingress'], a:1},
+        {q:'Storing frequently accessed data closer to the application to reduce latency is called:', options:['Sharding','Caching','Replication','Failover'], a:1},
+        {q:'Which of these best describes \'object storage\' (e.g., for cloud file storage)?', options:['Storing data as discrete objects with metadata, ideal for unstructured data','A type of relational database only','A programming language','A network protocol'], a:0},
+        {q:'A \'relational database\' primarily organizes data using:', options:['Tables with rows and columns linked by keys','Random unstructured blobs only','Only images','Only text files'], a:0},
+        {q:'\'Database sharding\' is used to:', options:['Split a large database across multiple servers for scalability','Delete old records automatically','Encrypt passwords only','Backup data once a year'], a:0},
+        {q:'What is the main benefit of automated backups in the cloud?', options:['Ability to recover data quickly after loss or corruption','Faster page load times','Lower electricity bills','Better UI design'], a:0},
+      // --- Cloud Security (10) ---
+        {q:'Which AWS service manages user identities and permissions?', options:['IAM','S3','EC2','Route 53'], a:0},
+        {q:'Which AWS service provides scalable virtual servers?', options:['S3','EC2','Lambda','SNS'], a:1},
+        {q:'"Infrastructure as Code" (IaC) primarily allows teams to:', options:['Manage servers manually','Define and provision infrastructure via version-controlled config files','Avoid using the cloud','Only manage networking'], a:1},
+        {q:'Which networking concept isolates a private section of a cloud provider\'s network for your resources?', options:['VPC','CDN','DNS','Load Balancer'], a:0},
+        {q:'A system designed to keep operating even if a component fails is described as having:', options:['High latency','Fault tolerance','Low availability','Data loss'], a:1},
+        {q:'Which DNS record type maps a domain name to an IPv4 address?', options:['CNAME','A','MX','TXT'], a:1},
+        {q:'The \'shared responsibility model\' in cloud security means:', options:['Both the cloud provider and customer have distinct security responsibilities','Only the provider is responsible for everything','Only the customer is responsible for everything','Security is not needed in the cloud'], a:0},
+        {q:'\'Identity and Access Management\' (IAM) primarily controls:', options:['Who can access which cloud resources and what actions they can perform','Only network bandwidth','Only billing details','Only server temperature'], a:0},
+        {q:'Encrypting data \'at rest\' means:', options:['Protecting stored data on disk with encryption','Encrypting only data in transit','Never encrypting anything','Only encrypting emails'], a:0},
+        {q:'A \'firewall\' in cloud security is primarily used to:', options:['Filter and control incoming/outgoing network traffic based on rules','Speed up database queries','Design user interfaces','Compress images'], a:0},
+    
       ]
-    }
+    ],
+    codeSets:[
+      { title:'Validate an IPv4 Address', desc:'Write a function isValidIP(ip) that returns true for a basic valid IPv4 (4 dot-separated numbers 0-255), false otherwise. Example: isValidIP("192.168.1.1") → true.', starter:'function isValidIP(ip) {\n  // your code here\n}', tests:[{args:['192.168.1.1'], expected:true},{args:['999.1.1.1'], expected:false},{args:['10.0.0.5'], expected:true},{args:['abc.1.1.1'], expected:false}] },
+      { title:'Count Uppercase Letters', desc:'Write a function countUpper(str) that returns the number of uppercase letters in a string. Example: countUpper("HelloWorld") → 2.', starter:'function countUpper(str) {\n  // your code here\n}', tests:[{args:['HelloWorld'], expected:2},{args:['lowercase'], expected:0},{args:['ABC'], expected:3}] },
+      { title:'Extract Email Domain', desc:'Write a function emailDomain(email) that returns the domain part of an email address. Example: emailDomain("user@example.com") → "example.com".', starter:'function emailDomain(email) {\n  // your code here\n}', tests:[{args:['user@example.com'], expected:'example.com'},{args:['a@b.org'], expected:'b.org'}] },
+      { title:'Convert Bytes to Kilobytes', desc:'Write a function bytesToKB(bytes) that returns bytes/1024, rounded to 2 decimal places, as a number. Example: bytesToKB(2048) → 2.', starter:'function bytesToKB(bytes) {\n  // your code here\n}', tests:[{args:[2048], expected:2},{args:[1024], expected:1},{args:[1536], expected:1.5}] },
+      { title:'Validate a Port Number', desc:'Write a function isValidPort(port) that returns true if port is an integer between 0 and 65535 inclusive, false otherwise. Example: isValidPort(8080) → true.', starter:'function isValidPort(port) {\n  // your code here\n}', tests:[{args:[8080], expected:true},{args:[70000], expected:false},{args:[0], expected:true},{args:[-1], expected:false}] },
+    ]
   },
   {
     id:'cyber', type:'code', name:'Cybersecurity', icon:'🛡️',
+    areas:['Authentication & Access Control','Threats & Attacks','Cryptography Basics','Application Security'],
     desc:'Threat detection, network defense, ethical hacking, and secure system design.',
-    mcq:[
-      {q:'The "CIA" triad in security stands for:', options:['Confidentiality, Integrity, Availability','Control, Integration, Access','Cyber, Internet, Authentication','Confidentiality, Isolation, Auditing'], a:0},
-      {q:'An attack that floods a server with traffic to make it unavailable is called:', options:['Phishing','DDoS','SQL Injection','Man-in-the-Middle'], a:1},
-      {q:'In two-factor authentication, the second factor commonly used alongside a password is:', options:['A username','A one-time code (OTP)','An email address','A CAPTCHA'], a:1},
-      {q:'An encryption scheme that uses the same key to encrypt and decrypt is called:', options:['Asymmetric','Symmetric','Hashing','Digital Signature'], a:1},
-      {q:'A common defense against SQL injection is:', options:['Minifying code','Parameterized queries','Increasing timeout','Disabling HTTPS'], a:1},
-    ],
-    code:{
-      title:'Check Password Strength',
-      desc:'Write a function isStrongPassword(pw) that returns true if the password is at least 8 characters AND contains at least one digit AND at least one uppercase letter.',
-      starter:'function isStrongPassword(pw) {\n  // your code here\n}',
-      tests:[
-        {args:['Passw0rd'], expected:true},
-        {args:['weak'], expected:false},
-        {args:['alllower1'], expected:false},
-        {args:['NOLOWER1'], expected:true},
+    mcqSets:[
+      [
+
+      // --- Company Loyalty (10) ---
+        {q:'What best reflects genuine commitment to an organization you join?', options:['Consistently showing up only when convenient','Understanding the company\'s goals and contributing reliably over time','Leaving immediately after any minor disagreement','Doing the minimum required to avoid being fired'], a:1},
+        {q:'If you disagree with a company decision, the most professional approach is to:', options:['Complain to colleagues without raising it formally','Ignore it and quietly disengage','Raise your concern respectfully through the right channel','Refuse to follow it publicly'], a:2},
+        {q:'Why do companies value employees who stay and grow within the organization?', options:['It reduces hiring/training costs and builds deeper expertise','It has no real benefit to the company','It only benefits the employee','It guarantees promotions regardless of performance'], a:0},
+        {q:'You\'re offered a slightly higher salary elsewhere right after joining a company that invested in your training. What shows integrity?', options:['Leave immediately without informing anyone','Weigh the offer honestly and communicate transparently with your employer','Take the new job and ghost your current employer','Accept both jobs secretly'], a:1},
+        {q:'A strong sense of company loyalty is best shown by:', options:['Publicly criticizing the company on social media','Protecting company reputation while still giving honest, constructive feedback internally','Never having any opinions of your own','Sharing confidential company information freely'], a:1},
+        {q:'If you make a mistake at work, the most loyal and professional response is to:', options:['Hide it and hope no one notices','Blame a colleague to protect yourself','Own up to it, report it, and help fix it','Quit immediately'], a:2},
+        {q:'Which behavior best demonstrates long-term commitment to an employer?', options:['Job-hopping every few months for tiny pay bumps','Investing effort to learn the role and grow with the company','Doing only tasks that get public recognition','Avoiding all teamwork'], a:1},
+        {q:'How should an employee handle confidential company information?', options:['Share it with friends if asked casually','Post it online to build a personal brand','Protect it and only share on a need-to-know basis as per policy','Sell it to a competitor for personal gain'], a:2},
+        {q:'What is the healthiest way to build trust with a new employer?', options:['Overpromise and underdeliver','Be consistent, honest, and deliver on commitments','Avoid all communication with managers','Take credit for others\' work'], a:1},
+        {q:'Why might an employee choose to stay with a company through a difficult period rather than leave immediately?', options:['Because loyalty and shared problem-solving often strengthen long-term trust and growth','Because leaving is always illegal','Because staying guarantees an instant raise','Because it has no effect on their career'], a:0},
+      // --- Authentication & Access Control (10) ---
+        {q:'The "CIA" triad in security stands for:', options:['Confidentiality, Integrity, Availability','Control, Integration, Access','Cyber, Internet, Authentication','Confidentiality, Isolation, Auditing'], a:0},
+        {q:'An attack that floods a server with traffic to make it unavailable is called:', options:['Phishing','DDoS','SQL Injection','Man-in-the-Middle'], a:1},
+        {q:'In two-factor authentication, the second factor commonly used alongside a password is:', options:['A username','A one-time code (OTP)','An email address','A CAPTCHA'], a:1},
+        {q:'An encryption scheme that uses the same key to encrypt and decrypt is called:', options:['Asymmetric','Symmetric','Hashing','Digital Signature'], a:1},
+        {q:'A common defense against SQL injection is:', options:['Minifying code','Parameterized queries','Increasing timeout','Disabling HTTPS'], a:1},
+        {q:'A fraudulent attempt to obtain sensitive information by posing as a trustworthy entity, usually via email, is called:', options:['DDoS','Phishing','Spoofing','Ransomware'], a:1},
+        {q:'Malware that encrypts a victim\'s files and demands payment for the decryption key is called:', options:['Ransomware','Spyware','Adware','Worm'], a:0},
+        {q:'Multi-factor authentication (MFA) improves security by:', options:['Requiring two or more independent proofs of identity','Removing the need for a password entirely','Only using a username','Being slower with no benefit'], a:0},
+        {q:'The \'principle of least privilege\' means:', options:['Users should only have the minimum access needed to do their job','Everyone should have admin access','Passwords should never be changed','Firewalls are unnecessary'], a:0},
+        {q:'Role-Based Access Control (RBAC) grants permissions based on:', options:['A user\'s assigned role within the organization','Random selection','The time of day only','The user\'s device color'], a:0},
+      // --- Threats & Attacks (10) ---
+        {q:'The process of converting readable data into an unreadable format to protect it is called:', options:['Hashing','Encryption','Compression','Tokenization'], a:1},
+        {q:'A network security device that monitors and filters traffic based on rules is a:', options:['Router','Firewall','Switch','Modem'], a:1},
+        {q:'Which principle states users should only have the minimum access needed to do their job?', options:['Least Privilege','Zero Trust','Defense in Depth','Separation of Duties'], a:0},
+        {q:'An attack where a malicious actor intercepts communication between two parties is called:', options:['Man-in-the-Middle','Phishing','Brute Force','Keylogging'], a:0},
+        {q:'A one-way function that converts data into a fixed-size string, used to verify integrity, is called:', options:['Encryption','Hashing','Encoding','Compression'], a:1},
+        {q:'Systematically trying many password combinations to gain access is called:', options:['Phishing','Brute Force Attack','SQL Injection','Spoofing'], a:1},
+        {q:'A \'phishing\' attack typically attempts to:', options:['Trick a user into revealing sensitive information via deceptive messages','Physically damage hardware','Speed up a network','Improve software quality'], a:0},
+        {q:'A \'DDoS\' attack primarily aims to:', options:['Overwhelm a system with traffic to make it unavailable','Steal a single password','Encrypt files for ransom','Improve website SEO'], a:0},
+        {q:'\'Malware\' is best described as:', options:['Malicious software designed to damage or gain unauthorized access to a system','A type of firewall','A network protocol','A programming language'], a:0},
+        {q:'\'Social engineering\' attacks primarily exploit:', options:['Human psychology and trust rather than technical vulnerabilities','Only hardware flaws','Only outdated browsers','Only weak Wi-Fi signals'], a:0},
+      // --- Cryptography Basics (10) ---
+        {q:'A security approach that assumes no user or device is trusted by default, even inside the network, is called:', options:['Zero Trust','Least Privilege','Defense in Depth','Blacklisting'], a:0},
+        {q:'Software designed to secretly monitor and collect user activity is called:', options:['Spyware','Firewall','Antivirus','VPN'], a:0},
+        {q:'An attack that injects malicious SQL statements into an input field to manipulate a database is called:', options:['XSS','SQL Injection','CSRF','DDoS'], a:1},
+        {q:'A Virtual Private Network (VPN) primarily provides:', options:['Faster internet speed','An encrypted tunnel for secure remote connections','Free antivirus protection','Unlimited storage'], a:1},
+        {q:'A security layer strategy that uses multiple overlapping controls is called:', options:['Defense in Depth','Zero Trust','Least Privilege','Single Sign-On'], a:0},
+        {q:'Which of these is an example of "something you have" in multi-factor authentication?', options:['A password','A fingerprint','A hardware security key','A username'], a:2},
+        {q:'Encryption primarily provides:', options:['Confidentiality by making data unreadable without the correct key','Faster network speeds','Better search engine ranking','More storage space'], a:0},
+        {q:'A \'hash function\' is commonly used to:', options:['Produce a fixed-size fingerprint of data to verify integrity','Encrypt and later decrypt data reversibly','Compress video files','Design web layouts'], a:0},
+        {q:'Symmetric encryption differs from asymmetric encryption in that it:', options:['Uses the same key for both encryption and decryption','Uses no key at all','Is always less secure','Is only used for images'], a:0},
+        {q:'\'SSL/TLS\' certificates are primarily used to:', options:['Establish encrypted, authenticated connections over a network','Store passwords in plain text','Speed up CPU processing','Design app icons'], a:0},
+      // --- Application Security (10) ---
+        {q:'An attack that injects malicious scripts into web pages viewed by other users is called:', options:['SQL Injection','Cross-Site Scripting (XSS)','DDoS','Phishing'], a:1},
+        {q:'A security vulnerability exploited before the vendor releases a fix is called:', options:['Zero-day','Backdoor','Rootkit','Honeypot'], a:0},
+        {q:'A decoy system set up to attract and analyze attackers is called a:', options:['Firewall','Honeypot','Sandbox','Proxy'], a:1},
+        {q:'Regularly applying updates to fix known vulnerabilities is called:', options:['Patch Management','Load Balancing','Data Masking','Tokenization'], a:0},
+        {q:'A digital signature is primarily used to verify:', options:['Network speed','Authenticity and integrity of a message','Password strength','Disk usage'], a:1},
+        {q:'The practice of testing a system by simulating an attacker\'s approach, with permission, is called:', options:['Penetration Testing','Phishing','Social Engineering','Malware Analysis'], a:0},
+        {q:'SQL injection attacks exploit:', options:['Improperly sanitized user input in database queries','Physical server hardware','Network cables','Email formatting'], a:0},
+        {q:'Cross-Site Scripting (XSS) allows an attacker to:', options:['Inject malicious scripts into web pages viewed by other users','Physically access a server room','Change a company\'s tax records','Increase website load speed'], a:0},
+        {q:'Regular software \'patching\' is important mainly because it:', options:['Fixes known security vulnerabilities before they can be exploited','Improves font rendering','Increases advertising revenue','Reduces the need for backups'], a:0},
+        {q:'A \'security audit\' is conducted to:', options:['Systematically review systems and processes for vulnerabilities and compliance','Design a new logo','Hire new employees','Increase product pricing'], a:0},
+    
       ]
-    }
+    ],
+    codeSets:[
+      { title:'Check Password Strength', desc:'Write a function isStrongPassword(pw) that returns true if the password is at least 8 characters AND contains at least one digit AND at least one uppercase letter.', starter:'function isStrongPassword(pw) {\n  // your code here\n}', tests:[{args:['Passw0rd'], expected:true},{args:['weak'], expected:false},{args:['alllower1'], expected:false},{args:['NOLOWER1'], expected:true}] },
+      { title:'Detect Suspicious Input', desc:'Write a function hasSQLInjectionRisk(input) that returns true if the string contains any of: "--", ";", "\' OR", "DROP TABLE" (case-insensitive), false otherwise.', starter:'function hasSQLInjectionRisk(input) {\n  // your code here\n}', tests:[{args:["admin' OR '1'='1"], expected:true},{args:['DROP TABLE users'], expected:true},{args:['hello world'], expected:false}] },
+      { title:'Mask a Card Number', desc:'Write a function maskCard(num) that takes a 16-digit numeric string and returns it with only the last 4 digits visible, rest replaced with "*". Example: maskCard("1234567812345678") → "************5678".', starter:'function maskCard(num) {\n  // your code here\n}', tests:[{args:['1234567812345678'], expected:'************5678'},{args:['0000000000001111'], expected:'************1111'}] },
+      { title:'Simple Caesar Cipher', desc:'Write a function caesarShift(str) that shifts every lowercase letter in str forward by 1 in the alphabet ("z" wraps to "a"). Non-letters stay unchanged. Example: caesarShift("abz") → "bca".', starter:'function caesarShift(str) {\n  // your code here\n}', tests:[{args:['abz'], expected:'bca'},{args:['hello'], expected:'ifmmp'},{args:['xyz'], expected:'yza'}] },
+      { title:'Validate an API Key Format', desc:'Write a function isValidAPIKey(key) that returns true if key is exactly 32 characters long and contains only lowercase letters and digits, false otherwise.', starter:'function isValidAPIKey(key) {\n  // your code here\n}', tests:[{args:['a'.repeat(32)], expected:true},{args:['short'], expected:false},{args:['A'+'a'.repeat(31)], expected:false}] },
+    ]
   },
   {
     id:'mobile', type:'code', name:'Mobile App Development', icon:'📱',
+    areas:['Android & iOS Fundamentals','Mobile UI/UX','App Lifecycle & Performance','APIs & Local Storage'],
     desc:'Native and cross-platform apps for Android & iOS, UI performance, and app architecture.',
-    mcq:[
-      {q:'Which language is the modern standard for native iOS development?', options:['Objective-C','Swift','Kotlin','Dart'], a:1},
-      {q:'Which cross-platform framework uses Dart and a single codebase for iOS & Android?', options:['React Native','Flutter','Xamarin','Ionic'], a:1},
-      {q:'On Android (Jetpack), which component is designed to hold UI-related data that survives configuration changes?', options:['Activity','Fragment','ViewModel','Intent'], a:2},
-      {q:'A UI that reflows to fit different screen sizes and orientations is called:', options:['Adaptive/Responsive UI','Static UI','Fixed UI','Legacy UI'], a:0},
-      {q:'Small key-value data on mobile devices is typically stored using:', options:['A full SQL cluster','SharedPreferences / UserDefaults','A remote data warehouse','Raw binary files only'], a:1},
-    ],
-    code:{
-      title:'Format a Phone Number',
-      desc:'Write a function formatPhone(num) that takes a 10-digit numeric string and returns it formatted as XXX-XXX-XXXX. Example: formatPhone("9876543210") → "987-654-3210".',
-      starter:'function formatPhone(num) {\n  // your code here\n}',
-      tests:[
-        {args:['9876543210'], expected:'987-654-3210'},
-        {args:['1234567890'], expected:'123-456-7890'},
+    mcqSets:[
+      [
+
+      // --- Company Loyalty (10) ---
+        {q:'What best reflects genuine commitment to an organization you join?', options:['Consistently showing up only when convenient','Understanding the company\'s goals and contributing reliably over time','Leaving immediately after any minor disagreement','Doing the minimum required to avoid being fired'], a:1},
+        {q:'If you disagree with a company decision, the most professional approach is to:', options:['Complain to colleagues without raising it formally','Ignore it and quietly disengage','Raise your concern respectfully through the right channel','Refuse to follow it publicly'], a:2},
+        {q:'Why do companies value employees who stay and grow within the organization?', options:['It reduces hiring/training costs and builds deeper expertise','It has no real benefit to the company','It only benefits the employee','It guarantees promotions regardless of performance'], a:0},
+        {q:'You\'re offered a slightly higher salary elsewhere right after joining a company that invested in your training. What shows integrity?', options:['Leave immediately without informing anyone','Weigh the offer honestly and communicate transparently with your employer','Take the new job and ghost your current employer','Accept both jobs secretly'], a:1},
+        {q:'A strong sense of company loyalty is best shown by:', options:['Publicly criticizing the company on social media','Protecting company reputation while still giving honest, constructive feedback internally','Never having any opinions of your own','Sharing confidential company information freely'], a:1},
+        {q:'If you make a mistake at work, the most loyal and professional response is to:', options:['Hide it and hope no one notices','Blame a colleague to protect yourself','Own up to it, report it, and help fix it','Quit immediately'], a:2},
+        {q:'Which behavior best demonstrates long-term commitment to an employer?', options:['Job-hopping every few months for tiny pay bumps','Investing effort to learn the role and grow with the company','Doing only tasks that get public recognition','Avoiding all teamwork'], a:1},
+        {q:'How should an employee handle confidential company information?', options:['Share it with friends if asked casually','Post it online to build a personal brand','Protect it and only share on a need-to-know basis as per policy','Sell it to a competitor for personal gain'], a:2},
+        {q:'What is the healthiest way to build trust with a new employer?', options:['Overpromise and underdeliver','Be consistent, honest, and deliver on commitments','Avoid all communication with managers','Take credit for others\' work'], a:1},
+        {q:'Why might an employee choose to stay with a company through a difficult period rather than leave immediately?', options:['Because loyalty and shared problem-solving often strengthen long-term trust and growth','Because leaving is always illegal','Because staying guarantees an instant raise','Because it has no effect on their career'], a:0},
+      // --- Android & iOS Fundamentals (10) ---
+        {q:'Which language is the modern standard for native iOS development?', options:['Objective-C','Swift','Kotlin','Dart'], a:1},
+        {q:'Which cross-platform framework uses Dart and a single codebase for iOS & Android?', options:['React Native','Flutter','Xamarin','Ionic'], a:1},
+        {q:'On Android (Jetpack), which component holds UI-related data that survives configuration changes?', options:['Activity','Fragment','ViewModel','Intent'], a:2},
+        {q:'A UI that reflows to fit different screen sizes and orientations is called:', options:['Adaptive/Responsive UI','Static UI','Fixed UI','Legacy UI'], a:0},
+        {q:'Small key-value data on mobile devices is typically stored using:', options:['A full SQL cluster','SharedPreferences / UserDefaults','A remote data warehouse','Raw binary files only'], a:1},
+        {q:'Which language is commonly used for modern native Android development alongside Java?', options:['Swift','Kotlin','Dart','Objective-C'], a:1},
+        {q:'Which cross-platform framework, created by Facebook, uses JavaScript/React to build native mobile apps?', options:['Flutter','React Native','Xamarin','Ionic'], a:1},
+        {q:'Which component manages the lifecycle of a screen in an Android app?', options:['Activity','Thread','Socket','Compiler'], a:0},
+        {q:'On iOS, the primary language historically used before Swift was:', options:['Objective-C','Python','Java','Kotlin'], a:0},
+        {q:'A \'ViewController\' in iOS is primarily responsible for:', options:['Managing a screen\'s views and their interactions','Storing the app icon','Compiling the app','Managing network hardware'], a:0},
+      // --- Mobile UI/UX (10) ---
+        {q:'In iOS development, which pattern separates an app into Model, View, and Controller layers?', options:['MVVM','MVC','MVP','VIPER'], a:1},
+        {q:'Which term describes an app\'s ability to work correctly on both phones and tablets?', options:['Responsive design','Adaptive/Responsive UI','Native design','Fixed layout'], a:1},
+        {q:'Which storage option is best suited for structured, queryable data on mobile devices?', options:['SharedPreferences','A local SQL database (e.g., SQLite/Room)','Raw text files','Environment variables'], a:1},
+        {q:'What is the Android equivalent of an iOS "ViewController"?', options:['Fragment','Activity','Intent','Service'], a:1},
+        {q:'Which mechanism lets Android components (like Activities) communicate and launch other components?', options:['Intent','ViewModel','LiveData','Bundle'], a:0},
+        {q:'Which architecture pattern uses observable data streams to bind UI to a ViewModel?', options:['MVC','MVVM','Singleton','Factory'], a:1},
+        {q:'Good mobile UI design typically prioritizes:', options:['Touch-friendly, clear, and simple layouts for smaller screens','Tiny text and buttons','Ignoring screen size differences','Only desktop-style layouts'], a:0},
+        {q:'\'Responsive design\' in mobile apps refers to:', options:['Adapting layout and content to different screen sizes and orientations','Making the app respond only to voice commands','Using a single fixed layout for all devices','Removing all images'], a:0},
+        {q:'Accessibility in mobile UX (e.g., screen readers, contrast) is important because it:', options:['Makes the app usable by people with diverse abilities','Only matters for large enterprises','Is required only for games','Has no effect on usability'], a:0},
+        {q:'A \'wireframe\' in app design is used to:', options:['Sketch the basic layout and structure before visual design','Write the final production code','Encrypt user data','Test server load'], a:0},
+      // --- App Lifecycle & Performance (10) ---
+        {q:'Push notifications on mobile devices are typically delivered via a:', options:['Local database','Cloud messaging service (e.g., FCM/APNs)','Background thread only','Static file'], a:1},
+        {q:'Which term describes testing an app on real devices/emulators to catch UI issues across screen sizes?', options:['Unit testing','UI/Device testing','Load testing','Static analysis'], a:1},
+        {q:'Which build tool is standard for Android projects?', options:['Gradle','Maven','Webpack','CocoaPods'], a:0},
+        {q:'Which dependency manager is commonly used for iOS projects?', options:['Gradle','npm','CocoaPods/Swift Package Manager','pip'], a:2},
+        {q:'What does "ANR" stand for in Android development?', options:['App Not Responding','Application Network Request','Android Native Runtime','App Notification Rule'], a:0},
+        {q:'Lazy loading images in a list improves:', options:['Security','Performance and memory usage','Code readability only','Battery charging speed'], a:1},
+        {q:'The \'app lifecycle\' refers to:', options:['The states an app moves through, such as launched, paused, and terminated','Only the time it takes to install the app','The app\'s marketing timeline','The app store review process only'], a:0},
+        {q:'Excessive battery drain in mobile apps is often caused by:', options:['Inefficient background processes or frequent location/network polling','Using dark mode','Having a small app icon','Using too few colors'], a:0},
+        {q:'\'Lazy loading\' in mobile apps helps improve performance by:', options:['Loading content only when it\'s needed rather than all at once','Loading everything at launch regardless of need','Disabling the app entirely','Removing all animations'], a:0},
+        {q:'Memory leaks in mobile apps can lead to:', options:['App slowdowns or crashes due to unreleased memory','Faster app performance','Improved battery life','Better UI design automatically'], a:0},
+      // --- APIs & Local Storage (10) ---
+        {q:'Which component manages background tasks in Android that may outlive the UI?', options:['Activity','Service','Fragment','Intent'], a:1},
+        {q:'Which layout approach avoids hardcoding pixel values so UI adapts to different screen densities?', options:['Fixed pixel layout','Density-independent (dp/pt) layout','HTML layout','Absolute positioning'], a:1},
+        {q:'What is the main purpose of app "sandboxing" on mobile OSes?', options:['Faster downloads','Isolating apps from each other for security','Reducing app size','Improving battery life'], a:1},
+        {q:'Which testing type simulates user interaction with the full app on a device/emulator?', options:['Unit test','End-to-end (E2E) test','Static analysis','Linting'], a:1},
+        {q:'Which iOS framework is used for declarative UI building (alternative to UIKit)?', options:['SwiftUI','Core Data','Alamofire','XCTest'], a:0},
+        {q:'Reducing app startup time and memory footprint primarily improves:', options:['Security','User experience/performance','Code style','Database schema'], a:1},
+        {q:'A \'RESTful API\' call from a mobile app typically uses which protocol?', options:['HTTP/HTTPS','Bluetooth only','USB only','NFC only'], a:0},
+        {q:'Local storage on mobile devices (e.g., SQLite) is useful for:', options:['Persisting app data even when offline','Only storing app icons','Replacing the need for any backend','Increasing screen resolution'], a:0},
+        {q:'\'JSON\' is commonly used in mobile API communication because it is:', options:['Lightweight and easy to parse across platforms','Only readable by humans, never machines','A type of mobile hardware','A programming language'], a:0},
+        {q:'An API \'rate limit\' exists to:', options:['Prevent excessive requests from overwhelming a server','Slow down all users permanently','Encrypt all API responses','Increase app store ranking'], a:0},
+    
       ]
-    }
+    ],
+    codeSets:[
+      { title:'Format a Phone Number', desc:'Write a function formatPhone(num) that takes a 10-digit numeric string and returns it formatted as XXX-XXX-XXXX. Example: formatPhone("9876543210") → "987-654-3210".', starter:'function formatPhone(num) {\n  // your code here\n}', tests:[{args:['9876543210'], expected:'987-654-3210'},{args:['1234567890'], expected:'123-456-7890'}] },
+      { title:'Validate a Username', desc:'Write a function isValidUsername(name) that returns true if name is 3-15 characters and contains only letters, digits, or underscores. Example: isValidUsername("user_1") → true.', starter:'function isValidUsername(name) {\n  // your code here\n}', tests:[{args:['user_1'], expected:true},{args:['ab'], expected:false},{args:['bad name!'], expected:false}] },
+      { title:'Convert to Title Case', desc:'Write a function toTitleCase(str) that capitalizes the first letter of every word and lowercases the rest. Example: toTitleCase("hello WORLD") → "Hello World".', starter:'function toTitleCase(str) {\n  // your code here\n}', tests:[{args:['hello WORLD'], expected:'Hello World'},{args:['mobile APP dev'], expected:'Mobile App Dev'}] },
+      { title:'Compare Version Numbers', desc:'Write a function isNewerVersion(v1, v2) that returns true if version string v1 (e.g. "1.2.0") is newer than v2, comparing major.minor.patch numerically.', starter:'function isNewerVersion(v1, v2) {\n  // your code here\n}', tests:[{args:['1.2.0','1.1.9'], expected:true},{args:['1.0.0','1.0.1'], expected:false},{args:['2.0.0','1.9.9'], expected:true}] },
+      { title:'Truncate Notification Text', desc:'Write a function truncate(str, maxLen) that returns str unchanged if its length <= maxLen, otherwise the first (maxLen-3) characters plus "...". Example: truncate("Hello World", 8) → "Hello...".', starter:'function truncate(str, maxLen) {\n  // your code here\n}', tests:[{args:['Hello World',8], expected:'Hello...'},{args:['Hi',10], expected:'Hi'}] },
+    ]
   },
 ];
-
 /* ============================================================
    DATA — NON-TECHNICAL DOMAINS (Round 2 = Situational Judgement)
 ============================================================ */
 const NONTECH_DOMAINS = [
   {
     id:'hr', type:'scenario', name:'HR & Talent Acquisition', icon:'🧑\u200d💼',
+    areas:['Recruitment & Onboarding','Employee Engagement & Relations','Performance Management','HR Policy & Compliance'],
     desc:'Recruitment, onboarding, employee relations, and talent management fundamentals.',
-    mcq:[
-      {q:'Which of these is typically the FIRST stage of the recruitment process?', options:['Onboarding','Sourcing candidates','Offer negotiation','Performance review'], a:1},
-      {q:'What does "attrition rate" measure in HR?', options:['Rate of employees leaving an organization','Rate of new hires','Average salary growth','Training completion rate'], a:0},
-      {q:'A "structured interview" is best described as:', options:['An interview with no set questions','An interview using a consistent set of pre-decided questions for all candidates','A panel-only interview','An interview conducted via email'], a:1},
-      {q:'Which document typically outlines the terms of employment before joining?', options:['Resume','Offer letter','Exit interview form','Payslip'], a:1},
-      {q:'"Employer branding" primarily helps an organization to:', options:['Reduce operating costs','Attract and retain talent','File tax returns','Automate payroll'], a:1},
+    mcqSets:[
+      [
+
+      // --- Company Loyalty (10) ---
+        {q:'What best reflects genuine commitment to an organization you join?', options:['Consistently showing up only when convenient','Understanding the company\'s goals and contributing reliably over time','Leaving immediately after any minor disagreement','Doing the minimum required to avoid being fired'], a:1},
+        {q:'If you disagree with a company decision, the most professional approach is to:', options:['Complain to colleagues without raising it formally','Ignore it and quietly disengage','Raise your concern respectfully through the right channel','Refuse to follow it publicly'], a:2},
+        {q:'Why do companies value employees who stay and grow within the organization?', options:['It reduces hiring/training costs and builds deeper expertise','It has no real benefit to the company','It only benefits the employee','It guarantees promotions regardless of performance'], a:0},
+        {q:'You\'re offered a slightly higher salary elsewhere right after joining a company that invested in your training. What shows integrity?', options:['Leave immediately without informing anyone','Weigh the offer honestly and communicate transparently with your employer','Take the new job and ghost your current employer','Accept both jobs secretly'], a:1},
+        {q:'A strong sense of company loyalty is best shown by:', options:['Publicly criticizing the company on social media','Protecting company reputation while still giving honest, constructive feedback internally','Never having any opinions of your own','Sharing confidential company information freely'], a:1},
+        {q:'If you make a mistake at work, the most loyal and professional response is to:', options:['Hide it and hope no one notices','Blame a colleague to protect yourself','Own up to it, report it, and help fix it','Quit immediately'], a:2},
+        {q:'Which behavior best demonstrates long-term commitment to an employer?', options:['Job-hopping every few months for tiny pay bumps','Investing effort to learn the role and grow with the company','Doing only tasks that get public recognition','Avoiding all teamwork'], a:1},
+        {q:'How should an employee handle confidential company information?', options:['Share it with friends if asked casually','Post it online to build a personal brand','Protect it and only share on a need-to-know basis as per policy','Sell it to a competitor for personal gain'], a:2},
+        {q:'What is the healthiest way to build trust with a new employer?', options:['Overpromise and underdeliver','Be consistent, honest, and deliver on commitments','Avoid all communication with managers','Take credit for others\' work'], a:1},
+        {q:'Why might an employee choose to stay with a company through a difficult period rather than leave immediately?', options:['Because loyalty and shared problem-solving often strengthen long-term trust and growth','Because leaving is always illegal','Because staying guarantees an instant raise','Because it has no effect on their career'], a:0},
+      // --- Recruitment & Onboarding (10) ---
+        {q:'Which of these is typically the FIRST stage of the recruitment process?', options:['Onboarding','Sourcing candidates','Offer negotiation','Performance review'], a:1},
+        {q:'What does "attrition rate" measure in HR?', options:['Rate of employees leaving an organization','Rate of new hires','Average salary growth','Training completion rate'], a:0},
+        {q:'A "structured interview" is best described as:', options:['An interview with no set questions','An interview using a consistent set of pre-decided questions for all candidates','A panel-only interview','An interview conducted via email'], a:1},
+        {q:'Which document typically outlines the terms of employment before joining?', options:['Resume','Offer letter','Exit interview form','Payslip'], a:1},
+        {q:'"Employer branding" primarily helps an organization to:', options:['Reduce operating costs','Attract and retain talent','File tax returns','Automate payroll'], a:1},
+        {q:'What is the primary purpose of an "onboarding" program?', options:['To terminate underperforming employees','To help new hires integrate and become productive quickly','To conduct annual performance reviews','To manage payroll taxes'], a:1},
+        {q:'"Employee engagement" primarily refers to:', options:['The number of hours worked','The emotional commitment an employee has to the organization and its goals','The size of the HR team','The company\'s stock price'], a:1},
+        {q:'Which sourcing channel typically yields candidates already familiar with company culture?', options:['Employee referrals','Random cold outreach only','Billboard ads','Unrelated job fairs'], a:0},
+        {q:'A well-written job posting should primarily focus on:', options:['Clear responsibilities and required qualifications','The CEO\'s personal biography','Unrelated company history','Stock market performance'], a:0},
+        {q:'\'Time to fill\' as a recruitment metric measures:', options:['The number of days from job posting to offer acceptance','The number of interviews per candidate','The total salary budget','The number of employees leaving'], a:0},
+      // --- Employee Engagement & Relations (10) ---
+        {q:'Which of these is typically part of a job description?', options:['Key responsibilities and required qualifications','The CEO\'s salary','Competitor pricing','Office rent'], a:0},
+        {q:'A "performance improvement plan" (PIP) is typically used to:', options:['Immediately terminate an employee','Formally document and support improvement in an underperforming employee','Give a bonus','Promote an employee'], a:1},
+        {q:'Which benefit is most commonly associated with "work-life balance" initiatives?', options:['Flexible working hours','Mandatory overtime','Reduced vacation days','Stricter attendance policies'], a:0},
+        {q:'What does "succession planning" prepare an organization for?', options:['Sudden vacancies in key roles by identifying future leaders','Marketing campaigns','Product launches','Tax filing'], a:0},
+        {q:'A "360-degree feedback" review gathers input from:', options:['Only the employee\'s manager','Peers, subordinates, managers, and self-assessment','Only external customers','Only HR staff'], a:1},
+        {q:'Which of these is an example of a "soft skill"?', options:['Programming in Python','Communication and teamwork','Operating machinery','Data entry speed'], a:1},
+        {q:'An \'employee engagement survey\' is primarily used to:', options:['Measure how committed and motivated employees feel','Set final salaries','Track office temperature','Replace performance reviews entirely'], a:0},
+        {q:'Conflict resolution between two team members is best handled by:', options:['Facilitating an open, respectful conversation to find common ground','Ignoring it until it escalates','Firing one person immediately','Publicly shaming both employees'], a:0},
+        {q:'\'Psychological safety\' at work refers to:', options:['Feeling safe to speak up, take risks, and make mistakes without fear of punishment','Physical safety equipment only','A type of insurance policy','A legal contract clause'], a:0},
+        {q:'Recognition programs at work primarily aim to:', options:['Boost morale and reinforce positive contributions','Reduce headcount','Replace salary increases entirely','Increase office rent'], a:0},
+      // --- Performance Management (10) ---
+        {q:'"Diversity and inclusion" initiatives primarily aim to:', options:['Standardize salaries only','Create a fair and welcoming environment for people of all backgrounds','Reduce headcount','Automate hiring'], a:1},
+        {q:'What is the purpose of an "exit interview"?', options:['To rehire the employee immediately','To gather feedback from a departing employee to improve the organization','To finalize their final paycheck only','To assign their tasks to a replacement'], a:1},
+        {q:'Which HR metric measures the average time it takes to fill an open position?', options:['Time to hire','Attrition rate','Employee Net Promoter Score','Span of control'], a:0},
+        {q:'A "job offer contingent on background check" means:', options:['The offer is final regardless of results','The offer may be withdrawn if the check reveals disqualifying information','The check is optional','The employee starts before the check'], a:1},
+        {q:'What is "constructive dismissal"?', options:['A formal promotion process','When an employee resigns due to the employer creating intolerable working conditions','A type of bonus','A hiring bias'], a:1},
+        {q:'Which of the following best describes "compensation and benefits"?', options:['Only base salary','The total package of pay, bonuses, and non-monetary perks offered to employees','Only stock options','Only health insurance'], a:1},
+        {q:'A \'SMART\' goal in performance management stands for a goal that is:', options:['Specific, Measurable, Achievable, Relevant, Time-bound','Simple, Manual, Assigned, Regular, Timed','Strategic, Monitored, Automated, Reviewed, Tracked','Static, Minimal, Approved, Recorded, Targeted'], a:0},
+        {q:'Continuous feedback, compared to only an annual review, generally helps because it:', options:['Allows timely course correction and growth throughout the year','Eliminates the need for any goals','Is legally required everywhere','Replaces compensation discussions'], a:0},
+        {q:'A \'calibration session\' in performance reviews helps ensure:', options:['Consistent and fair rating standards across managers','Random rating assignment','Faster payroll processing','Reduced training budgets'], a:0},
+        {q:'360-degree feedback is valuable mainly because it:', options:['Provides a well-rounded view of performance from multiple perspectives','Only reflects the manager\'s opinion','Is always anonymous by law','Replaces the need for goals'], a:0},
+      // --- HR Policy & Compliance (10) ---
+        {q:'What is the main goal of a "talent pipeline"?', options:['To advertise open roles only','To proactively build a pool of qualified candidates for future roles','To manage payroll','To track vacation days'], a:1},
+        {q:'Which law/policy area does HR typically ensure compliance with regarding fair treatment at work?', options:['Employment/labor law','Tax code for corporations','Environmental regulations','Import/export law'], a:0},
+        {q:'"Reasonable accommodation" in the workplace typically refers to:', options:['Free lunch for all employees','Adjustments made to support employees with disabilities','Extra vacation for managers','Reduced pay for part-time staff'], a:1},
+        {q:'What is the purpose of a "code of conduct" policy?', options:['To set expected standards of behavior and ethics for employees','To determine salaries','To schedule shifts','To manage the IT budget'], a:0},
+        {q:'Which of these best describes "employee turnover"?', options:['The number of employees who leave and are replaced over a period','The total headcount at year end','The average tenure of executives','The company\'s revenue per employee'], a:0},
+        {q:'A "probationary period" for a new hire is typically used to:', options:['Guarantee permanent employment immediately','Assess fit and performance before confirming permanent employment','Delay their first paycheck','Avoid providing training'], a:1},
+        {q:'Which of the following is a core purpose of a company\'s \'code of conduct\'?', options:['Setting clear expectations for ethical behavior at work','Determining marketing strategy','Setting product prices','Managing IT infrastructure'], a:0},
+        {q:'HR compliance with labor law typically covers:', options:['Fair wages, working hours, and workplace safety standards','Only office decoration choices','Only marketing content','Only sales targets'], a:0},
+        {q:'\'Data privacy\' policies in HR are important mainly to:', options:['Protect employee personal information from misuse','Increase advertising reach','Reduce hiring costs only','Improve product design'], a:0},
+        {q:'An anti-harassment policy primarily exists to:', options:['Create a safe and respectful workplace for all employees','Increase company profits directly','Reduce office space','Replace performance reviews'], a:0},
+    
+      ]
     ],
-    round2mcq:[
-      {q:'A new hire tells you privately they\'re overwhelmed and considering quitting in week one. What\'s the best first step?', options:['Ignore it and hope it passes','Immediately begin termination paperwork','Have a supportive one-on-one to understand their concerns','Tell their manager to cut their workload publicly'], a:2},
-      {q:'Two candidates are equally qualified, but one\'s referral is a senior manager\'s relative. What should you do?', options:['Automatically hire the referral','Evaluate both fairly through the same process','Reject the referral to avoid any appearance of bias','Ask the manager to decide'], a:1},
-      {q:'An employee raises a harassment complaint against their manager. What is the appropriate first action?', options:['Tell them to sort it out with the manager directly','Follow the organization\'s formal, confidential complaint procedure','Mention it to the team for awareness','Wait and see if it happens again'], a:1},
-      {q:'During onboarding, a new hire seems confused about their role expectations. Best approach?', options:['Assume they\'ll figure it out over time','Schedule a clear expectation-setting conversation with defined goals','Give them no feedback for three months','Reassign them to a different role immediately'], a:1},
+    round2mcqSets:[
+      [
+        {q:'A new hire tells you privately they\'re overwhelmed and considering quitting in week one. What\'s the best first step?', options:['Ignore it and hope it passes','Immediately begin termination paperwork','Have a supportive one-on-one to understand their concerns','Tell their manager to cut their workload publicly'], a:2},
+        {q:'Two candidates are equally qualified, but one\'s referral is a senior manager\'s relative. What should you do?', options:['Automatically hire the referral','Evaluate both fairly through the same process','Reject the referral to avoid any appearance of bias','Ask the manager to decide'], a:1},
+        {q:'An employee raises a harassment complaint against their manager. What is the appropriate first action?', options:['Tell them to sort it out with the manager directly','Follow the organization\'s formal, confidential complaint procedure','Mention it to the team for awareness','Wait and see if it happens again'], a:1},
+        {q:'During onboarding, a new hire seems confused about their role expectations. Best approach?', options:['Assume they\'ll figure it out over time','Schedule a clear expectation-setting conversation with defined goals','Give them no feedback for three months','Reassign them to a different role immediately'], a:1},
+      ],
+      [
+        {q:'A manager consistently gives one team member all the interesting projects while others get repetitive tasks. What should HR do first?', options:['Ignore it since it\'s the manager\'s call','Discuss the pattern with the manager and understand the reasoning','Immediately reassign the manager','Tell the team to complain directly to the CEO'], a:1},
+        {q:'During an interview, a candidate discloses they are pregnant. What is the appropriate response?', options:['Ask follow-up questions about their maternity plans','Congratulate them briefly and continue evaluating based on job-relevant criteria only','Note it as a factor against hiring','End the interview early'], a:1},
+        {q:'An employee requests a flexible schedule due to a medical condition. What should you do?', options:['Deny it outright','Review the request through the reasonable accommodation process','Ignore the request','Ask for details about the diagnosis'], a:1},
+        {q:'A team\'s morale seems low but no one has filed a formal complaint. Best first step?', options:['Wait for a formal complaint before acting','Conduct informal check-ins or an anonymous survey to understand concerns','Assume nothing is wrong','Reassign the whole team'], a:1},
+      ],
+      [
+        {q:'Two employees on the same team are constantly in conflict, affecting productivity. What\'s the best first step?', options:['Ignore it since it\'s a personal issue','Meet with each individually, then facilitate a mediated conversation','Fire one of them immediately','Move both to different companies'], a:1},
+        {q:'An employee\'s performance has dropped sharply after being strong for years. Best approach?', options:['Immediately begin termination','Have a supportive conversation to understand if something has changed','Publicly call out the drop in a team meeting','Reduce their pay'], a:1},
+        {q:'A manager wants to hire a friend without going through the standard process. What should HR do?', options:['Approve it since the manager requested it','Ensure the standard, fair hiring process is followed for all candidates','Fast-track the friend automatically','Ignore the request'], a:1},
+        {q:'An anonymous complaint alleges a senior leader is bullying a subordinate. What\'s the right first step?', options:['Dismiss it since it\'s anonymous','Investigate discreetly and fairly following proper procedure','Confront the leader publicly','Tell the subordinate to handle it themselves'], a:1},
+      ],
+      [
+        {q:'An employee asks HR to keep a workplace injury confidential from their manager. What should you do?', options:['Agree completely and tell no one','Explain what must legally/procedurally be reported while respecting privacy where possible','Ignore the injury','Report it to the entire company'], a:1},
+        {q:'A high performer asks for a raise, citing a competing offer. What\'s the best first step?', options:['Match the offer immediately without review','Evaluate their value and market rate through the proper compensation review process','Refuse to discuss it','Let them leave without a conversation'], a:1},
+        {q:'During layoffs, you must decide between two similarly performing employees for one remaining role. What\'s a fair approach?', options:['Pick based on personal friendship','Use documented, objective performance and business-need criteria','Flip a coin','Ask the team to vote'], a:1},
+        {q:'An employee reports feeling excluded from meetings due to a cultural difference. Best first step?', options:['Dismiss the concern as oversensitivity','Listen, investigate, and work with the manager to ensure inclusion','Tell them to adapt to the team\'s style','Move them to another team immediately'], a:1},
+      ],
+      [
+        {q:'A candidate asks about salary range very early in the interview. Best response?', options:['Refuse to answer at all','Share the role\'s posted/appropriate range transparently','Make up a number','End the interview'], a:1},
+        {q:'An employee is consistently late but explains it\'s due to a new caregiving responsibility. Best approach?', options:['Issue a formal warning immediately','Discuss possible flexible arrangements while addressing the attendance concern','Ignore the lateness entirely','Terminate immediately'], a:1},
+        {q:'A department wants to skip reference checks to hire faster. What should HR advise?', options:['Skip them since speed matters most','Explain the risk and recommend completing at least basic checks','Agree without concern','Only check social media instead'], a:1},
+        {q:'You discover a pay discrepancy between two employees doing the same job. Best first step?', options:['Ignore it since it might cause issues','Investigate the cause and correct any unjustified gap per policy','Only fix it if someone complains','Lower the higher pay to match'], a:1},
+      ],
     ]
   },
   {
     id:'marketing', type:'scenario', name:'Marketing & Brand Management', icon:'📣',
+    areas:['Marketing Fundamentals','Digital Marketing & SEO','Marketing Metrics & Analytics','Content & Brand Strategy'],
     desc:'Brand strategy, digital marketing, campaigns, and customer engagement.',
-    mcq:[
-      {q:'Which of the following is NOT one of the classic 4 Ps of marketing?', options:['Product','Price','Promotion','Personnel'], a:3},
-      {q:'A brand\'s "USP" stands for:', options:['Unique Selling Proposition','Universal Sales Plan','User Service Policy','Unit Sales Price'], a:0},
-      {q:'Which metric measures how many people took a desired action after seeing an ad?', options:['Impressions','Conversion rate','Reach','Bounce rate'], a:1},
-      {q:'"SEO" primarily helps improve:', options:['Office productivity','Organic search engine visibility','Employee retention','Supply chain speed'], a:1},
-      {q:'A/B testing in marketing is used to:', options:['Compare two versions to see which performs better','Audit financial statements','Manage inventory','Schedule shipments'], a:0},
+    mcqSets:[
+      [
+
+      // --- Company Loyalty (10) ---
+        {q:'What best reflects genuine commitment to an organization you join?', options:['Consistently showing up only when convenient','Understanding the company\'s goals and contributing reliably over time','Leaving immediately after any minor disagreement','Doing the minimum required to avoid being fired'], a:1},
+        {q:'If you disagree with a company decision, the most professional approach is to:', options:['Complain to colleagues without raising it formally','Ignore it and quietly disengage','Raise your concern respectfully through the right channel','Refuse to follow it publicly'], a:2},
+        {q:'Why do companies value employees who stay and grow within the organization?', options:['It reduces hiring/training costs and builds deeper expertise','It has no real benefit to the company','It only benefits the employee','It guarantees promotions regardless of performance'], a:0},
+        {q:'You\'re offered a slightly higher salary elsewhere right after joining a company that invested in your training. What shows integrity?', options:['Leave immediately without informing anyone','Weigh the offer honestly and communicate transparently with your employer','Take the new job and ghost your current employer','Accept both jobs secretly'], a:1},
+        {q:'A strong sense of company loyalty is best shown by:', options:['Publicly criticizing the company on social media','Protecting company reputation while still giving honest, constructive feedback internally','Never having any opinions of your own','Sharing confidential company information freely'], a:1},
+        {q:'If you make a mistake at work, the most loyal and professional response is to:', options:['Hide it and hope no one notices','Blame a colleague to protect yourself','Own up to it, report it, and help fix it','Quit immediately'], a:2},
+        {q:'Which behavior best demonstrates long-term commitment to an employer?', options:['Job-hopping every few months for tiny pay bumps','Investing effort to learn the role and grow with the company','Doing only tasks that get public recognition','Avoiding all teamwork'], a:1},
+        {q:'How should an employee handle confidential company information?', options:['Share it with friends if asked casually','Post it online to build a personal brand','Protect it and only share on a need-to-know basis as per policy','Sell it to a competitor for personal gain'], a:2},
+        {q:'What is the healthiest way to build trust with a new employer?', options:['Overpromise and underdeliver','Be consistent, honest, and deliver on commitments','Avoid all communication with managers','Take credit for others\' work'], a:1},
+        {q:'Why might an employee choose to stay with a company through a difficult period rather than leave immediately?', options:['Because loyalty and shared problem-solving often strengthen long-term trust and growth','Because leaving is always illegal','Because staying guarantees an instant raise','Because it has no effect on their career'], a:0},
+      // --- Marketing Fundamentals (10) ---
+        {q:'Which of the following is NOT one of the classic 4 Ps of marketing?', options:['Product','Price','Promotion','Personnel'], a:3},
+        {q:'A brand\'s "USP" stands for:', options:['Unique Selling Proposition','Universal Sales Plan','User Service Policy','Unit Sales Price'], a:0},
+        {q:'Which metric measures how many people took a desired action after seeing an ad?', options:['Impressions','Conversion rate','Reach','Bounce rate'], a:1},
+        {q:'"SEO" primarily helps improve:', options:['Office productivity','Organic search engine visibility','Employee retention','Supply chain speed'], a:1},
+        {q:'A/B testing in marketing is used to:', options:['Compare two versions to see which performs better','Audit financial statements','Manage inventory','Schedule shipments'], a:0},
+        {q:'Which term describes the process of dividing a market into distinct groups of buyers?', options:['Segmentation','Positioning','Targeting','Branding'], a:0},
+        {q:'"Brand equity" refers to:', options:['The value a brand adds beyond its functional benefits','A company\'s stock price','The cost of advertising','The number of employees in marketing'], a:0},
+        {q:'The \'marketing mix\' commonly refers to which framework?', options:['The 4 Ps: Product, Price, Place, Promotion','The 4 Cs of coding','The 3 Rs of recycling','The 5 Ws of journalism'], a:0},
+        {q:'\'Target market\' refers to:', options:['The specific group of customers a company aims to reach','Every possible customer with no distinction','Only existing customers','Only competitors'], a:0},
+        {q:'A \'value proposition\' communicates:', options:['The unique benefit a product/service offers customers','The company\'s tax obligations','The office location','The employee handbook'], a:0},
+      // --- Digital Marketing & SEO (10) ---
+        {q:'Which channel is considered "owned media"?', options:['A paid Instagram ad','A company\'s own website/blog','A press mention','An influencer\'s post'], a:1},
+        {q:'What does "CTR" stand for in digital marketing?', options:['Cost to Revenue','Click-Through Rate','Customer Target Ratio','Content Traffic Rate'], a:1},
+        {q:'A "buyer persona" is best described as:', options:['A legal contract','A semi-fictional representation of an ideal customer','A pricing model','A competitor profile'], a:1},
+        {q:'"Positioning" in marketing refers to:', options:['How a brand is perceived relative to competitors in customers\' minds','The physical location of a store','The org chart of the marketing team','The price of a product'], a:0},
+        {q:'Which of these is an example of "inbound marketing"?', options:['Cold calling','Publishing helpful content that attracts visitors organically','Buying a billboard','Door-to-door sales'], a:1},
+        {q:'"Customer Lifetime Value" (CLV) estimates:', options:['The total revenue a business can expect from a customer over the relationship','The cost to acquire one customer','The number of customer complaints','The average order size only'], a:0},
+        {q:'Search Engine Marketing (SEM) typically involves:', options:['Paid ads that appear in search engine results','Only organic content with no paid component','Only television commercials','Only print flyers'], a:0},
+        {q:'\'Keyword research\' in SEO helps marketers:', options:['Identify terms customers search for to optimize content around them','Design the company logo','Set employee salaries','Audit financial statements'], a:0},
+        {q:'Social media marketing primarily aims to:', options:['Build brand awareness and engage audiences on social platforms','Replace all customer service','File legal documents','Manage payroll'], a:0},
+        {q:'A \'landing page\' in a digital campaign is designed to:', options:['Convert visitors who click an ad into leads or customers','Serve as the company\'s internal HR portal','Store financial records','Manage server infrastructure'], a:0},
+      // --- Marketing Metrics & Analytics (10) ---
+        {q:'Which metric measures the % of visitors who leave a website after viewing only one page?', options:['Conversion rate','Bounce rate','CTR','Impressions'], a:1},
+        {q:'"Content marketing" primarily focuses on:', options:['Creating valuable content to attract and engage an audience','Only running paid ads','Cold outreach exclusively','Trade show booths only'], a:0},
+        {q:'What does "CAC" stand for?', options:['Customer Acquisition Cost','Content Approval Cycle','Campaign Ad Cost','Channel Attribution Credit'], a:0},
+        {q:'Which of these best describes "retargeting" in digital ads?', options:['Showing ads to people who previously visited your site/app','Targeting a completely new audience only','Changing your product target market','Rebranding a campaign'], a:0},
+        {q:'"Market research" is primarily used to:', options:['Understand customer needs and market conditions before making decisions','Replace the need for a marketing plan','Only track competitor pricing','Set employee salaries'], a:0},
+        {q:'Which of these is a paid media channel?', options:['Organic SEO ranking','A Google Ads campaign','A company blog post','Word of mouth'], a:1},
+        {q:'\'ROI\' (Return on Investment) in marketing measures:', options:['The profitability of a marketing investment relative to its cost','The number of employees in marketing','The office square footage','The number of competitors'], a:0},
+        {q:'\'Impressions\' in advertising refer to:', options:['The number of times an ad is displayed','The number of purchases made','The number of employees who saw the ad internally','The cost per click only'], a:0},
+        {q:'A \'funnel conversion rate\' measures:', options:['The percentage of people who move from one funnel stage to the next','The total ad spend','The number of social media followers','The number of products in stock'], a:0},
+        {q:'\'Attribution modeling\' helps marketers understand:', options:['Which marketing touchpoints contributed to a conversion','Only the final sale amount','Employee attendance','Office rent costs'], a:0},
+      // --- Content & Brand Strategy (10) ---
+        {q:'"Brand voice" refers to:', options:['The distinct personality and tone a brand uses in communication','The volume of ads played','The CEO\'s speaking style only','The company\'s legal name'], a:0},
+        {q:'Which of these is typically a KPI (Key Performance Indicator) in marketing?', options:['Conversion rate','Office square footage','Employee birthdays','Parking spaces available'], a:0},
+        {q:'"Influencer marketing" primarily leverages:', options:['A person with an established audience to promote a brand','Only television ads','Government regulations','Manufacturing partnerships'], a:0},
+        {q:'What is the main purpose of an "email marketing" campaign?', options:['Nurture leads and communicate directly with subscribers','Replace the company website','Only for internal communication','File tax documents'], a:0},
+        {q:'A "call to action" (CTA) in marketing content is meant to:', options:['Prompt the audience to take a specific next step','Summarize the terms of service','List company holidays','Display the privacy policy'], a:0},
+        {q:'Which of these best describes "omnichannel marketing"?', options:['Using only one channel exclusively','Providing a seamless, consistent customer experience across multiple channels','Ignoring digital channels entirely','Running ads only during holidays'], a:1},
+        {q:'A strong brand identity typically includes:', options:['Consistent visuals, tone, and messaging across all touchpoints','Random colors and messaging that change weekly','No logo or name','Only a tagline with nothing else'], a:0},
+        {q:'\'Storytelling\' in content marketing is effective because it:', options:['Creates emotional connection and makes messages memorable','Is required by law','Always increases prices','Replaces the need for a product'], a:0},
+        {q:'A \'content calendar\' helps marketing teams:', options:['Plan and schedule content consistently across channels','Track employee vacation days','Manage the sales pipeline','File taxes'], a:0},
+        {q:'\'Brand consistency\' across channels primarily helps to:', options:['Build recognition and trust with the audience','Increase manufacturing costs','Reduce product quality','Eliminate the need for a marketing team'], a:0},
+    
+      ]
     ],
-    round2mcq:[
-      {q:'A campaign is getting high impressions but very low conversions. What should you check first?', options:['Increase the ad budget immediately','Review targeting, messaging, and landing page relevance','Cancel the campaign with no analysis','Change the company logo'], a:1},
-      {q:'A competitor launches a similar product at a lower price right before your launch. Best response?', options:['Delay your launch indefinitely','Reassess your differentiation and messaging around unique value','Match their price exactly without analysis','Ignore it completely'], a:1},
-      {q:'Comments on a recent social media post are turning negative. What\'s the best approach?', options:['Delete all comments','Respond calmly, acknowledge concerns, and clarify facts professionally','Argue with commenters directly','Turn off comments and stay silent'], a:1},
-      {q:'You have a limited budget and must pick one channel to promote a new product. How do you decide?', options:['Pick your personal favorite platform','Analyze where your target audience is most active and engaged','Use whichever channel is cheapest regardless of audience','Ask a competitor for advice'], a:1},
+    round2mcqSets:[
+      [
+        {q:'A campaign is getting high impressions but very low conversions. What should you check first?', options:['Increase the ad budget immediately','Review targeting, messaging, and landing page relevance','Cancel the campaign with no analysis','Change the company logo'], a:1},
+        {q:'A competitor launches a similar product at a lower price right before your launch. Best response?', options:['Delay your launch indefinitely','Reassess your differentiation and messaging around unique value','Match their price exactly without analysis','Ignore it completely'], a:1},
+        {q:'Comments on a recent social media post are turning negative. What\'s the best approach?', options:['Delete all comments','Respond calmly, acknowledge concerns, and clarify facts professionally','Argue with commenters directly','Turn off comments and stay silent'], a:1},
+        {q:'You have a limited budget and must pick one channel to promote a new product. How do you decide?', options:['Pick your personal favorite platform','Analyze where your target audience is most active and engaged','Use whichever channel is cheapest regardless of audience','Ask a competitor for advice'], a:1},
+      ],
+      [
+        {q:'Your email open rates have dropped significantly over the last month. What should you check first?', options:['Immediately blame the email platform','Review subject lines, sender reputation, and list quality/deliverability','Stop sending emails entirely','Increase send frequency without analysis'], a:1},
+        {q:'A new product launch video receives many views but few shares or comments. What might you investigate?', options:['Whether the content resonates and includes a clear call to engage','Nothing, since views are the only metric that matters','The video file size only','The employee headcount'], a:0},
+        {q:'Leadership wants to cut the marketing budget by 30% mid-quarter. Best approach?', options:['Cut all channels equally without analysis','Analyze channel performance and reallocate/cut based on ROI data','Ignore the directive','Cut the best-performing channel first'], a:1},
+        {q:'An influencer partnership post receives some negative feedback about product quality. Best response?', options:['Delete all negative comments immediately','Acknowledge concerns transparently and follow up with the product team','Blame the influencer publicly','Ignore it and hope it fades'], a:1},
+      ],
+      [
+        {q:'A/B test results show no statistically significant difference between two ad variants. What should you do?', options:['Pick your personal favorite anyway','Run the test longer or with a larger sample before concluding','Cancel the campaign entirely','Declare a winner based on gut feeling'], a:1},
+        {q:'Your target audience shifts platforms based on new research. Best next step?', options:['Ignore the research and continue as before','Reassess channel strategy to meet the audience where they now are','Increase spend on the old platform to compensate','Pause all marketing activity'], a:1},
+        {q:'A rebrand is planned, but some team members worry about losing brand recognition. Best approach?', options:['Proceed without any research or transition plan','Conduct research and phase the rebrand with clear communication','Cancel the rebrand entirely without discussion','Rebrand overnight with no announcement'], a:1},
+        {q:'Website traffic increased but sales stayed flat. What should you investigate?', options:['Assume traffic quality/targeting or conversion funnel issues','Assume nothing is wrong since traffic is up','Immediately fire the sales team','Stop all traffic-driving campaigns'], a:0},
+      ],
+      [
+        {q:'A press mention contains a factual inaccuracy about your product. Best response?', options:['Ignore it since it\'s free press','Politely reach out to the outlet to request a correction','Publicly attack the journalist','Sue immediately without contact'], a:1},
+        {q:'Your SEO rankings drop suddenly after a website redesign. What should you check first?', options:['Assume it will fix itself','Review technical SEO factors affected by the redesign (redirects, metadata, site speed)','Blame the search engine','Revert to the old brand logo'], a:1},
+        {q:'A competitor is running a controversial ad campaign that\'s gaining attention. Best response?', options:['Copy their approach immediately','Evaluate if reacting fits your brand values and strategy before acting','Publicly criticize the competitor','Ignore your own strategy to compete'], a:1},
+        {q:'Customer surveys reveal confusion about what your product actually does. Best first step?', options:['Ignore the feedback','Revisit and clarify your core messaging and value proposition','Increase ad spend without changing messaging','Rebrand entirely without research'], a:1},
+      ],
+      [
+        {q:'A social media crisis is unfolding rapidly with many customer complaints. Best first step?', options:['Go silent until it blows over','Acknowledge the issue promptly and communicate a clear action plan','Delete the brand\'s social accounts','Blame customers publicly'], a:1},
+        {q:'Your marketing team must choose between two campaign concepts with limited testing time. Best approach?', options:['Pick randomly','Use available data/quick testing (e.g., a small sample) to inform the choice','Run both fully without any prioritization','Let one person decide without any input'], a:1},
+        {q:'A new privacy regulation restricts the data your team previously used for targeting. Best response?', options:['Ignore the regulation','Adapt strategy to compliant data sources and update practices accordingly','Continue using the same data anyway','Cancel all marketing activities'], a:1},
+        {q:'Engagement is high but leads generated are low quality. Best next step?', options:['Increase content volume without changes','Refine targeting and messaging to attract more qualified prospects','Ignore lead quality entirely','Stop all lead generation efforts'], a:1},
+      ],
     ]
   },
   {
     id:'sales', type:'scenario', name:'Sales & Business Development', icon:'🤝',
+    areas:['Sales Process & Pipeline','Prospecting & Lead Generation','Negotiation & Closing','Sales Metrics & CRM'],
     desc:'Lead generation, negotiation, client relationships, and closing deals.',
-    mcq:[
-      {q:'In sales, "lead qualification" refers to:', options:['Closing the deal','Determining if a prospect is a good fit before investing more time','Filing paperwork after a sale','Setting sales targets'], a:1},
-      {q:'What does "B2B" stand for?', options:['Business to Business','Back to Basics','Buyer to Broker','Bid to Buy'], a:0},
-      {q:'A "sales funnel" typically represents:', options:['The customer journey from awareness to purchase','A company\'s org chart','A pricing model','An inventory system'], a:0},
-      {q:'"Upselling" means:', options:['Convincing a customer to buy a higher-value product or upgrade','Lowering prices for volume','Processing a product return','Cold-calling only'], a:0},
-      {q:'Which of these is a common objection-handling technique?', options:['Ignoring the objection','Acknowledge, clarify, and address the concern with facts','Ending the call immediately','Arguing with the customer'], a:1},
+    mcqSets:[
+      [
+
+      // --- Company Loyalty (10) ---
+        {q:'What best reflects genuine commitment to an organization you join?', options:['Consistently showing up only when convenient','Understanding the company\'s goals and contributing reliably over time','Leaving immediately after any minor disagreement','Doing the minimum required to avoid being fired'], a:1},
+        {q:'If you disagree with a company decision, the most professional approach is to:', options:['Complain to colleagues without raising it formally','Ignore it and quietly disengage','Raise your concern respectfully through the right channel','Refuse to follow it publicly'], a:2},
+        {q:'Why do companies value employees who stay and grow within the organization?', options:['It reduces hiring/training costs and builds deeper expertise','It has no real benefit to the company','It only benefits the employee','It guarantees promotions regardless of performance'], a:0},
+        {q:'You\'re offered a slightly higher salary elsewhere right after joining a company that invested in your training. What shows integrity?', options:['Leave immediately without informing anyone','Weigh the offer honestly and communicate transparently with your employer','Take the new job and ghost your current employer','Accept both jobs secretly'], a:1},
+        {q:'A strong sense of company loyalty is best shown by:', options:['Publicly criticizing the company on social media','Protecting company reputation while still giving honest, constructive feedback internally','Never having any opinions of your own','Sharing confidential company information freely'], a:1},
+        {q:'If you make a mistake at work, the most loyal and professional response is to:', options:['Hide it and hope no one notices','Blame a colleague to protect yourself','Own up to it, report it, and help fix it','Quit immediately'], a:2},
+        {q:'Which behavior best demonstrates long-term commitment to an employer?', options:['Job-hopping every few months for tiny pay bumps','Investing effort to learn the role and grow with the company','Doing only tasks that get public recognition','Avoiding all teamwork'], a:1},
+        {q:'How should an employee handle confidential company information?', options:['Share it with friends if asked casually','Post it online to build a personal brand','Protect it and only share on a need-to-know basis as per policy','Sell it to a competitor for personal gain'], a:2},
+        {q:'What is the healthiest way to build trust with a new employer?', options:['Overpromise and underdeliver','Be consistent, honest, and deliver on commitments','Avoid all communication with managers','Take credit for others\' work'], a:1},
+        {q:'Why might an employee choose to stay with a company through a difficult period rather than leave immediately?', options:['Because loyalty and shared problem-solving often strengthen long-term trust and growth','Because leaving is always illegal','Because staying guarantees an instant raise','Because it has no effect on their career'], a:0},
+      // --- Sales Process & Pipeline (10) ---
+        {q:'In sales, "lead qualification" refers to:', options:['Closing the deal','Determining if a prospect is a good fit before investing more time','Filing paperwork after a sale','Setting sales targets'], a:1},
+        {q:'What does "B2B" stand for?', options:['Business to Business','Back to Basics','Buyer to Broker','Bid to Buy'], a:0},
+        {q:'A "sales funnel" typically represents:', options:['The customer journey from awareness to purchase','A company\'s org chart','A pricing model','An inventory system'], a:0},
+        {q:'"Upselling" means:', options:['Convincing a customer to buy a higher-value product or upgrade','Lowering prices for volume','Processing a product return','Cold-calling only'], a:0},
+        {q:'Which of these is a common objection-handling technique?', options:['Ignoring the objection','Acknowledge, clarify, and address the concern with facts','Ending the call immediately','Arguing with the customer'], a:1},
+        {q:'A "sales pipeline" primarily helps track:', options:['Deals at various stages from prospect to close','Employee vacation days','Office inventory','Marketing ad spend only'], a:0},
+        {q:'"Cold calling" refers to:', options:['Calling existing loyal customers only','Contacting prospects who have had no prior interaction with your company','Only calling during winter','Automated robocalls exclusively'], a:1},
+        {q:'A sales pipeline stage that comes right after \'prospecting\' is typically:', options:['Qualifying the lead','Closing the deal','Onboarding the customer','Renewing the contract'], a:0},
+        {q:'\'Pipeline velocity\' measures:', options:['How quickly deals move through the sales pipeline to close','The number of sales reps on a team','The average office temperature','The number of customer complaints'], a:0},
+        {q:'A \'sales cycle\' refers to:', options:['The full process from first contact to closing a deal','Only the final signature step','The company\'s fiscal year','The onboarding process only'], a:0},
+      // --- Prospecting & Lead Generation (10) ---
+        {q:'What does "CRM" stand for?', options:['Customer Relationship Management','Client Revenue Model','Company Resource Management','Contract Review Method'], a:0},
+        {q:'"Cross-selling" means:', options:['Selling a completely unrelated product to a new customer','Recommending complementary products to an existing customer','Lowering prices to compete','Only selling to competitors\' customers'], a:1},
+        {q:'A "quota" in sales typically refers to:', options:['The target amount of sales a salesperson is expected to achieve','The number of office supplies allocated','The maximum discount allowed','The number of sick days allowed'], a:0},
+        {q:'What is the purpose of a "discovery call" in the sales process?', options:['To close the deal immediately','To understand the prospect\'s needs and qualify the opportunity','To send an invoice','To onboard a new customer'], a:1},
+        {q:'"Churn rate" measures:', options:['The % of customers who stop using a product/service over a period','The number of new leads generated','The average deal size','The total revenue'], a:0},
+        {q:'A "warm lead" is best described as:', options:['A prospect with no prior interest or interaction','A prospect who has shown some interest or engagement already','A former customer who churned','A random cold contact'], a:1},
+        {q:'An \'ideal customer profile\' (ICP) helps sales teams:', options:['Focus prospecting efforts on the accounts most likely to buy and succeed','Randomly contact any company','Avoid using a CRM','Set office holidays'], a:0},
+        {q:'Which of these is an effective way to generate warm leads?', options:['Content marketing and referrals that build initial interest','Cold calling with no research','Ignoring inbound inquiries','Random mass emails with no targeting'], a:0},
+        {q:'\'Lead scoring\' helps sales teams:', options:['Prioritize leads most likely to convert based on defined criteria','Track office inventory','Calculate employee bonuses','Design marketing logos'], a:0},
+        {q:'Networking events are valuable for sales mainly because they:', options:['Help build relationships and generate qualified leads','Replace the need for a CRM','Guarantee a signed contract on the spot','Are only useful for marketing, not sales'], a:0},
+      // --- Negotiation & Closing (10) ---
+        {q:'Which of these best describes "consultative selling"?', options:['Pushing a product regardless of customer needs','Understanding customer needs first and recommending relevant solutions','Only selling the cheapest option','Avoiding any customer interaction'], a:1},
+        {q:'"Closing ratio" measures:', options:['The % of deals won out of total opportunities pursued','The number of emails sent','The size of the sales team','The average commission rate'], a:0},
+        {q:'What does "ARR" stand for in a subscription sales context?', options:['Annual Recurring Revenue','Average Return Rate','Account Renewal Ratio','Annual Refund Rate'], a:0},
+        {q:'A "champion" within a prospect\'s organization is:', options:['A random contact with no influence','An internal advocate who supports your solution to decision-makers','The CEO only','A competitor\'s salesperson'], a:1},
+        {q:'"Value-based selling" focuses primarily on:', options:['Lowest possible price','The measurable value/ROI the solution provides to the customer','Speed of the sales call only','The salesperson\'s personal targets'], a:1},
+        {q:'What is the main goal of a "sales forecast"?', options:['Predict future sales performance to guide planning and resource allocation','Track employee attendance','Set marketing budgets exclusively','Determine office locations'], a:0},
+        {q:'\'Anchoring\' in negotiation refers to:', options:['Setting an initial reference point that influences the rest of the discussion','Refusing to ever negotiate','Ending a negotiation abruptly','Ignoring the other party\'s needs'], a:0},
+        {q:'A win-win negotiation outcome means:', options:['Both parties feel they gained meaningful value from the deal','Only the seller benefits','Only the buyer benefits','Neither party benefits'], a:0},
+        {q:'When a prospect raises a genuine objection, the best first step is usually to:', options:['Listen fully and understand the underlying concern','Interrupt and dismiss it','Immediately lower the price','End the call'], a:0},
+        {q:'\'Closing techniques\' are meant to:', options:['Help move a ready prospect toward a clear decision, not pressure an unready one','Force every prospect to buy regardless of fit','Replace the need for building trust','Only apply to phone sales'], a:0},
+      // --- Sales Metrics & CRM (10) ---
+        {q:'"Account-based selling" (ABS) primarily targets:', options:['Random individual consumers','Specific high-value accounts/companies with tailored outreach','Only inbound leads','Every lead equally regardless of fit'], a:1},
+        {q:'What does "MEDDIC" broadly help sales teams with?', options:['A qualifying framework for complex B2B deals','A pricing calculator','A CRM software brand','An onboarding checklist'], a:0},
+        {q:'A "trial close" during a sales conversation is used to:', options:['End the meeting abruptly','Gauge the prospect\'s readiness/interest before a full close attempt','Offer a free product trial only','Cancel the deal'], a:1},
+        {q:'"Social selling" primarily involves:', options:['Using social media platforms to build relationships and engage prospects','Selling only in-person','Avoiding all digital tools','Cold calling exclusively'], a:0},
+        {q:'What best describes a "decision maker" in a B2B sale?', options:['Anyone who answers the phone','The person with authority to approve the purchase','The receptionist','A random employee'], a:1},
+        {q:'"Win rate" in sales refers to:', options:['The % of opportunities that result in a closed-won deal','Total revenue generated','Number of calls made per day','Average deal size'], a:0},
+        {q:'Which metric best shows how efficiently a sales team turns opportunities into revenue?', options:['Win rate','Number of emails sent','Office headcount','Number of meetings scheduled'], a:0},
+        {q:'A CRM system primarily helps sales teams:', options:['Track and manage customer relationships and deal history','Design marketing creatives','Process payroll','Manage IT infrastructure'], a:0},
+        {q:'\'Average deal size\' is a useful metric because it helps forecast:', options:['Expected revenue per closed deal','Employee satisfaction','Office space needs','Marketing ad spend'], a:0},
+        {q:'Sales forecasting accuracy is most improved by:', options:['Consistently updated, realistic pipeline data','Guessing based on last year\'s holiday season only','Ignoring the CRM entirely','Random estimates with no data'], a:0},
+    
+      ]
     ],
-    round2mcq:[
-      {q:'A prospect says your price is too high compared to a competitor. Best response?', options:['Immediately match the competitor\'s price','Reiterate the unique value and ROI your product provides before discussing price','Criticize the competitor\'s product','End the conversation'], a:1},
-      {q:'You\'re close to hitting your monthly target, and a client asks for an unrealistic discount to close today. What do you do?', options:['Agree to any discount to hit target','Evaluate if the discount is sustainable and negotiate value-based terms','Refuse to negotiate at all','Pass the client to someone else immediately'], a:1},
-      {q:'A long-time client hasn\'t responded to your last three follow-ups. Best next step?', options:['Give up on the account entirely','Try a different, more relevant approach — a call or a value-focused check-in','Send the exact same email again','Escalate straight to legal'], a:1},
-      {q:'During a client meeting, you realize you can\'t answer a technical question. What should you do?', options:['Make up an answer confidently','Admit you\'ll confirm with your team and follow up promptly','Avoid the question entirely','End the meeting'], a:1},
+    round2mcqSets:[
+      [
+        {q:'A prospect says your price is too high compared to a competitor. Best response?', options:['Immediately match the competitor\'s price','Reiterate the unique value and ROI your product provides before discussing price','Criticize the competitor\'s product','End the conversation'], a:1},
+        {q:'You\'re close to hitting your monthly target, and a client asks for an unrealistic discount to close today. What do you do?', options:['Agree to any discount to hit target','Evaluate if the discount is sustainable and negotiate value-based terms','Refuse to negotiate at all','Pass the client to someone else immediately'], a:1},
+        {q:'A long-time client hasn\'t responded to your last three follow-ups. Best next step?', options:['Give up on the account entirely','Try a different, more relevant approach — a call or a value-focused check-in','Send the exact same email again','Escalate straight to legal'], a:1},
+        {q:'During a client meeting, you realize you can\'t answer a technical question. What should you do?', options:['Make up an answer confidently','Admit you\'ll confirm with your team and follow up promptly','Avoid the question entirely','End the meeting'], a:1},
+      ],
+      [
+        {q:'A prospect goes silent after a promising demo. Best next step?', options:['Give up immediately','Send a value-focused, low-pressure follow-up to re-engage','Call repeatedly multiple times a day','Assume they\'re not interested and move on without any follow-up'], a:1},
+        {q:'A deal is stuck because the prospect\'s champion lacks final budget authority. Best approach?', options:['Ignore the issue and keep pushing the champion','Help identify and build a business case for the actual economic buyer','Give up on the deal','Offer a steep discount immediately'], a:1},
+        {q:'You discover a competitor is offering the same client a lower price. Best response?', options:['Immediately match or beat the price without discussion','Reinforce your differentiated value and understand what truly matters to the client','Badmouth the competitor','Withdraw from the deal'], a:1},
+        {q:'A key client is unhappy after a service issue and considering leaving. Best first step?', options:['Ignore it and hope they stay','Proactively reach out, acknowledge the issue, and propose a resolution','Offer nothing and wait for them to complain formally','Blame another department publicly'], a:1},
+      ],
+      [
+        {q:'You\'re about to miss quota this quarter despite a full pipeline. Best approach?', options:['Panic and offer unsustainable discounts to everyone','Prioritize the highest-probability deals and focus effort there','Ignore the pipeline and start from scratch','Blame marketing publicly'], a:1},
+        {q:'A prospect asks for features your product doesn\'t currently have. Best response?', options:['Falsely claim the feature exists','Be honest about current capabilities and discuss the roadmap or workarounds','Ignore the question','End the conversation'], a:1},
+        {q:'A colleague is about to close a deal using misleading claims about the product. What should you do?', options:['Say nothing since it\'s not your deal','Raise the concern with the colleague or manager to ensure accuracy','Join in to help close it faster','Report it publicly on social media'], a:1},
+        {q:'A long negotiation stalls over a single contract clause. Best approach?', options:['Walk away immediately','Understand the underlying concern and explore mutually acceptable alternatives','Agree to everything without review','Refuse to discuss it further'], a:1},
+      ],
+      [
+        {q:'A new rep on your team is struggling to hit activity targets. Best approach as a peer/lead?', options:['Ignore it, it\'s their manager\'s problem','Offer to share techniques and shadow a few calls together','Publicly criticize their numbers','Take over their accounts'], a:1},
+        {q:'A client wants to renew but requests a discount citing budget cuts. Best approach?', options:['Grant any discount requested immediately','Explore value-add options and negotiate terms that work for both sides','Refuse to negotiate and risk losing the renewal','Let the contract lapse without discussion'], a:1},
+        {q:'You realize you slightly overpromised delivery timelines to close a deal. Best next step?', options:['Say nothing and hope no one notices','Proactively inform the client and the delivery team to manage expectations','Blame the delivery team later','Cancel the deal'], a:1},
+        {q:'A prospect wants a reference call, but your best-fit reference is unavailable. Best approach?', options:['Fabricate a reference call','Find another relevant reference or offer a case study while you arrange one','Refuse the request entirely','Delay the deal indefinitely without communication'], a:1},
+      ],
+      [
+        {q:'Your top account is being poached by a competitor with an aggressive pitch. Best first step?', options:['Ignore it and hope the client stays loyal','Reconnect with the account to reaffirm value and address any concerns','Badmouth the competitor to the client','Offer an unsustainable discount immediately'], a:1},
+        {q:'A prospect asks a question you\'re not fully sure about during a demo. Best response?', options:['Guess an answer confidently','Acknowledge you\'ll confirm and follow up with accurate information','Change the subject','Ask them to figure it out themselves'], a:1},
+        {q:'Your manager pushes you to close a deal you believe isn\'t a good fit for the customer. Best approach?', options:['Push the deal through regardless','Share your concerns with data and let leadership make an informed call','Refuse to discuss it','Close it without telling anyone your concerns'], a:1},
+        {q:'A client requests a custom contract term outside standard policy. Best next step?', options:['Approve it yourself without checking','Escalate to the appropriate team (legal/finance) before committing','Refuse without explanation','Ignore the request'], a:1},
+      ],
     ]
   },
   {
     id:'finance', type:'scenario', name:'Finance & Accounting', icon:'💰',
+    areas:['Financial Statements','Accounting Principles','Financial Ratios & Analysis','Budgeting & Corporate Finance'],
     desc:'Financial statements, bookkeeping, budgeting, and analysis fundamentals.',
-    mcq:[
-      {q:'What does "P&L" stand for in finance?', options:['Profit and Loss','Payables and Liabilities','Pricing and Logistics','Personnel and Leave'], a:0},
-      {q:'Which financial statement shows a company\'s assets, liabilities, and equity at a point in time?', options:['Income statement','Balance sheet','Cash flow statement','Payslip'], a:1},
-      {q:'"Accounts receivable" represents:', options:['Money a company owes to suppliers','Money owed to the company by customers','The company\'s cash reserves','Employee salaries'], a:1},
-      {q:'A "debit" in double-entry bookkeeping typically:', options:['Always decreases every account','Increases assets/expenses and decreases liabilities/equity','Only applies to cash accounts','Is identical to a credit'], a:1},
-      {q:'What does "ROI" measure?', options:['Rate of Inflation','Return on Investment','Ratio of Income','Revenue over Inventory'], a:1},
+    mcqSets:[
+      [
+
+      // --- Company Loyalty (10) ---
+        {q:'What best reflects genuine commitment to an organization you join?', options:['Consistently showing up only when convenient','Understanding the company\'s goals and contributing reliably over time','Leaving immediately after any minor disagreement','Doing the minimum required to avoid being fired'], a:1},
+        {q:'If you disagree with a company decision, the most professional approach is to:', options:['Complain to colleagues without raising it formally','Ignore it and quietly disengage','Raise your concern respectfully through the right channel','Refuse to follow it publicly'], a:2},
+        {q:'Why do companies value employees who stay and grow within the organization?', options:['It reduces hiring/training costs and builds deeper expertise','It has no real benefit to the company','It only benefits the employee','It guarantees promotions regardless of performance'], a:0},
+        {q:'You\'re offered a slightly higher salary elsewhere right after joining a company that invested in your training. What shows integrity?', options:['Leave immediately without informing anyone','Weigh the offer honestly and communicate transparently with your employer','Take the new job and ghost your current employer','Accept both jobs secretly'], a:1},
+        {q:'A strong sense of company loyalty is best shown by:', options:['Publicly criticizing the company on social media','Protecting company reputation while still giving honest, constructive feedback internally','Never having any opinions of your own','Sharing confidential company information freely'], a:1},
+        {q:'If you make a mistake at work, the most loyal and professional response is to:', options:['Hide it and hope no one notices','Blame a colleague to protect yourself','Own up to it, report it, and help fix it','Quit immediately'], a:2},
+        {q:'Which behavior best demonstrates long-term commitment to an employer?', options:['Job-hopping every few months for tiny pay bumps','Investing effort to learn the role and grow with the company','Doing only tasks that get public recognition','Avoiding all teamwork'], a:1},
+        {q:'How should an employee handle confidential company information?', options:['Share it with friends if asked casually','Post it online to build a personal brand','Protect it and only share on a need-to-know basis as per policy','Sell it to a competitor for personal gain'], a:2},
+        {q:'What is the healthiest way to build trust with a new employer?', options:['Overpromise and underdeliver','Be consistent, honest, and deliver on commitments','Avoid all communication with managers','Take credit for others\' work'], a:1},
+        {q:'Why might an employee choose to stay with a company through a difficult period rather than leave immediately?', options:['Because loyalty and shared problem-solving often strengthen long-term trust and growth','Because leaving is always illegal','Because staying guarantees an instant raise','Because it has no effect on their career'], a:0},
+      // --- Financial Statements (10) ---
+        {q:'What does "P&L" stand for in finance?', options:['Profit and Loss','Payables and Liabilities','Pricing and Logistics','Personnel and Leave'], a:0},
+        {q:'Which financial statement shows a company\'s assets, liabilities, and equity at a point in time?', options:['Income statement','Balance sheet','Cash flow statement','Payslip'], a:1},
+        {q:'"Accounts receivable" represents:', options:['Money a company owes to suppliers','Money owed to the company by customers','The company\'s cash reserves','Employee salaries'], a:1},
+        {q:'A "debit" in double-entry bookkeeping typically:', options:['Always decreases every account','Increases assets/expenses and decreases liabilities/equity','Only applies to cash accounts','Is identical to a credit'], a:1},
+        {q:'What does "ROI" measure?', options:['Rate of Inflation','Return on Investment','Ratio of Income','Revenue over Inventory'], a:1},
+        {q:'Which financial statement shows cash inflows and outflows over a period?', options:['Balance sheet','Cash flow statement','Income statement','Trial balance'], a:1},
+        {q:'"Gross margin" is calculated as:', options:['(Revenue - COGS) / Revenue','Net Income / Revenue','Total Assets - Total Liabilities','Revenue / Total Expenses'], a:0},
+        {q:'The income statement shows a company\'s:', options:['Revenues and expenses over a period, resulting in net profit or loss','Assets and liabilities at a single point in time','Cash held in physical vaults only','Employee attendance records'], a:0},
+        {q:'\'Revenue recognition\' refers to:', options:['Recording income when it is earned, per accounting standards','Only recording income when cash is physically counted','Ignoring all sales until year-end','A tax filing deadline'], a:0},
+        {q:'Which statement links to the others by showing changes in cash over time?', options:['Cash flow statement','Employee handbook','Marketing plan','Org chart'], a:0},
+      // --- Accounting Principles (10) ---
+        {q:'What does "CAPEX" refer to?', options:['Capital Expenditure','Cash Payment Exchange','Corporate Accounting Practice','Current Asset Position'], a:0},
+        {q:'A "credit" in double-entry bookkeeping typically:', options:['Always decreases every account','Increases liabilities/equity/revenue and decreases assets/expenses','Only applies to loans','Is identical to a debit'], a:1},
+        {q:'"Liquidity" refers to a company\'s ability to:', options:['Generate long-term profit','Meet short-term obligations with available assets','Pay dividends','Expand internationally'], a:1},
+        {q:'What does "EBITDA" stand for?', options:['Earnings Before Interest, Taxes, Depreciation, and Amortization','Estimated Budget Including Total Debt Analysis','Earnings by Investment and Tax Deduction Amount','Equity-Based Income and Tax Direct Allocation'], a:0},
+        {q:'Which ratio measures a company\'s ability to pay short-term liabilities with short-term assets?', options:['Debt-to-equity ratio','Current ratio','Return on equity','Price-to-earnings ratio'], a:1},
+        {q:'"Depreciation" in accounting represents:', options:['An increase in asset value over time','The allocation of an asset\'s cost over its useful life','A type of tax refund','Cash held in reserve'], a:1},
+        {q:'A \'journal entry\' in accounting is used to:', options:['Record individual financial transactions with debits and credits','Track employee vacation','Design a marketing campaign','Schedule shipments'], a:0},
+        {q:'The \'accounting equation\' is expressed as:', options:['Assets = Liabilities + Equity','Revenue = Expenses','Assets = Revenue - Expenses','Equity = Liabilities only'], a:0},
+        {q:'\'Accrual accounting\' records transactions:', options:['When they are earned or incurred, regardless of when cash changes hands','Only when cash is received or paid','Only once per year','Never, since it\'s not standard practice'], a:0},
+        {q:'A \'trial balance\' is used to:', options:['Check that total debits equal total credits before finalizing accounts','Set employee salaries','Design the balance sheet layout only','Track inventory levels'], a:0},
+      // --- Financial Ratios & Analysis (10) ---
+        {q:'A "budget variance" refers to:', options:['The difference between planned and actual financial results','The total company revenue','A type of loan','The number of accounts payable'], a:0},
+        {q:'What is the primary purpose of an "audit"?', options:['To increase company revenue directly','To independently verify the accuracy of financial records','To set employee salaries','To design marketing campaigns'], a:1},
+        {q:'"Working capital" is calculated as:', options:['Current Assets - Current Liabilities','Total Assets - Total Liabilities','Revenue - Expenses','Net Income / Shares Outstanding'], a:0},
+        {q:'Which of these is considered a "fixed cost"?', options:['Raw materials','Monthly office rent','Sales commissions','Shipping fees per order'], a:1},
+        {q:'"Accounts payable" represents:', options:['Money owed to the company by customers','Money a company owes to its suppliers/vendors','Cash reserves','Employee salaries paid'], a:1},
+        {q:'What does "GAAP" stand for?', options:['Generally Accepted Accounting Principles','Global Asset Allocation Policy','General Auditing and Accounting Process','Government Approved Accounting Plan'], a:0},
+        {q:'The \'current ratio\' is calculated as:', options:['Current Assets / Current Liabilities','Net Income / Revenue','Total Assets / Total Equity','Revenue / COGS'], a:0},
+        {q:'\'Return on Equity\' (ROE) measures:', options:['How efficiently a company generates profit from shareholders\' equity','The company\'s total debt','The number of shares outstanding','The company\'s tax rate'], a:0},
+        {q:'A high \'debt-to-equity\' ratio generally indicates:', options:['The company relies more heavily on debt financing relative to equity','The company has no liabilities','The company is debt-free','The company has excess cash only'], a:0},
+        {q:'\'Break-even analysis\' helps determine:', options:['The sales volume at which total revenue equals total costs','The company\'s brand value','The marketing budget','The number of employees needed'], a:0},
+      // --- Budgeting & Corporate Finance (10) ---
+        {q:'A "reconciliation" in accounting is the process of:', options:['Firing underperforming staff','Ensuring two sets of records (e.g., bank statement and ledger) match','Setting annual budgets','Filing taxes'], a:1},
+        {q:'"Net profit margin" measures:', options:['Net income as a percentage of total revenue','Total assets minus liabilities','Revenue growth rate only','Gross sales volume'], a:0},
+        {q:'Which of these is an example of a "current asset"?', options:['Land','Accounts receivable','A 20-year building lease','Long-term investments'], a:1},
+        {q:'"Amortization" most commonly applies to:', options:['Physical/tangible assets only','Intangible assets like patents or loans over time','Cash held in a vault','Employee bonuses'], a:1},
+        {q:'A company\'s "solvency" refers to its ability to:', options:['Meet long-term debt obligations','Pay employees weekly','Generate marketing leads','Set stock prices'], a:0},
+        {q:'What is the purpose of a "general ledger"?', options:['To record all financial transactions of a business in one place','To track employee attendance','To manage inventory only','To schedule meetings'], a:0},
+        {q:'A \'budget\' in corporate finance primarily serves to:', options:['Plan and control expected income and expenses over a period','Replace the need for financial statements','Only track employee attendance','Set the company\'s logo'], a:0},
+        {q:'\'Capital budgeting\' involves decisions about:', options:['Long-term investments in assets like equipment or facilities','Daily petty cash handling only','Employee lunch schedules','Marketing slogans'], a:0},
+        {q:'A \'cost-benefit analysis\' helps decide whether:', options:['The expected benefits of a decision outweigh its costs','A company should hire only interns','Marketing should stop entirely','Taxes should be delayed'], a:0},
+        {q:'\'Working capital management\' primarily focuses on:', options:['Ensuring a company has enough short-term liquidity for operations','Long-term real estate investment only','Employee training programs','Brand design'], a:0},
+    
+      ]
     ],
-    round2mcq:[
-      {q:'You notice a small discrepancy in a monthly expense report. What\'s the right first step?', options:['Ignore it since it\'s minor','Investigate and verify the discrepancy before reporting','Delete the entry','Assume it\'s someone else\'s error and move on'], a:1},
-      {q:'A department head asks you to approve an over-budget expense without proper documentation. What do you do?', options:['Approve it immediately since they asked','Politely decline and request proper documentation/approval per policy','Approve it but tell no one','Ignore the request entirely'], a:1},
-      {q:'At month-end close, you\'re short on time and a report has minor unverified data. What should you do?', options:['Submit as-is and hope it\'s fine','Flag the uncertainty, submit with a note, and follow up once verified','Delay all reporting indefinitely','Guess the missing figures'], a:1},
-      {q:'A client requests an invoice be backdated to a previous quarter. Best response?', options:['Backdate it as requested','Decline, since this would misrepresent the accounting period, and explain why','Do it quietly just this once','Ask a colleague to do it instead'], a:1},
+    round2mcqSets:[
+      [
+        {q:'You notice a small discrepancy in a monthly expense report. What\'s the right first step?', options:['Ignore it since it\'s minor','Investigate and verify the discrepancy before reporting','Delete the entry','Assume it\'s someone else\'s error and move on'], a:1},
+        {q:'A department head asks you to approve an over-budget expense without proper documentation. What do you do?', options:['Approve it immediately since they asked','Politely decline and request proper documentation/approval per policy','Approve it but tell no one','Ignore the request entirely'], a:1},
+        {q:'At month-end close, you\'re short on time and a report has minor unverified data. What should you do?', options:['Submit as-is and hope it\'s fine','Flag the uncertainty, submit with a note, and follow up once verified','Delay all reporting indefinitely','Guess the missing figures'], a:1},
+        {q:'A client requests an invoice be backdated to a previous quarter. Best response?', options:['Backdate it as requested','Decline, since this would misrepresent the accounting period, and explain why','Do it quietly just this once','Ask a colleague to do it instead'], a:1},
+      ],
+      [
+        {q:'You notice a vendor invoice amount doesn\'t match the purchase order. Best first step?', options:['Pay it anyway to avoid delay','Flag the discrepancy and verify with the vendor/purchasing team before payment','Ignore the mismatch','Cancel the vendor relationship immediately'], a:1},
+        {q:'A manager asks you to record revenue for a deal that hasn\'t actually closed yet. Best response?', options:['Record it as requested','Decline and explain that revenue must be recognized per proper accounting standards','Record half of it as a compromise','Ignore the request silently'], a:1},
+        {q:'Cash flow is tight this month despite strong reported profit. What should you investigate?', options:['Assume the numbers are wrong and stop reporting','Review receivables, payables timing, and non-cash items affecting cash flow','Ignore it since profit looks fine','Immediately take out a large loan'], a:1},
+        {q:'You find a duplicate payment was made to a supplier. Best next step?', options:['Ignore it since it\'s a small amount','Document it and initiate a recovery/credit process with the supplier','Hide it from the audit trail','Blame the supplier without investigation'], a:1},
+      ],
+      [
+        {q:'An employee submits an expense report with a receipt that looks altered. Best first step?', options:['Approve it to avoid conflict','Ask clarifying questions and verify before approving','Reject it publicly in front of others','Report it to the police immediately without verification'], a:1},
+        {q:'Year-end close reveals a significant unexplained variance in one department\'s budget. Best approach?', options:['Ignore it since the year is ending','Investigate the root cause with the department before finalizing reports','Adjust the numbers without explanation','Blame the department head publicly'], a:1},
+        {q:'A new regulation changes how a certain expense must be reported. Best next step?', options:['Continue with the old method','Update processes and systems to comply with the new requirement','Ignore it until audited','Delay compliance indefinitely'], a:1},
+        {q:'You\'re asked to approve a large payment with incomplete documentation, under time pressure. Best approach?', options:['Approve it anyway due to time pressure','Request the minimum necessary documentation before approving','Reject it permanently without discussion','Approve verbally without any record'], a:1},
+      ],
+      [
+        {q:'A forecast model consistently overestimates revenue for three straight quarters. Best next step?', options:['Keep using the same assumptions','Review and recalibrate the model\'s assumptions against actuals','Ignore the pattern','Stop forecasting altogether'], a:1},
+        {q:'You discover a colleague made a genuine error that understated expenses last quarter. Best approach?', options:['Hide the error to avoid conflict','Report it and correct the records through proper channels','Blame them publicly','Ignore it since the quarter is closed'], a:1},
+        {q:'Management wants to delay recognizing a known liability to improve this quarter\'s numbers. Best response?', options:['Comply since management asked','Explain why this violates accounting standards and could constitute misrepresentation','Delay it partially as a compromise','Say nothing and comply quietly'], a:1},
+        {q:'A client disputes an invoice, claiming a service wasn\'t delivered. Best first step?', options:['Ignore the dispute','Investigate the claim with supporting records before resolving','Immediately issue a refund without review','Immediately send it to collections'], a:1},
+      ],
+      [
+        {q:'You notice your company may be at risk of a cash shortfall in two months. Best first step?', options:['Wait and see what happens','Proactively model scenarios and alert leadership to plan ahead','Take out any loan immediately without analysis','Ignore it since it hasn\'t happened yet'], a:1},
+        {q:'An intern accidentally deletes a batch of transaction records. Best next step?', options:['Blame the intern publicly','Restore from backup and review controls to prevent recurrence','Recreate the numbers from memory','Ignore the missing data'], a:1},
+        {q:'A supplier offers a "special" cash payment outside normal invoicing to speed things up. Best response?', options:['Accept the arrangement','Decline and follow standard, documented payment procedures','Accept but tell no one','Ask for an even bigger cash payment'], a:1},
+        {q:'Your budget review shows one team significantly overspent without prior approval. Best first step?', options:['Ignore it since the year isn\'t over','Discuss with the team lead to understand the cause and adjust controls','Cut their budget to zero immediately','Approve future overspending automatically'], a:1},
+      ],
     ]
   },
   {
     id:'ops', type:'scenario', name:'Operations & Supply Chain', icon:'📦',
+    areas:['Inventory & Demand Planning','Process Improvement','Logistics & Distribution','Quality & Supply Chain Metrics'],
     desc:'Logistics, process efficiency, inventory management, and vendor coordination.',
-    mcq:[
-      {q:'"Just-in-Time" (JIT) inventory aims to:', options:['Stockpile as much inventory as possible','Minimize inventory by receiving goods only as needed','Ignore demand forecasting entirely','Maximize warehouse space usage'], a:1},
-      {q:'What does "SLA" stand for in operations?', options:['Service Level Agreement','Supply Logistics Analysis','Stock Level Adjustment','Sales Lead Automation'], a:0},
-      {q:'A "bottleneck" in a process refers to:', options:['The fastest step in a workflow','A stage that limits the overall throughput of the process','An unused resource','A quality certification'], a:1},
-      {q:'Which metric measures how often deliveries arrive as promised?', options:['On-time delivery rate','Employee turnover','Net profit margin','Customer acquisition cost'], a:0},
-      {q:'"Lean" operations primarily focus on:', options:['Increasing waste','Eliminating waste while maximizing value','Reducing customer service levels','Increasing headcount'], a:1},
+    mcqSets:[
+      [
+
+      // --- Company Loyalty (10) ---
+        {q:'What best reflects genuine commitment to an organization you join?', options:['Consistently showing up only when convenient','Understanding the company\'s goals and contributing reliably over time','Leaving immediately after any minor disagreement','Doing the minimum required to avoid being fired'], a:1},
+        {q:'If you disagree with a company decision, the most professional approach is to:', options:['Complain to colleagues without raising it formally','Ignore it and quietly disengage','Raise your concern respectfully through the right channel','Refuse to follow it publicly'], a:2},
+        {q:'Why do companies value employees who stay and grow within the organization?', options:['It reduces hiring/training costs and builds deeper expertise','It has no real benefit to the company','It only benefits the employee','It guarantees promotions regardless of performance'], a:0},
+        {q:'You\'re offered a slightly higher salary elsewhere right after joining a company that invested in your training. What shows integrity?', options:['Leave immediately without informing anyone','Weigh the offer honestly and communicate transparently with your employer','Take the new job and ghost your current employer','Accept both jobs secretly'], a:1},
+        {q:'A strong sense of company loyalty is best shown by:', options:['Publicly criticizing the company on social media','Protecting company reputation while still giving honest, constructive feedback internally','Never having any opinions of your own','Sharing confidential company information freely'], a:1},
+        {q:'If you make a mistake at work, the most loyal and professional response is to:', options:['Hide it and hope no one notices','Blame a colleague to protect yourself','Own up to it, report it, and help fix it','Quit immediately'], a:2},
+        {q:'Which behavior best demonstrates long-term commitment to an employer?', options:['Job-hopping every few months for tiny pay bumps','Investing effort to learn the role and grow with the company','Doing only tasks that get public recognition','Avoiding all teamwork'], a:1},
+        {q:'How should an employee handle confidential company information?', options:['Share it with friends if asked casually','Post it online to build a personal brand','Protect it and only share on a need-to-know basis as per policy','Sell it to a competitor for personal gain'], a:2},
+        {q:'What is the healthiest way to build trust with a new employer?', options:['Overpromise and underdeliver','Be consistent, honest, and deliver on commitments','Avoid all communication with managers','Take credit for others\' work'], a:1},
+        {q:'Why might an employee choose to stay with a company through a difficult period rather than leave immediately?', options:['Because loyalty and shared problem-solving often strengthen long-term trust and growth','Because leaving is always illegal','Because staying guarantees an instant raise','Because it has no effect on their career'], a:0},
+      // --- Inventory & Demand Planning (10) ---
+        {q:'"Just-in-Time" (JIT) inventory aims to:', options:['Stockpile as much inventory as possible','Minimize inventory by receiving goods only as needed','Ignore demand forecasting entirely','Maximize warehouse space usage'], a:1},
+        {q:'What does "SLA" stand for in operations?', options:['Service Level Agreement','Supply Logistics Analysis','Stock Level Adjustment','Sales Lead Automation'], a:0},
+        {q:'A "bottleneck" in a process refers to:', options:['The fastest step in a workflow','A stage that limits the overall throughput of the process','An unused resource','A quality certification'], a:1},
+        {q:'Which metric measures how often deliveries arrive as promised?', options:['On-time delivery rate','Employee turnover','Net profit margin','Customer acquisition cost'], a:0},
+        {q:'"Lean" operations primarily focus on:', options:['Increasing waste','Eliminating waste while maximizing value','Reducing customer service levels','Increasing headcount'], a:1},
+        {q:'"Lead time" in supply chain refers to:', options:['The time between order placement and delivery','The number of suppliers a company uses','The cost of raw materials','The size of a warehouse'], a:0},
+        {q:'What does "MOQ" stand for in procurement?', options:['Minimum Order Quantity','Maximum Output Quota','Monthly Operations Quota','Material Ordering Queue'], a:0},
+        {q:'\'Reorder point\' in inventory management refers to:', options:['The stock level at which a new order should be placed','The maximum warehouse capacity','The total annual demand','The supplier\'s contact information'], a:0},
+        {q:'\'ABC analysis\' in inventory classifies items based primarily on:', options:['Their relative value/importance to prioritize management effort','Alphabetical order only','Their color','Their shipping distance only'], a:0},
+        {q:'Accurate demand forecasting primarily helps a business:', options:['Avoid both stockouts and excess inventory','Increase marketing spend','Reduce product quality','Eliminate the need for suppliers'], a:0},
+      // --- Process Improvement (10) ---
+        {q:'A "kanban" system is primarily used to:', options:['Visually manage workflow and limit work-in-progress','Track employee attendance','Calculate taxes','Set marketing budgets'], a:0},
+        {q:'"Safety stock" is held primarily to:', options:['Maximize warehouse space usage','Buffer against demand or supply uncertainty','Reduce quality control','Increase lead times intentionally'], a:1},
+        {q:'What does "3PL" stand for in logistics?', options:['Third-Party Logistics','Three-Point Leadership','Product Planning and Logistics','Primary Process Line'], a:0},
+        {q:'"Total Quality Management" (TQM) primarily focuses on:', options:['Continuous improvement of quality across the whole organization','Reducing employee headcount','Maximizing short-term profit only','Ignoring customer feedback'], a:0},
+        {q:'A "value stream map" is used to:', options:['Visualize the flow of materials and information to identify waste','Track employee salaries','Design marketing campaigns','Manage IT infrastructure'], a:0},
+        {q:'What does "MRP" (Material Requirements Planning) primarily help determine?', options:['What materials are needed, in what quantity, and when','Employee vacation schedules','Marketing budget allocation','Customer satisfaction scores'], a:0},
+        {q:'\'Kaizen\' is a philosophy focused on:', options:['Continuous, incremental improvement in processes','One-time major overhauls only','Reducing employee headcount','Ignoring customer feedback'], a:0},
+        {q:'A \'PDCA\' (Plan-Do-Check-Act) cycle is used to:', options:['Systematically test and improve a process','Set final product pricing','Design a company logo','Track employee vacation days'], a:0},
+        {q:'\'Six Sigma\'s DMAIC\' framework stands for:', options:['Define, Measure, Analyze, Improve, Control','Design, Manufacture, Assemble, Inspect, Correct','Deliver, Move, Allocate, Inventory, Confirm','Detect, Manage, Audit, Invoice, Close'], a:0},
+        {q:'Standardizing work procedures primarily helps reduce:', options:['Process variation and errors','Customer satisfaction','Employee training needs entirely','The need for quality checks'], a:0},
+      // --- Logistics & Distribution (10) ---
+        {q:'"Six Sigma" methodology primarily aims to:', options:['Reduce process variation and defects','Increase marketing reach','Maximize headcount','Reduce office space'], a:0},
+        {q:'Which metric measures the % of orders fulfilled completely and accurately?', options:['Perfect order rate','Employee turnover','Net profit margin','Customer acquisition cost'], a:0},
+        {q:'"Vendor managed inventory" (VMI) means:', options:['The buyer manages the supplier\'s finances','The supplier is responsible for maintaining agreed inventory levels at the buyer\'s location','The retailer sets all supplier prices','Inventory is managed manually with no data'], a:1},
+        {q:'What is the main goal of "demand forecasting"?', options:['Predict future customer demand to guide production/inventory planning','Set employee salaries','Design product packaging','Audit financial statements'], a:0},
+        {q:'A "cross-docking" strategy primarily aims to:', options:['Store goods long-term in a warehouse','Transfer goods directly from inbound to outbound transport with minimal storage','Increase warehouse headcount','Slow down the supply chain intentionally'], a:1},
+        {q:'Which of these best describes "supply chain resilience"?', options:['The ability to withstand and recover from disruptions','The lowest possible cost regardless of risk','Using only one supplier for everything','Avoiding all technology'], a:0},
+        {q:'A \'3PL\' provider typically handles which function for a business?', options:['Outsourced warehousing and transportation logistics','Marketing campaign design','Employee payroll only','Financial auditing'], a:0},
+        {q:'\'Freight consolidation\' helps reduce shipping costs by:', options:['Combining smaller shipments into a single larger one','Shipping every order separately regardless of size','Avoiding all transportation','Increasing packaging waste'], a:0},
+        {q:'\'Last-mile delivery\' refers to:', options:['The final step of delivering a product to the end customer','The first stage of manufacturing','Raw material sourcing only','Employee commuting'], a:0},
+        {q:'A \'distribution network\' design primarily aims to:', options:['Balance cost and service level in getting products to customers','Maximize warehouse count regardless of cost','Eliminate the need for transportation','Reduce product quality'], a:0},
+      // --- Quality & Supply Chain Metrics (10) ---
+        {q:'What does "OTIF" measure in logistics?', options:['On-Time In-Full delivery performance','Overall Team Inventory Forecast','Order Tracking and Invoice Flow','Operational Throughput Index Factor'], a:0},
+        {q:'A "root cause analysis" is conducted to:', options:['Identify the underlying source of a problem rather than just its symptoms','Assign blame quickly','Increase production speed only','Replace the entire team'], a:0},
+        {q:'"Economic Order Quantity" (EOQ) helps determine:', options:['The optimal order size that minimizes total inventory costs','Employee headcount','Marketing spend','Office layout'], a:0},
+        {q:'Which of these is a common cause of the "bullwhip effect" in supply chains?', options:['Perfectly accurate demand forecasting','Demand variability amplifying as it moves up the supply chain','Having zero suppliers','Excess automation only'], a:1},
+        {q:'"Capacity planning" primarily ensures:', options:['A business has enough production capacity to meet demand','Employees take enough vacation','Marketing campaigns run on schedule','Taxes are filed correctly'], a:0},
+        {q:'What is the primary benefit of "supplier diversification"?', options:['Reducing dependency risk on a single supplier','Increasing costs intentionally','Slowing down procurement','Reducing product quality'], a:0},
+        {q:'\'Perfect order rate\' reflects orders that are delivered:', options:['Complete, on time, and without damage or errors','Only on time, regardless of accuracy','Only accurately, regardless of timing','At the lowest possible cost only'], a:0},
+        {q:'A \'quality control checkpoint\' in a supply chain is used to:', options:['Catch defects before products move further down the line','Increase production speed only','Replace the need for supplier contracts','Set employee salaries'], a:0},
+        {q:'\'Supplier scorecards\' are used to:', options:['Evaluate supplier performance on metrics like quality and delivery','Set final consumer prices','Design product packaging','Track office attendance'], a:0},
+        {q:'\'Cycle time\' in operations measures:', options:['The total time to complete one full process cycle','The number of employees involved','The cost of raw materials only','The size of the warehouse'], a:0},
+    
+      ]
     ],
-    round2mcq:[
-      {q:'A key supplier informs you of a 2-week delay right before a major order deadline. Best first step?', options:['Do nothing and hope it resolves itself','Assess the impact, inform affected stakeholders, and explore alternatives','Cancel the entire order immediately','Publicly blame the supplier'], a:1},
-      {q:'You notice one step in a process is causing repeated delays across the team. What should you do?', options:['Ignore it since it\'s not your job','Analyze the root cause and propose a process improvement','Speed up other steps to compensate without addressing it','Assign blame to whoever is on that step'], a:1},
-      {q:'A shipment arrives with a portion of items damaged. What\'s the appropriate action?', options:['Accept the shipment as-is without documentation','Document the damage, report it, and initiate the return/replacement process','Discard the damaged items quietly','Refuse the entire shipment without communication'], a:1},
-      {q:'Demand for a product suddenly spikes beyond forecast. What\'s the best response?', options:['Do nothing and let stock run out','Quickly reassess forecasts and coordinate with suppliers/production to adjust supply','Raise prices without informing customers','Halt production entirely'], a:1},
+    round2mcqSets:[
+      [
+        {q:'A key supplier informs you of a 2-week delay right before a major order deadline. Best first step?', options:['Do nothing and hope it resolves itself','Assess the impact, inform affected stakeholders, and explore alternatives','Cancel the entire order immediately','Publicly blame the supplier'], a:1},
+        {q:'You notice one step in a process is causing repeated delays across the team. What should you do?', options:['Ignore it since it\'s not your job','Analyze the root cause and propose a process improvement','Speed up other steps to compensate without addressing it','Assign blame to whoever is on that step'], a:1},
+        {q:'A shipment arrives with a portion of items damaged. What\'s the appropriate action?', options:['Accept the shipment as-is without documentation','Document the damage, report it, and initiate the return/replacement process','Discard the damaged items quietly','Refuse the entire shipment without communication'], a:1},
+        {q:'Demand for a product suddenly spikes beyond forecast. What\'s the best response?', options:['Do nothing and let stock run out','Quickly reassess forecasts and coordinate with suppliers/production to adjust supply','Raise prices without informing customers','Halt production entirely'], a:1},
+      ],
+      [
+        {q:'A warehouse audit reveals inventory counts don\'t match system records. Best first step?', options:['Ignore the discrepancy','Investigate the cause (process gaps, theft, errors) before adjusting records','Immediately fire warehouse staff','Guess and adjust the numbers arbitrarily'], a:1},
+        {q:'A single supplier accounts for 90% of a critical component. What risk should you address?', options:['No risk, this is efficient','Single-source dependency risk — consider diversifying suppliers','Increase the order size to that supplier only','Ignore it since costs are low'], a:1},
+        {q:'A new automation system is causing confusion among warehouse staff. Best next step?', options:['Remove the system immediately','Provide additional training and gather feedback to smooth the transition','Ignore complaints','Blame the staff for resisting change'], a:1},
+        {q:'Fuel costs spike suddenly, affecting delivery budgets. Best first step?', options:['Absorb the cost silently with no analysis','Reassess routing/carrier options and communicate impact to stakeholders','Stop all deliveries','Pass the full cost to customers without explanation'], a:1},
+      ],
+      [
+        {q:'A quality control check finds a batch of products doesn\'t meet spec just before shipping. Best first step?', options:['Ship anyway to meet the deadline','Halt shipment, investigate the cause, and decide on rework/replacement','Discard the batch without investigation','Blame the production line without checking'], a:1},
+        {q:'Two departments disagree over how to prioritize limited warehouse space. Best approach?', options:['Let the loudest department win','Facilitate a data-driven discussion based on business priority/impact','Split space exactly equally regardless of need','Ignore the conflict'], a:1},
+        {q:'A new regulation requires additional safety documentation for shipments. Best next step?', options:['Ignore it until penalized','Update processes and train staff to ensure compliance','Delay compliance indefinitely','Stop shipping that product entirely'], a:1},
+        {q:'Customer complaints about late deliveries have been rising for weeks. Best first step?', options:['Ignore the complaints','Analyze the delivery process to find and fix the bottleneck','Blame the couriers publicly','Stop taking new orders'], a:1},
+      ],
+      [
+        {q:'An operations team is asked to cut costs by 15% without reducing service quality. Best approach?', options:['Cut a random department\'s budget','Analyze the process for waste/inefficiency before cutting anything essential','Reduce quality slightly without telling anyone','Refuse the request entirely'], a:1},
+        {q:'A key piece of equipment breaks down unexpectedly during peak production. Best first step?', options:['Ignore it and continue as if nothing happened','Assess the impact, activate contingency plans, and communicate to stakeholders','Blame the maintenance team publicly','Shut down the entire facility indefinitely'], a:1},
+        {q:'A supplier delivers goods that don\'t match the agreed specifications. Best next step?', options:['Accept and use them anyway','Document the issue and raise it with the supplier per the agreement','Discard them silently','Cancel the entire supplier relationship without discussion'], a:1},
+        {q:'Seasonal demand is expected to triple next month. Best proactive step?', options:['Do nothing until demand actually spikes','Plan capacity, staffing, and inventory in advance based on forecasts','Turn away excess orders when they come','Increase prices without any planning'], a:1},
+      ],
+      [
+        {q:'An internal audit finds a safety procedure isn\'t being consistently followed on the floor. Best first step?', options:['Ignore it since no incident has occurred yet','Investigate why, retrain as needed, and reinforce the procedure','Punish workers without understanding the cause','Remove the safety procedure'], a:1},
+        {q:'A new vendor offers a significantly lower price but has an unproven track record. Best approach?', options:['Switch entirely and immediately','Pilot/vet the vendor on a smaller scale before full commitment','Ignore the offer completely','Sign a long-term exclusive contract immediately'], a:1},
+        {q:'Your team\'s process documentation is outdated and causing errors. Best next step?', options:['Ignore it since people "just know" the process','Update the documentation and ensure the team is trained on the current process','Blame individuals for not remembering','Remove documentation entirely'], a:1},
+        {q:'A major client requests a custom delivery schedule that strains your standard operations. Best approach?', options:['Refuse without discussion','Assess feasibility and cost, then propose a workable solution','Agree immediately without checking capacity','Ignore the request'], a:1},
+      ],
     ]
   },
 ];
-
 const DOMAINS_BY_CATEGORY = { tech: TECH_DOMAINS, nontech: NONTECH_DOMAINS };
 
 const CATEGORIES = [
@@ -659,7 +1328,7 @@ const CATEGORIES = [
    STATE
 ============================================================ */
 let state = {
-  category:null, domain:null, round:1, mcqRound:1,
+  category:null, domain:null, round:1, mcqRound:1, setIndex:0,
   mcqIdx:0, mcqAnswers:[],
   timerInterval:null, timeLeft:0,
   violations:0, testActive:false,
@@ -693,7 +1362,7 @@ function renderStepper(activeId){
 }
 
 function freshState(category){
-  return {category, domain:null, round:1, mcqRound:1, mcqIdx:0, mcqAnswers:[], timerInterval:null, timeLeft:0, violations:0, testActive:false, lastCodeResult:false, round1Score:0};
+  return {category, domain:null, round:1, mcqRound:1, setIndex:0, mcqIdx:0, mcqAnswers:[], timerInterval:null, timeLeft:0, violations:0, testActive:false, lastCodeResult:false, lastCodeTestsPassed:0, lastCodeTestsTotal:0, round1Score:0, round1Breakdown:null};
 }
 
 function showCategoryScreen(){
@@ -757,6 +1426,9 @@ function selectDomain(id){
   const list = DOMAINS_BY_CATEGORY[state.category] || TECH_DOMAINS;
   state.domain = list.find(d=>d.id===id);
   state.round = 1;
+  // Randomly assign one of the 5 question sets for this attempt so
+  // candidates testing side-by-side are unlikely to get the same paper.
+  state.setIndex = Math.floor(Math.random() * state.domain.mcqSets.length);
   showIntro();
 }
 
@@ -773,10 +1445,10 @@ function showIntro(){
     ? `${d.name} — Concept Check`
     : (isCode ? `${d.name} — Hands-on Coding` : `${d.name} — Judgement & Scenarios`);
   document.getElementById('introDesc').textContent = state.round===1
-    ? `${d.mcq.length} multiple-choice questions, ${MCQ_TIME_LIMIT/60} minutes. You need ${MCQ_PASS_PCT}% or higher to advance.`
+    ? `${d.mcqSets[state.setIndex].length} multiple-choice questions, ${MCQ_TIME_LIMIT/60} minutes. You need ${MCQ_PASS_PCT}% or higher to advance.`
     : (isCode
         ? `1 coding problem, ${CODE_TIME_LIMIT/60} minutes. All test cases must pass to advance.`
-        : `${d.round2mcq.length} scenario-based questions, ${SCENARIO_TIME_LIMIT/60} minutes. You need ${ROUND2_PASS_PCT}% or higher to advance.`);
+        : `${d.round2mcqSets[state.setIndex].length} scenario-based questions, ${SCENARIO_TIME_LIMIT/60} minutes. You need ${ROUND2_PASS_PCT}% or higher to advance.`);
   document.getElementById('introRules').innerHTML = `
     <li>🔒 The test runs in <strong>fullscreen mode</strong> — exiting it counts as a violation.</li>
     <li>👁️ Switching tabs or minimizing the window is detected and logged.</li>
@@ -971,7 +1643,7 @@ function startRound(){
    MCQ / SITUATIONAL JUDGEMENT ROUND (shared renderer)
 ============================================================ */
 function currentQuestionSet(){
-  return state.mcqRound === 1 ? state.domain.mcq : state.domain.round2mcq;
+  return state.mcqRound === 1 ? state.domain.mcqSets[state.setIndex] : state.domain.round2mcqSets[state.setIndex];
 }
 function startMCQ(round){
   state.mcqRound = round;
@@ -1029,12 +1701,36 @@ function finishMCQ(timedOut){
     state.round1Score = pct;
     state.round1Correct = correct;
     state.round1Total = qs.length;
-    if(!passed){
+    // Per-section breakdown: Company Loyalty (Q1-10) + 4 domain areas (10 each)
+    const sectionNames = ['Company Loyalty', ...(d.areas || [])];
+    const breakdown = sectionNames.map((name, si)=>{
+      let sc = 0;
+      for(let i = si*10; i < si*10+10 && i < qs.length; i++){
+        if(state.mcqAnswers[i] === qs[i].a) sc++;
+      }
+      return {name, correct: sc, total: 10};
+    });
+    state.round1Breakdown = breakdown;
+    if(passed){
       submitAssessmentResult({
         domain: d.id,
         round1_score: pct,
         round1_correct: correct,
         round1_total: qs.length,
+        round1_breakdown: breakdown,
+        round1_passed: true,
+        round2_passed: null,
+        overall_passed: true,
+        violations: state.violations,
+        flagged: false,
+      });
+    } else {
+      submitAssessmentResult({
+        domain: d.id,
+        round1_score: pct,
+        round1_correct: correct,
+        round1_total: qs.length,
+        round1_breakdown: breakdown,
         round1_passed: false,
         round2_passed: null,
         overall_passed: false,
@@ -1046,7 +1742,7 @@ function finishMCQ(timedOut){
       round:1, passed, pct,
       passLine:`You scored ${correct}/${qs.length} (${pct}%) — that clears the ${MCQ_PASS_PCT}% bar for Round 1.`,
       failLine:`You scored ${correct}/${qs.length} (${pct}%) — Round 1 needs ${MCQ_PASS_PCT}% or higher.${timedOut?' (Time expired.)':''}`,
-      onAdvance:()=>{ state.round=2; showIntro(); }
+      onAdvance:()=>{ passed ? showSuccess() : routeToLMS(); }
     });
   } else {
     // Round 2 — Situational Judgement (non-technical domains)
@@ -1056,8 +1752,11 @@ function finishMCQ(timedOut){
       round1_score: state.round1Score,
       round1_correct: state.round1Correct,
       round1_total: state.round1Total,
+      round1_breakdown: state.round1Breakdown,
       round1_passed: true,
       round2_passed: passed,
+      round2_correct: correct,
+      round2_total: qs.length,
       overall_passed: passed,
       violations: state.violations,
       flagged: false,
@@ -1075,7 +1774,7 @@ function finishMCQ(timedOut){
    ROUND 2 — CODE (technical domains only)
 ============================================================ */
 function startCode(){
-  const c = state.domain.code;
+  const c = state.domain.codeSets[state.setIndex];
   document.getElementById('codeTitle').textContent = c.title;
   document.getElementById('codeDesc').textContent = c.desc;
   document.getElementById('codeArea').value = c.starter;
@@ -1085,7 +1784,7 @@ function startCode(){
   startTimer(CODE_TIME_LIMIT, 'codeTimer', ()=>finishCode(true));
 }
 function runCode(){
-  const c = state.domain.code;
+  const c = state.domain.codeSets[state.setIndex];
   const code = document.getElementById('codeArea').value;
   const fnNameMatch = c.starter.match(/function\s+(\w+)/);
   const fnName = fnNameMatch ? fnNameMatch[1] : null;
@@ -1108,6 +1807,8 @@ function runCode(){
     results = [{args:[], expected:'', out:'Error: '+e.message, ok:false}];
   }
   state.lastCodeResult = allPass;
+  state.lastCodeTestsPassed = results.filter(r=>r.ok).length;
+  state.lastCodeTestsTotal = c.tests.length;
   document.getElementById('tcList').innerHTML = results.map((r,i)=>`
     <div class="tc-row">
       <span>Test ${i+1}: ${fnName}(${r.args.map(a=>JSON.stringify(a)).join(', ')}) → expected ${JSON.stringify(r.expected)}, got ${JSON.stringify(r.out)}</span>
@@ -1130,8 +1831,11 @@ function finishCode(timedOut){
     round1_score: state.round1Score,
     round1_correct: state.round1Correct,
     round1_total: state.round1Total,
+    round1_breakdown: state.round1Breakdown,
     round1_passed: true,
     round2_passed: passed,
+    round2_correct: state.lastCodeTestsPassed,
+    round2_total: state.lastCodeTestsTotal,
     overall_passed: passed,
     violations: state.violations,
     flagged: false,
