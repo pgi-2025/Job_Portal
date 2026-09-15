@@ -5,9 +5,15 @@
 
 alter table public.assessment_attempts add column if not exists round1_correct int;
 alter table public.assessment_attempts add column if not exists round1_total int;
+alter table public.assessment_attempts add column if not exists round1_breakdown jsonb;
+alter table public.assessment_attempts add column if not exists round2_correct int;
+alter table public.assessment_attempts add column if not exists round2_total int;
 
 alter table public.profiles add column if not exists round1_correct int;
 alter table public.profiles add column if not exists round1_total int;
+alter table public.profiles add column if not exists round1_breakdown jsonb;
+alter table public.profiles add column if not exists round2_correct int;
+alter table public.profiles add column if not exists round2_total int;
 alter table public.profiles add column if not exists last_login timestamptz;
 alter table public.profiles add column if not exists employment_type text;
 alter table public.profiles add column if not exists experience_years numeric;
