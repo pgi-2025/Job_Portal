@@ -1085,6 +1085,49 @@ def company_candidates():
         .execute()
     )
     candidates = [c for c in result.data if c["id"] not in hidden_ids]
+
+    # Backfill: students who passed before round1_correct/round1_total
+    # existed on `profiles` (schema_score_fields.sql) are correctly
+    # marked eligible, but show a blank score because it was never
+    # copied onto their profile row. Their real score is still sitting
+    # in assessment_attempts (the row where they passed), so pull it
+    # from there instead of leaving the candidate card blank.
+    missing_score_ids = [
+        c["id"] for c in candidates
+        if c.get("round1_correct") is None or c.get("round1_total") is None
+    ]
+    if missing_score_ids:
+        attempts = (
+            supabase_admin.table("assessment_attempts")
+            .select("student_id, domain, round1_correct, round1_total, round1_breakdown, "
+                    "round2_correct, round2_total, overall_passed, created_at")
+            .in_("student_id", missing_score_ids)
+            .eq("overall_passed", True)
+            .order("created_at", desc=True)
+            .execute()
+        ).data or []
+        # Keep only the most recent passing attempt per student (already
+        # sorted desc, so first match wins) and only when it matches the
+        # domain they're currently qualified in.
+        latest_pass_by_student = {}
+        for a in attempts:
+            latest_pass_by_student.setdefault(a["student_id"], a)
+
+        for c in candidates:
+            if c["id"] not in latest_pass_by_student:
+                continue
+            a = latest_pass_by_student[c["id"]]
+            if c.get("round1_correct") is None:
+                c["round1_correct"] = a.get("round1_correct")
+            if c.get("round1_total") is None:
+                c["round1_total"] = a.get("round1_total")
+            if c.get("round1_breakdown") is None:
+                c["round1_breakdown"] = a.get("round1_breakdown")
+            if c.get("round2_correct") is None:
+                c["round2_correct"] = a.get("round2_correct")
+            if c.get("round2_total") is None:
+                c["round2_total"] = a.get("round2_total")
+
     return jsonify({"candidates": candidates})
 
 
