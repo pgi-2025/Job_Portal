@@ -48,7 +48,7 @@ ADMIN_PROVISION_SECRET = os.environ.get("ADMIN_PROVISION_SECRET", "")
 # official Cloud API does not yet support posting to Channels directly.
 RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "")
-RETEST_FEE_PAISE = 900  # Rs 9
+RETEST_FEE_PAISE = 100  # Rs 9
 WHATSAPP_API_URL = os.environ.get("WHATSAPP_API_URL", "")
 WHATSAPP_API_TOKEN = os.environ.get("WHATSAPP_API_TOKEN", "")
 WHATSAPP_CHANNEL_ID = os.environ.get("WHATSAPP_CHANNEL_ID", "")
@@ -711,7 +711,7 @@ def assessment_access():
         return jsonify({"allowed": True, "free": True, "fee": 9})
     paid = (supabase_admin.table("assessment_payments").select("id")
             .eq("student_id", g.user.id).eq("status", "paid").limit(1).execute())
-    return jsonify({"allowed": bool(paid.data), "free": False, "fee": 9,
+    return jsonify({"allowed": bool(paid.data), "free": False, "fee": 1,
                     "razorpay_key": RAZORPAY_KEY_ID})
 
 
