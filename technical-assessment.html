@@ -8413,27 +8413,20 @@ function showRetestOverlay(){
 }
 async function payRetestFee(){
   try{
-    if(!window.Razorpay){
-      await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src='https://checkout.razorpay.com/v1/checkout.js'; sc.onload=ok; sc.onerror=no; document.head.appendChild(sc); });
-    }
-    const or = await fetch(`${API_BASE}/api/student/assessment/create-order`, {method:'POST', headers: authHeaders()});
-    const o = await or.json().catch(() => ({}));
-    if(!or.ok || !o.order_id) return {ok:false, err:o.detail || 'Could not start payment.'};
-    return await new Promise((resolve) => {
-      const rzp = new Razorpay({
-        key: o.key, amount: o.amount, currency: 'INR', order_id: o.order_id,
-        name: 'PGI Job Portal', description: 'Assessment retest fee',
-        theme: { color: '#0f3d24' },
-        handler: async (resp) => {
-          const v = await fetch(`${API_BASE}/api/student/assessment/verify-payment`, {method:'POST', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify(resp)});
-          resolve(v.ok ? {ok:true} : {ok:false, err:'Payment could not be verified.'});
-        },
-        modal: { ondismiss: () => resolve({ok:false, err:'Payment cancelled.'}) }
-      });
-      rzp.on('payment.failed', () => resolve({ok:false, err:'Payment failed. Please try again.'}));
-      rzp.open();
-    });
-  }catch(e){ return {ok:false, err:'Could not load payment. Check your internet connection.'}; }
+    const paymentLink = 'https://rzp.io/rzp/beu3pwJe';
+
+    window.open(paymentLink, '_blank');
+
+    return {
+      ok: true
+    };
+
+  }catch(e){
+    return {
+      ok: false,
+      err: 'Could not open payment link.'
+    };
+  }
 }
 function _startRoundInner(){
   state.violations = 0;
