@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hall of Fame</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#0A120D; --forest:#0E3B2C; --forest-2:#124A38; --accent:#3DDC84; --accent-soft:#9BE8B8; --white:#FFFFFF; --line:#E7EFE9; --text-muted:#5B6B62; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family:'Inter', sans-serif; background:#F5FAF7; color:var(--ink); min-height:100vh; }
+  header{ background:linear-gradient(120deg, var(--ink) 0%, var(--forest) 60%, var(--forest-2) 100%); color:var(--white); padding:48px 24px; text-align:center; }
+  header h1{ font-family:'Space Grotesk', sans-serif; font-size:32px; }
+  header p{ color:var(--accent-soft); margin-top:8px; }
+  .wrap{ max-width:1000px; margin:0 auto; padding:32px 24px 60px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:20px; }
+  .card{ background:var(--white); border:1px solid var(--line); border-radius:16px; padding:20px; text-align:center; box-shadow:0 2px 14px rgba(10,18,13,0.05); }
+  .avatar{ width:64px; height:64px; border-radius:50%; margin:0 auto 12px; background:var(--accent-soft); color:var(--forest); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:20px; overflow:hidden; }
+  .avatar img{ width:100%; height:100%; object-fit:cover; }
+  .name{ font-weight:700; }
+  .college{ font-size:13px; color:var(--text-muted); margin-top:2px; }
+  .badge{ margin-top:10px; display:inline-block; background:#ecfdf3; color:#16a34a; border:1px solid #4ade80; border-radius:20px; padding:4px 12px; font-size:12px; font-weight:600; }
+  .empty{ text-align:center; color:var(--text-muted); margin-top:40px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏆 Hall of Fame</h1>
+  <p>Students placed through this portal</p>
+</header>
+<div class="wrap">
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" style="display:none;">No placements yet — check back soon!</p>
+</div>
+<script>
+  const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000' : window.location.origin;
+  function initials(name){ return (name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+  (async function(){
+    try{
+      const res = await fetch(`${API_BASE}/api/hall-of-fame`);
+      const data = await res.json();
+      const list = data.placed || [];
+      const grid = document.getElementById('grid');
+      if(!list.length){ document.getElementById('empty').style.display = 'block'; return; }
+      grid.innerHTML = list.map(s => `
+        <div class="card">
+          <div class="avatar">${s.photo_url ? `<img src="${s.photo_url}" alt="">` : initials(s.full_name)}</div>
+          <div class="name">${s.full_name || 'Unnamed Student'}</div>
+          <div class="college">${s.college || ''}</div>
+          <div class="badge">Placed at ${s.placed_company_name || 'a company'}</div>
+        </div>`).join('');
+    }catch(e){
+      document.getElementById('empty').textContent = 'Could not load Hall of Fame right now.';
+      document.getElementById('empty').style.display = 'block';
+    }
+  })();
+</script>
+</body>
+</html>
