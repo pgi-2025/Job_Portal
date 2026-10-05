@@ -741,7 +741,7 @@ def assessment_access():
     if profile is None:
         return error("Student profile not found.", 403)
     if not profile.get("free_test_used"):
-        return jsonify({"allowed": True, "free": True, "fee": RETEST_FEE_PAISE // 100})
+        return jsonify({"allowed": True, "free": True, "fee": RETEST_FEE_PAISE // 4900})
     return jsonify({"allowed": bool(_has_paid_retest(g.user.id)), "free": False, "fee": RETEST_FEE_PAISE // 100,
                     "razorpay_key": RAZORPAY_KEY_ID})
 
