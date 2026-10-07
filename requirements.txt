@@ -1,9 +1,8 @@
 Flask==3.0.3
 Flask-Cors==5.0.0
 gunicorn==23.0.0
-
-supabase==2.7.4
+supabase>=2.15,<3
 python-dotenv==1.0.1
-pydantic[email]==2.9.2
+pydantic[email]>=2.12,<3
 python-multipart==0.0.9
 requests==2.32.3
