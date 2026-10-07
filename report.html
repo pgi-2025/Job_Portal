@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Performance Report · PGI Job Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--bg:#f4f9f4;--card:#fff;--ink:#1f2937;--soft:#6b7280;--navy:#14532d;--gold:#f2c811;--teal:#2e9e4f;--red:#fd625e;--blue:#1b7a3d;--line:#e5e7eb}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:16px}
+.bar{max-width:1180px;margin:0 auto 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar .sp{flex:1}
+.btn{border:0;border-radius:8px;padding:10px 16px;font-weight:600;font-size:14px;cursor:pointer;color:#fff;background:var(--navy)}
+.btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line)}
+#report{max-width:1180px;margin:0 auto;background:var(--bg);border-radius:14px;overflow:hidden}
+.head{background:linear-gradient(120deg,#14532d,#2e9e4f);color:#fff;padding:22px 26px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.head .tag{background:var(--gold);color:#222;font-weight:800;border-radius:6px;padding:4px 10px;font-size:12px;letter-spacing:.5px}
+.head h1{font-size:1.5rem;margin:6px 0 2px}
+.head p{opacity:.8;font-size:.9rem}
+.head .sp{flex:1}
+.badge{padding:10px 18px;border-radius:30px;font-weight:800;font-size:1rem}
+.badge.pass{background:var(--gold);color:#14532d}.badge.fail{background:var(--red)}
+.banner{margin:14px;padding:16px 20px;border-radius:12px;font-size:1rem;line-height:1.5}
+.banner.pass{background:linear-gradient(90deg,#e3f5e6,#fff7cc);border:1px solid var(--teal)}
+.banner.fail{background:#fff0ef;border:1px solid var(--red)}
+.banner b{font-size:1.15rem}
+.grid{display:grid;gap:14px;padding:0 14px 14px}
+.kpis{grid-template-columns:repeat(4,1fr)}
+.row2{grid-template-columns:1fr 1fr 1fr}
+.row3{grid-template-columns:1.4fr 1fr}
+.card{background:var(--card);border-radius:10px;padding:16px;border-top:4px solid var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.card h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.6px;color:var(--soft);margin-bottom:10px}
+.kpi .v{font-size:2.2rem;font-weight:800;color:var(--navy)}
+.kpi .s{font-size:.8rem;color:var(--soft)}
+.kpi:nth-child(1){border-color:var(--gold)}.kpi:nth-child(2){border-color:var(--teal)}.kpi:nth-child(3){border-color:var(--blue)}.kpi:nth-child(4){border-color:#8bc34a}
+.cv{position:relative;height:250px}
+.ins li{margin:0 0 8px 18px;font-size:.92rem;line-height:1.45}
+.foot{text-align:center;color:var(--soft);font-size:.75rem;padding:4px 0 16px}
+#msg{max-width:1180px;margin:20px auto;text-align:center;color:var(--soft)}
+#shareBg{display:none;position:fixed;inset:0;background:rgba(10,20,40,.6);z-index:50;align-items:center;justify-content:center;padding:16px}
+#shareBg .box{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:20px;text-align:center;max-height:92vh;overflow:auto}
+#shareBg img{width:100%;border-radius:8px;border:1px solid var(--line);margin:8px 0}
+#shareBg .btn{display:block;width:100%;margin-top:8px}
+@media(max-width:860px){.kpis{grid-template-columns:1fr 1fr}.row2,.row3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="bar" id="bar" style="display:none">
+  <button class="btn ghost" onclick="history.back()">← Back</button>
+  <span class="sp"></span>
+  <button class="btn" onclick="dl('pdf')">⬇ Download PDF</button>
+  <button class="btn" style="background:#1b7a3d" onclick="dl('png')">🖼 Download Image</button>
+  <button class="btn" style="background:#0A66C2" id="shareBtn" onclick="openShare()">📤 Share</button>
+</div>
+<div id="msg">Loading your report…</div>
+<div id="report" style="display:none"></div>
+
+<div id="shareBg" onclick="if(event.target===this)this.style.display='none'">
+  <div class="box">
+    <h3>Share your report</h3>
+    <img id="shareImg" alt="">
+    <button class="btn" id="shNative" style="display:none" onclick="shareTo('native')">📲 Share image (choose app)</button>
+    <button class="btn" style="background:#25D366" onclick="shareTo('whatsapp')">WhatsApp</button>
+    <button class="btn" style="background:#0A66C2" onclick="shareTo('linkedin')">LinkedIn</button>
+    <button class="btn" style="background:linear-gradient(45deg,#f9a03f,#e1306c,#833ab4)" onclick="shareTo('instagram')">Instagram</button>
+    <button class="btn ghost" onclick="document.getElementById('shareBg').style.display='none'">Close</button>
+    <p id="shMsg" style="font-size:13px;color:#4a5a52;margin-top:10px;min-height:18px"></p>
+  </div>
+</div>
+
+<script>
+const API_BASE = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:8000' : location.origin;
+const token = sessionStorage.getItem('grove_token');
+const params = new URLSearchParams(location.search);
+const studentId = params.get('student');           // present => company view
+if(!token) location.href = 'login.html';
+let R = null, shareBlob = null;
+
+const pct = (c,t)=> (t ? Math.round(100*c/t) : 0);
+const fdate = d => d ? new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—';
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function load(){
+  try{
+    const url = studentId ? `${API_BASE}/api/company/student-report/${encodeURIComponent(studentId)}` : `${API_BASE}/api/student/assessment/report`;
+    const res = await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || data.message || 'Could not load report');
+    R = data; render();
+  }catch(e){ document.getElementById('msg').textContent = '⚠ ' + e.message; }
+}
+
+function insights(){
+  const bd = (R.round1.breakdown||[]).filter(b=>b.total);
+  const out = [];
+  if(bd.length){
+    const s = [...bd].sort((a,b)=>b.correct/b.total - a.correct/a.total);
+    out.push(`💪 Strongest area: <b>${esc(s[0].name)}</b> (${pct(s[0].correct,s[0].total)}%).`);
+    const w = s[s.length-1];
+    if(w!==s[0]) out.push(`🎯 Biggest growth area: <b>${esc(w.name)}</b> (${pct(w.correct,w.total)}%).`);
+  }
+  const b = R.benchmark;
+  if(b.round1_avg!=null && R.round1.score!=null){
+    const diff = R.round1.score - b.round1_avg;
+    out.push(diff>=0 ? `📈 Round 1 is <b>${diff} pts above</b> the average of ${b.candidates} attempts in ${esc(R.domain)}.`
+                     : `📉 Round 1 is ${-diff} pts below the average of ${b.candidates} attempts — a little practice will close the gap.`);
+  }
+  if(R.violations) out.push(`🛡 Integrity: ${R.violations} proctoring warning(s) recorded.`); else out.push('🛡 Integrity: clean proctoring record.');
+  if(!R.passed) out.push('📘 Revisit the LMS learning path and retake the assessment — you can do it!');
+  return out;
+}
+
+function render(){
+  const name = R.student.name || 'Candidate', r1 = R.round1.score ?? 0, r2 = R.round2.score;
+  const overall = r2!=null ? Math.round((r1+r2)/2) : r1;
+  const company = !!studentId;
+  const banner = R.passed
+    ? `<div class="banner pass">🎉 <b>Congratulations${company?'':' '+esc(name)}!</b> ${company?esc(name)+' has':'You have'} successfully cleared the <b>${esc(R.domain)}</b> assessment with an overall score of <b>${overall}%</b>. ${company?'The profile is verified and ready for hiring.':'Your profile is now visible to hiring companies. Share your achievement!'}</div>`
+    : `<div class="banner fail">💪 <b>Keep going${company?'':', '+esc(name)}.</b> ${company?esc(name):'You'} did not clear the <b>${esc(R.domain)}</b> assessment this time${R.flagged?' (attempt flagged by anti-cheat)':''}. Use the insights below to improve and try again.</div>`;
+  const rep = document.getElementById('report');
+  rep.innerHTML = `
+  <div class="head">
+    <div><span class="tag">PGI · PERFORMANCE REPORT</span><h1>${esc(name)}</h1>
+    <p>${esc(R.domain)} · ${esc(R.student.college||'')} ${R.student.degree?'· '+esc(R.student.degree):''} · ${fdate(R.date)}</p></div>
+    <span class="sp"></span><span class="badge ${R.passed?'pass':'fail'}">${R.passed?'✔ PASSED':'✖ NOT CLEARED'}</span>
+  </div>
+  ${banner}
+  <div class="grid kpis">
+    <div class="card kpi"><h3>Overall Score</h3><div class="v">${overall}%</div><div class="s">Average of rounds</div></div>
+    <div class="card kpi"><h3>Round 1 · MCQ</h3><div class="v">${R.round1.correct??'–'}/${R.round1.total??'–'}</div><div class="s">${r1}% · ${R.round1.passed?'Passed':'Not passed'}</div></div>
+    <div class="card kpi"><h3>Round 2 · Scenario</h3><div class="v">${r2!=null?R.round2.correct+'/'+R.round2.total:'–'}</div><div class="s">${r2!=null?r2+'% · '+(R.round2.passed?'Passed':'Not passed'):'Not attempted'}</div></div>
+    <div class="card kpi"><h3>Cohort Pass Rate</h3><div class="v">${R.benchmark.pass_rate??'–'}${R.benchmark.pass_rate!=null?'%':''}</div><div class="s">of ${R.benchmark.candidates} candidates passed</div></div>
+  </div>
+  <div class="grid row2">
+    <div class="card" style="border-color:var(--teal)"><h3>Score Split</h3><div class="cv"><canvas id="c1"></canvas></div></div>
+    <div class="card" style="border-color:var(--gold)"><h3>Skill Radar</h3><div class="cv"><canvas id="c2"></canvas></div></div>
+    <div class="card" style="border-color:var(--blue)"><h3>You vs Average</h3><div class="cv"><canvas id="c3"></canvas></div></div>
+  </div>
+  <div class="grid row3">
+    <div class="card" style="border-color:var(--gold)"><h3>Section Performance (out of 10)</h3><div class="cv"><canvas id="c4"></canvas></div></div>
+    <div class="card" style="border-color:var(--teal)"><h3>Key Insights</h3><ul class="ins">${insights().map(i=>`<li>${i}</li>`).join('')}</ul></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr"><div class="card"><h3>Attempt Trend (Round 1 %)</h3><div class="cv" style="height:200px"><canvas id="c5"></canvas></div></div></div>
+  <div class="foot">Generated by PGI Job Portal · Assessment Engine · Proctored by Anti-Cheat AI · ${fdate(new Date())}</div>`;
+  document.getElementById('msg').style.display='none';
+  rep.style.display='block'; document.getElementById('bar').style.display='flex';
+  if(company) document.getElementById('shareBtn').style.display='none';
+  charts(r1,r2,overall);
+}
+
+function charts(r1,r2,overall){
+  Chart.defaults.font.family="'Segoe UI',sans-serif"; Chart.defaults.animation=false;
+  const bd = (R.round1.breakdown||[]);
+  const labels = bd.map(b=>b.name), vals = bd.map(b=>b.correct);
+  new Chart(c1,{type:'doughnut',data:{labels:['Scored','Gap'],datasets:[{data:[overall,100-overall],backgroundColor:[R.passed?'#2e9e4f':'#fd625e','#e5e7eb'],borderWidth:0}]},
+    options:{maintainAspectRatio:false,cutout:'72%',plugins:{legend:{position:'bottom'},tooltip:{enabled:true}}},
+    plugins:[{id:'t',afterDraw(ch){const{ctx,chartArea:a}=ch;ctx.save();ctx.font='bold 30px Segoe UI, Arial, sans-serif';ctx.fillStyle='#14532d';ctx.textAlign='center';ctx.fillText(overall+'%',(a.left+a.right)/2,(a.top+a.bottom)/2+10);ctx.restore();}}]});
+  new Chart(c2,{type:'radar',data:{labels:labels.map(l=>l.length>16?l.slice(0,15)+'…':l),datasets:[{label:'You',data:vals,backgroundColor:'rgba(242,200,17,.35)',borderColor:'#f2c811',pointBackgroundColor:'#14532d'}]},
+    options:{maintainAspectRatio:false,scales:{r:{min:0,max:10,ticks:{stepSize:2}}},plugins:{legend:{display:false}}}});
+  const b = R.benchmark;
+  new Chart(c3,{type:'bar',data:{labels:['Round 1','Round 2'],datasets:[{label:'You',data:[r1,r2??0],backgroundColor:'#1b7a3d'},{label:'Average',data:[b.round1_avg??0,b.round2_avg??0],backgroundColor:'#d9e6dc'}]},
+    options:{maintainAspectRatio:false,scales:{y:{min:0,max:100}},plugins:{legend:{position:'bottom'}}}});
+  new Chart(c4,{type:'bar',data:{labels:labels,datasets:[{label:'Correct',data:vals,backgroundColor:vals.map(v=>v>=7?'#2e9e4f':v>=5?'#f2c811':'#fd625e'),borderRadius:6}]},
+    options:{indexAxis:'y',maintainAspectRatio:false,scales:{x:{min:0,max:10}},plugins:{legend:{display:false}}}});
+  const at = R.attempts;
+  new Chart(c5,{type:'line',data:{labels:at.map((a,i)=>`#${i+1} ${fdate(a.date)}`),datasets:[{label:'Round 1 %',data:at.map(a=>a.score),borderColor:'#14532d',backgroundColor:'rgba(46,158,79,.15)',fill:true,tension:.3,pointBackgroundColor:at.map(a=>a.passed?'#2e9e4f':'#fd625e'),pointRadius:6}]},
+    options:{maintainAspectRatio:false,scales:{y:{min:0,max:100}},plugins:{legend:{display:false}}}});
+}
+
+const fname = ext => `PGI_Report_${(R.student.name||'candidate').replace(/\s+/g,'_')}_${R.domain_id}.${ext}`;
+const snap = () => html2canvas(document.getElementById('report'),{scale:2,backgroundColor:'#f4f9f4',useCORS:true});
+async function dl(kind){
+  const cv = await snap();
+  if(kind==='png'){ const a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download=fname('png'); a.click(); return; }
+  const {jsPDF} = window.jspdf;
+  const w = cv.width/2, h = cv.height/2;
+  const pdf = new jsPDF({orientation:w>h?'l':'p',unit:'px',format:[w,h]});
+  pdf.addImage(cv.toDataURL('image/jpeg',.95),'JPEG',0,0,w,h);
+  pdf.save(fname('pdf'));
+}
+async function openShare(){
+  const cv = await snap();
+  shareBlob = await new Promise(r=>cv.toBlob(r,'image/png'));
+  document.getElementById('shareImg').src = URL.createObjectURL(shareBlob);
+  let can=false; try{ can = !!(navigator.canShare && navigator.canShare({files:[new File([shareBlob],'r.png',{type:'image/png'})]})); }catch(e){}
+  document.getElementById('shNative').style.display = can?'block':'none';
+  document.getElementById('shMsg').textContent='';
+  document.getElementById('shareBg').style.display='flex';
+}
+async function shareTo(w){
+  const overall = R.round2.score!=null ? Math.round(((R.round1.score||0)+R.round2.score)/2) : (R.round1.score||0);
+  const text = R.passed ? `🎉 I cleared the ${R.domain} assessment at PGI Job Portal with ${overall}%! #PGI #JobPortal #Careers`
+                        : `📊 I took the ${R.domain} assessment at PGI Job Portal and I'm levelling up! #PGI #Learning`;
+  const url = location.origin, msg = document.getElementById('shMsg');
+  const save = ()=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(shareBlob); a.download=fname('png'); a.click(); };
+  if(w==='native'){ try{ await navigator.share({files:[new File([shareBlob],fname('png'),{type:'image/png'})],text,title:'My PGI Report'}); }catch(e){} return; }
+  if(w==='whatsapp') window.open('https://wa.me/?text='+encodeURIComponent(text+'\n'+url),'_blank');
+  if(w==='linkedin') window.open('https://www.linkedin.com/sharing/share-offsite/?url='+encodeURIComponent(url),'_blank');
+  if(w==='instagram'){ save(); window.open('https://www.instagram.com/','_blank'); }
+  try{ await navigator.clipboard.writeText(text+' '+url); }catch(e){}
+  msg.textContent = w==='instagram' ? 'Report image downloaded and caption copied — post it on Instagram.' : 'Caption copied. Use "Share image" or download the report to attach the picture.';
+}
+load();
+</script>
+</body>
+</html>
