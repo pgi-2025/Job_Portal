@@ -725,6 +725,15 @@ def submit_assessment():
 
     supabase_admin.table("profiles").update(updates).eq("id", g.user.id).execute()
 
+    # Save the performance report (pass or fail) in profiles.report
+    try:
+        rep = _build_report(g.user.id)
+        if rep:
+            rep["result"] = "PASSED" if rep.get("passed") else "FAILED"
+            supabase_admin.table("profiles").update({"report": rep}).eq("id", g.user.id).execute()
+    except Exception as e:
+        print("save report failed:", repr(e))
+
     return jsonify({"message": "Assessment result saved.", "status": updates["assessment_status"]})
 
 
