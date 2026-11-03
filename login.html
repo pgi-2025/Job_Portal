@@ -460,6 +460,8 @@
     color:var(--text-muted); font-weight:600; font-size:13.5px;
   }
   .ra-close:hover{ color:var(--text-dark); }
+  .legal-list{ margin:12px 0 20px 18px; font-size:13.5px; line-height:1.6; color:var(--text-muted); }
+  .legal-list li{ margin-bottom:8px; }
 </style>
 <style id="pro-typography">
 body,button,input,select,textarea{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
@@ -541,7 +543,7 @@ h1{font-weight:800}
         </div>
         <div class="row-between">
           <span class="checkbox-line"><input type="checkbox">Remember me</span>
-          <a class="forgot" href="#">Forgot password?</a>
+          <a class="forgot" href="#" data-forgot>Forgot password?</a>
         </div>
         <button type="submit" class="submit-btn"><span class="btn-label">Log in</span></button>
         <p class="switch-line">New to PGI Job Portal? <a data-switch="student-signup">Create a student account</a></p>
@@ -572,7 +574,7 @@ h1{font-weight:800}
         </div>
         <div class="terms-line">
           <input type="checkbox" id="ss-terms" required>
-          <span>I agree to PGI Job Portal's <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</span>
+          <span>I agree to PGI Job Portal's <a href="#" id="openTerms">Terms of Service</a> and <a href="#" id="openPrivacy">Privacy Policy</a>.</span>
         </div>
         <button type="submit" class="submit-btn"><span class="btn-label">Create account</span></button>
         <p class="switch-line">Already have an account? <a data-switch="student-login">Log in</a></p>
@@ -595,7 +597,7 @@ h1{font-weight:800}
         </div>
         <div class="row-between">
           <span class="checkbox-line"><input type="checkbox">Remember me</span>
-          <a class="forgot" href="#">Forgot password?</a>
+          <a class="forgot" href="#" data-forgot>Forgot password?</a>
         </div>
         <button type="submit" class="submit-btn dark"><span class="btn-label">Log in</span></button>
 
@@ -638,6 +640,59 @@ h1{font-weight:800}
       </div>
       <button type="submit" class="submit-btn dark"><span class="btn-label">Submit request</span></button>
       <button type="button" class="ra-close" id="raClose">Cancel</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ============ TERMS MODAL ============ -->
+<div class="ra-backdrop" id="termsBackdrop">
+  <div class="ra-modal">
+    <h3>Terms of Service</h3>
+    <ol class="legal-list">
+      <li>You must provide accurate and complete information when creating your PGI Job Portal account.</li>
+      <li>Your login details are personal; keep your password safe and do not share your account with anyone.</li>
+      <li>Do not upload false, misleading or offensive content in your profile, resume or messages.</li>
+      <li>Applying to a company does not guarantee a job; hiring decisions are made only by the companies.</li>
+      <li>PGI Job Portal may suspend or remove accounts that misuse the platform or break these terms.</li>
+    </ol>
+    <button type="button" class="submit-btn dark" data-close-legal>I understand</button>
+  </div>
+</div>
+
+<!-- ============ PRIVACY MODAL ============ -->
+<div class="ra-backdrop" id="privacyBackdrop">
+  <div class="ra-modal">
+    <h3>Privacy Policy</h3>
+    <ol class="legal-list">
+      <li>We collect your name, college, email, phone number, resume details and photo to run your job profile.</li>
+      <li>Your profile and resume are shared only with registered companies on the portal for hiring purposes.</li>
+      <li>We never sell your personal information to third parties or use it for unrelated advertising.</li>
+      <li>Your data is stored securely and your password is kept encrypted; we never see it in plain text.</li>
+      <li>You can update your details anytime, or contact the PGI team to request deletion of your account.</li>
+    </ol>
+    <button type="button" class="submit-btn dark" data-close-legal>I understand</button>
+  </div>
+</div>
+
+<!-- ============ FORGOT PASSWORD MODAL ============ -->
+<div class="ra-backdrop" id="fpBackdrop">
+  <div class="ra-modal">
+    <h3>Reset your password</h3>
+    <form id="fpStep1">
+      <p class="sub" style="margin-bottom:16px;">Enter your registered email and we'll send a 6-digit verification code.</p>
+      <div class="field"><label>Email</label><input type="email" id="fp-email" placeholder="you@university.edu" required></div>
+      <button type="submit" class="submit-btn dark"><span class="btn-label">Send code</span></button>
+      <button type="button" class="ra-close" data-close-fp>Cancel</button>
+    </form>
+    <form id="fpStep2" style="display:none;">
+      <p class="sub" style="margin-bottom:16px;" id="fpSentNote">Enter the code sent to your email and choose a new password.</p>
+      <div class="field"><label>Verification code</label><input type="text" id="fp-otp" inputmode="numeric" maxlength="8" placeholder="Enter code" autocomplete="one-time-code" required></div>
+      <div class="field"><label>New password</label><input type="password" id="fp-new" placeholder="Min. 6 characters" required></div>
+      <div class="field"><label>Confirm new password</label><input type="password" id="fp-confirm" placeholder="Re-enter new password" required></div>
+      <button type="submit" class="submit-btn dark"><span class="btn-label">Change password</span></button>
+      <button type="button" class="ra-close" id="fpResend">Resend code</button>
+      <button type="button" class="ra-close" data-close-fp style="margin-top:0;">Cancel</button>
     </form>
   </div>
 </div>
@@ -935,6 +990,93 @@ companyLoginForm.addEventListener('submit', async (e) => {
     }
 
 });
+
+  // ============ TERMS / PRIVACY POPUPS ============
+  const termsBackdrop = document.getElementById('termsBackdrop');
+  const privacyBackdrop = document.getElementById('privacyBackdrop');
+  document.getElementById('openTerms').addEventListener('click', (e) => { e.preventDefault(); termsBackdrop.classList.add('active'); });
+  document.getElementById('openPrivacy').addEventListener('click', (e) => { e.preventDefault(); privacyBackdrop.classList.add('active'); });
+  [termsBackdrop, privacyBackdrop].forEach(b => {
+    b.addEventListener('click', (e) => { if(e.target === b) b.classList.remove('active'); });
+    b.querySelectorAll('[data-close-legal]').forEach(x => x.addEventListener('click', () => b.classList.remove('active')));
+  });
+
+  // ============ FORGOT PASSWORD ============
+  const fpBackdrop = document.getElementById('fpBackdrop');
+  const fpStep1 = document.getElementById('fpStep1');
+  const fpStep2 = document.getElementById('fpStep2');
+  let fpEmail = '';
+
+  function openForgot(prefill){
+    fpStep1.style.display = 'block';
+    fpStep2.style.display = 'none';
+    fpStep1.reset(); fpStep2.reset();
+    document.getElementById('fp-email').value = prefill || '';
+    fpBackdrop.classList.add('active');
+  }
+  function closeForgot(){ fpBackdrop.classList.remove('active'); }
+
+  document.querySelectorAll('[data-forgot]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const form = a.closest('form');
+      const emailInput = form ? form.querySelector('input[type="email"]') : null;
+      openForgot(emailInput ? emailInput.value.trim() : '');
+    });
+  });
+  document.querySelectorAll('[data-close-fp]').forEach(b => b.addEventListener('click', closeForgot));
+  fpBackdrop.addEventListener('click', (e) => { if(e.target === fpBackdrop) closeForgot(); });
+
+  async function sendResetCode(email, btn, loadingText){
+    setLoading(btn, true, loadingText);
+    try{
+      await callApi('/api/auth/forgot-password', { email });
+      fpEmail = email;
+      document.getElementById('fpSentNote').textContent = `Enter the code sent to ${email} and choose a new password.`;
+      fpStep1.style.display = 'none';
+      fpStep2.style.display = 'block';
+      showToast('Verification code sent. Check your email.', 'success');
+    }catch(err){
+      showToast(err.message, 'error');
+    }finally{
+      setLoading(btn, false);
+    }
+  }
+
+  fpStep1.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('fp-email').value.trim();
+    if(!email){ flagInvalid(document.getElementById('fp-email').closest('.field')); return; }
+    sendResetCode(email, fpStep1.querySelector('.submit-btn'), 'Sending…');
+  });
+  document.getElementById('fpResend').addEventListener('click', (e) => {
+    sendResetCode(fpEmail, e.currentTarget.closest('form').querySelector('.submit-btn'), 'Sending…');
+  });
+
+  fpStep2.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearInvalid(fpStep2);
+    const otp = document.getElementById('fp-otp');
+    const np = document.getElementById('fp-new');
+    const cp = document.getElementById('fp-confirm');
+    let bad = false;
+    if(!otp.value.trim()){ flagInvalid(otp.closest('.field')); bad = true; }
+    if(np.value.length < 6){ flagInvalid(np.closest('.field')); showToast('Password must be at least 6 characters.', 'error'); bad = true; }
+    else if(np.value !== cp.value){ flagInvalid(cp.closest('.field')); showToast('Passwords do not match.', 'error'); bad = true; }
+    if(bad) return;
+
+    const btn = fpStep2.querySelector('.submit-btn');
+    setLoading(btn, true, 'Updating…');
+    try{
+      await callApi('/api/auth/reset-password', { email: fpEmail, otp: otp.value.trim(), new_password: np.value });
+      showToast('Password changed. Please log in with your new password.', 'success');
+      closeForgot();
+    }catch(err){
+      showToast(err.message, 'error');
+    }finally{
+      setLoading(btn, false);
+    }
+  });
 
   // ============ PARALLAX ON BRAND PANEL ============
   const brandPanel = document.getElementById('brandPanel');
