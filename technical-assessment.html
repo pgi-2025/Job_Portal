@@ -9127,19 +9127,25 @@ function updateTimerDisplay(elId){
    ROUND START
 ============================================================ */
 let __retestChecked = false;
+let __startingRound = false;
 async function startRound(){
+  if(__startingRound) return;   // ignore duplicate calls (double click) - prevents free test being consumed twice
+  __startingRound = true;
+  try{ await _startRoundGate(); } finally { __startingRound = false; }
+}
+async function _startRoundGate(){
   if(!__retestChecked && (!state.round || state.round===1)){
     try{
       const a = await (await fetch(`${API_BASE}/api/student/assessment/access`, {headers: authHeaders()})).json();
       if(a.allowed === false){
         window.__retestFee = a.fee;
         const paid = await showRetestOverlay();
-        if(!paid) return;
+        if(!paid){ window.__beginBusy = false; return; }
       }
       const r = await fetch(`${API_BASE}/api/student/assessment/start`, {method:'POST', headers: authHeaders()});
-      if(!r.ok){ showRetestOverlay(); return; }
+      if(!r.ok){ window.__beginBusy = false; showRetestOverlay(); return; }
       __retestChecked = true;
-    }catch(e){ alert('Network error. Please try again.'); return; }
+    }catch(e){ window.__beginBusy = false; alert('Network error. Please try again.'); return; }
   }
   _startRoundInner();
 }
@@ -9775,6 +9781,9 @@ const cam = new ProctorCamera({
 
 window.beginProctoredAssessment = async function () {
 
+  if (window.__beginBusy) return;   // block double-click / double init
+  window.__beginBusy = true;
+
   console.log('=== FULLSCREEN ENVIRONMENT CHECK ===');
 
   console.log({
@@ -9806,6 +9815,7 @@ window.beginProctoredAssessment = async function () {
 
   if (!granted) {
 
+    window.__beginBusy = false;
     const fullscreenResult = await fullscreenPromise;
 
     if (fullscreenResult.success) {
@@ -9821,6 +9831,7 @@ window.beginProctoredAssessment = async function () {
 
   if (!fullscreenResult.success) {
 
+    window.__beginBusy = false;
     const message =
       document.getElementById('proctorBlockMessage');
 
