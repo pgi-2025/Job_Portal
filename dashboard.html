@@ -1114,11 +1114,12 @@ h1{font-weight:800}
   const ringLabel = document.getElementById('ringLabel');
   const RING_CIRCUMFERENCE = 150.8;
 
+  const REQUIRED_PROFILE_FIELDS = ['full_name','college','degree','mobile_number','age','employment_type','salary_expectation','resume_summary','resume_skills','resume_experience','resume_projects','photo_url'];
   function updateCompleteness(profile){
-    const fields = ['full_name','college','degree','age','resume_summary','resume_skills','resume_experience','resume_projects'];
-    const filled = fields.filter(f => profile[f] !== null && profile[f] !== undefined && profile[f] !== '').length;
-    const extra = (profile.resume_url ? 1 : 0) + (profile.photo_url ? 1 : 0);
-    const pct = Math.round(((filled + extra) / (fields.length + 2)) * 100);
+    // Same field list the dashboard gate uses, so the % is identical on every device.
+    const fields = REQUIRED_PROFILE_FIELDS;
+    const filled = fields.filter(f => profile[f] !== null && profile[f] !== undefined && String(profile[f]).trim() !== '').length;
+    const pct = Math.round((filled / fields.length) * 100);
     ringFg.style.strokeDashoffset = RING_CIRCUMFERENCE - (RING_CIRCUMFERENCE * pct / 100);
     ringLabel.textContent = `${pct}%`;
     document.getElementById('completenessNote').textContent =
@@ -1170,7 +1171,6 @@ h1{font-weight:800}
     document.getElementById('pfYearsField').style.display = e.target.value === 'Experienced' ? 'flex' : 'none';
   });
 
-  const REQUIRED_PROFILE_FIELDS = ['full_name','college','degree','mobile_number','age','employment_type','salary_expectation','resume_summary','resume_skills','resume_experience','resume_projects','photo_url'];
   function isProfileComplete(p){
     if(!p) return false;
     return REQUIRED_PROFILE_FIELDS.every(f => p[f] !== null && p[f] !== undefined && String(p[f]).trim() !== '');
@@ -1332,6 +1332,7 @@ h1{font-weight:800}
       paintGreeting(cachedProfile);
       updateCompleteness(cachedProfile);
       applyProfileGate(cachedProfile);
+      await loadProfile(); // re-read the saved profile from the server so every device shows the same %
     }catch(err){
       showToast(err.message, 'error');
     }finally{
