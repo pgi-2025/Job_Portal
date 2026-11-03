@@ -309,6 +309,47 @@ def student_signup():
     return jsonify({"message": "Account created.", "user_id": user.id})
 
 
+@app.route("/api/auth/forgot-password", methods=["POST"])
+def forgot_password():
+    """Step 1: emails a verification code (OTP) to the registered address."""
+    payload = request.get_json(silent=True) or {}
+    email = (payload.get("email") or "").strip().lower()
+    if not email:
+        return error("Please enter your email.", 422)
+    try:
+        _fresh_client().auth.reset_password_for_email(email)
+    except Exception as e:
+        print("forgot_password:", type(e).__name__, str(e)[:160])
+        return error("Could not send the code right now. Please try again in a minute.", 429)
+    # Same reply whether or not the email exists, so accounts can't be probed.
+    return jsonify({"message": "If this email is registered, a verification code has been sent."})
+
+
+@app.route("/api/auth/reset-password", methods=["POST"])
+def reset_password():
+    """Step 2: verifies the emailed code, then sets the new password for that same email."""
+    payload = request.get_json(silent=True) or {}
+    email = (payload.get("email") or "").strip().lower()
+    otp = (payload.get("otp") or "").strip()
+    new_password = payload.get("new_password") or ""
+    if not email or not otp or not new_password:
+        return error("Email, verification code and new password are required.", 422)
+    if len(new_password) < 6:
+        return error("Password must be at least 6 characters.", 422)
+    try:
+        result = _fresh_client().auth.verify_otp({"email": email, "token": otp, "type": "recovery"})
+    except Exception:
+        return error("Invalid or expired verification code.", 400)
+    user = result.user if result else None
+    if not user:
+        return error("Invalid or expired verification code.", 400)
+    try:
+        supabase_admin.auth.admin.update_user_by_id(user.id, {"password": new_password})
+    except Exception as e:
+        return error(f"Could not update password: {e}", 500)
+    return jsonify({"message": "Password updated. You can now log in."})
+
+
 @app.route("/api/auth/student/login", methods=["POST"])
 def student_login():
     payload = request.get_json(silent=True) or {}
