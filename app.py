@@ -23,15 +23,17 @@ import os
 import hmac
 import hashlib
 import requests
-from datetime import datetime, timezone
+import io
+import csv
+import json
+import zipfile
+from datetime import datetime, timezone, date
 from functools import wraps
 
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g, send_file, send_from_directory, Response
 from flask_cors import CORS
 from supabase import create_client, Client
-from flask import send_file
-from flask import send_from_directory
 
 
 load_dotenv()
@@ -1716,9 +1718,20 @@ DOMAIN_NAMES = {
 }
 
 
-def _fetch_all(table: str, columns: str = "*", page: int = 1000):
+_TABLE_CACHE = {}
+
+
+def _fetch_all(table: str, columns: str = "*", page: int = 1000, ttl: int = 20):
     """Reads every row of a table (Supabase caps a single query at ~1000 rows).
-    A missing table/column returns [] so one bad table never breaks the dashboard."""
+    Cached for 20 seconds in memory so simultaneous dashboard endpoints return instantly."""
+    import time
+    now_ts = time.time()
+    cache_key = f"{table}:{columns}"
+    if cache_key in _TABLE_CACHE:
+        ts, data = _TABLE_CACHE[cache_key]
+        if (now_ts - ts) < ttl:
+            return data
+
     rows, start = [], 0
     try:
         while True:
@@ -1730,6 +1743,8 @@ def _fetch_all(table: str, columns: str = "*", page: int = 1000):
             start += page
     except Exception as e:
         print(f"dashboard: could not read {table}:", repr(e))
+
+    _TABLE_CACHE[cache_key] = (now_ts, rows)
     return rows
 
 
@@ -1887,8 +1902,44 @@ def admin_dashboard_stats():
 
 
 def _admin_ok():
-    s = request.headers.get("X-Admin-Secret")
+    s = request.headers.get("X-Admin-Secret") or request.args.get("secret")
     return bool(ADMIN_PROVISION_SECRET) and s == ADMIN_PROVISION_SECRET
+
+
+_USERS_CACHE = {"timestamp": 0, "users": {}}
+
+
+def _get_cached_auth_users(ttl=60):
+    """Caches auth.users in memory to prevent slow multi-page queries on every admin call."""
+    import time
+    now_ts = time.time()
+    if _USERS_CACHE["users"] and (now_ts - _USERS_CACHE["timestamp"]) < ttl:
+        return _USERS_CACHE["users"]
+    users = {}
+    try:
+        page = 1
+        while True:
+            batch = supabase_admin.auth.admin.list_users(page=page, per_page=1000)
+            if not batch:
+                break
+            for u in batch:
+                users[u.id] = u
+            if len(batch) < 1000:
+                break
+            page += 1
+    except Exception as e:
+        print("could not list users:", repr(e))
+    _USERS_CACHE["timestamp"] = now_ts
+    _USERS_CACHE["users"] = users
+    return users
+
+
+@app.route("/api/admin/verify", methods=["GET"])
+def admin_verify():
+    """Ultra-fast admin secret validation for instant dashboard unlock."""
+    if not _admin_ok():
+        return error("Unauthorized.", 401)
+    return jsonify({"ok": True})
 
 
 @app.route("/api/admin/outreach", methods=["GET"])
@@ -1962,19 +2013,11 @@ def admin_daily():
     days = {(today - timedelta(days=i)).isoformat(): {"date": (today - timedelta(days=i)).isoformat(),
             "registered": 0, "attended": 0, "passed": 0, "failed": 0, "payments": 0, "revenue_inr": 0}
             for i in range(30)}
-    try:
-        page = 1
-        while True:
-            batch = supabase_admin.auth.admin.list_users(page=page, per_page=1000)
-            for u in batch or []:
-                k = day(getattr(u, "created_at", None))
-                if k in days:
-                    days[k]["registered"] += 1
-            if not batch or len(batch) < 1000:
-                break
-            page += 1
-    except Exception as e:
-        print("admin_daily: could not list users:", repr(e))
+    cached_users = _get_cached_auth_users()
+    for u in cached_users.values():
+        k = day(getattr(u, "created_at", None))
+        if k in days:
+            days[k]["registered"] += 1
     for a in _fetch_all("assessment_attempts", "created_at,overall_passed"):
         k = day(a.get("created_at"))
         if k in days:
@@ -1993,20 +2036,7 @@ def admin_database():
     """Registered students: name, email, mobile number (read-only)."""
     if not _admin_ok():
         return error("Unauthorized.", 401)
-    users = {}
-    try:
-        page = 1
-        while True:
-            batch = supabase_admin.auth.admin.list_users(page=page, per_page=1000)
-            if not batch:
-                break
-            for u in batch:
-                users[u.id] = u
-            if len(batch) < 1000:
-                break
-            page += 1
-    except Exception as e:
-        print("admin_database: could not list users:", repr(e))
+    users = _get_cached_auth_users()
     profs = _fetch_all("profiles", "id,full_name,mobile_number,role")
     rows = []
     for p in profs:
@@ -2028,12 +2058,8 @@ def admin_payments():
     from collections import defaultdict
     rows = _fetch_all("assessment_payments")
     prof = {p["id"]: p for p in _fetch_all("profiles", "id,full_name,college")}
-    emails = {}
-    try:
-        for u in supabase_admin.auth.admin.list_users(per_page=1000):
-            emails[u.id] = u.email
-    except Exception as e:
-        print("admin_payments: could not list emails:", repr(e))
+    cached_users = _get_cached_auth_users()
+    emails = {uid: getattr(u, "email", "") for uid, u in cached_users.items()}
     paid = [r for r in rows if r.get("status") in ("paid", "consumed")]
     per = defaultdict(lambda: {"times": 0, "used": 0, "left": 0, "paise": 0, "last": ""})
     for r in paid:
@@ -2095,6 +2121,427 @@ def admin_chat_messages():
     except Exception as e:
         return error(f"Could not load messages: {e}", 500)
     return jsonify({"messages": rows})
+
+
+# ============================== EXPORT ENDPOINTS ==============================
+
+_EXPORT_CACHE = {"timestamp": 0, "data": None}
+
+
+def _sanitize_csv_cell(val):
+    """Prevents CSV formula injection for spreadsheet viewers (Excel, Sheets)."""
+    s = str(val if val is not None else "")
+    if s and s[0] in ("=", "+", "-", "@"):
+        return "'" + s
+    return s
+
+
+def _build_csv_content(headers, rows):
+    """Builds a UTF-8 BOM CSV text with proper escaping."""
+    out = io.StringIO()
+    out.write("\ufeff")  # UTF-8 BOM for Microsoft Excel
+    writer = csv.writer(out, quoting=csv.QUOTE_MINIMAL, lineterminator="\r\n")
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow([_sanitize_csv_cell(c) for c in row])
+    return out.getvalue()
+
+
+def _get_export_data():
+    """
+    Fetches, joins, and normalizes student and company records.
+    Cached for 60 seconds in memory so repeated filters and exports stay instantaneous.
+    """
+    import time
+    now_ts = time.time()
+    if _EXPORT_CACHE["data"] is not None and (now_ts - _EXPORT_CACHE["timestamp"]) < 60:
+        return _EXPORT_CACHE["data"]
+
+    # 1. Resolve auth users from cache
+    users = _get_cached_auth_users()
+
+    # 2. Fetch all required tables
+    profiles = _fetch_all("profiles")
+    companies = _fetch_all("companies")
+    company_logins = _fetch_all("company_login")
+    access_requests = _fetch_all("company_access_requests")
+    attempts = _fetch_all("assessment_attempts")
+
+    # Mappings
+    companies_by_id = {c["id"]: (c.get("name") or "Company").strip() for c in companies}
+    company_profiles = {p["id"]: p for p in profiles if p.get("role") == "company"}
+
+    login_by_company = {}
+    for cl in company_logins:
+        cid = cl.get("company_id")
+        if cid and (cid not in login_by_company or cl.get("is_active")):
+            login_by_company[cid] = cl
+
+    # Find latest attempt for each student
+    attempts_by_student = {}
+    for a in attempts:
+        sid = a.get("student_id")
+        if not sid:
+            continue
+        cur = attempts_by_student.get(sid)
+        if not cur or (a.get("created_at") or "") > (cur.get("created_at") or ""):
+            attempts_by_student[sid] = a
+
+    # 3. Build student list
+    students_out = []
+    for p in profiles:
+        if p.get("role") != "student":
+            continue
+        sid = p["id"]
+        u = users.get(sid)
+        email = getattr(u, "email", "") or ""
+        raw_reg = p.get("created_at") or getattr(u, "created_at", "") or ""
+        reg_str = ""
+        if raw_reg:
+            try:
+                reg_str = datetime.fromisoformat(str(raw_reg).replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                reg_str = str(raw_reg)[:16]
+
+        att = attempts_by_student.get(sid)
+        has_attempted = (att is not None) or (p.get("assessment_status") not in (None, "", "locked"))
+
+        # Score
+        score_str = "–"
+        if p.get("round1_correct") is not None and p.get("round1_total"):
+            score_str = f"{p['round1_correct']}/{p['round1_total']}"
+        elif att and att.get("round1_score") is not None:
+            score_str = f"{att['round1_score']}%"
+
+        # Domain
+        dom_key = p.get("qualified_domain") or (att.get("domain") if att else None)
+        domain_name = DOMAIN_NAMES.get(dom_key, dom_key or "–")
+
+        # Test Eligible
+        status = p.get("assessment_status") or "locked"
+        test_eligible = "Eligible" if status == "eligible" else ("Failed" if status == "failed" else "Not Eligible")
+
+        # Placed
+        is_placed = bool(p.get("is_placed") or p.get("company_confirmed_hire") or p.get("student_confirmed_hire"))
+        comp_placed = companies_by_id.get(p.get("selected_by_company_id"), "–") if is_placed else "–"
+
+        # College / Department
+        college = (p.get("college") or "").strip()
+        degree = (p.get("degree") or "").strip()
+        college_dept = f"{college} ({degree})" if (college and degree) else (college or degree or "–")
+
+        students_out.append({
+            "id": sid,
+            "name": p.get("full_name") or "–",
+            "email": email or "–",
+            "phone": p.get("mobile_number") or "–",
+            "college_dept": college_dept,
+            "domain": domain_name,
+            "registered_at": reg_str or "–",
+            "raw_registered_at": str(raw_reg),
+            "attended_test": "Y" if has_attempted else "N",
+            "test_score": score_str,
+            "test_eligible": test_eligible,
+            "resume_uploaded": "Y" if bool(p.get("resume_url")) else "N",
+            "placed": "Y" if is_placed else "N",
+            "company_placed_in": comp_placed,
+        })
+
+    # 4. Build company list
+    companies_out = []
+    seen_co_names = set()
+
+    for c in companies:
+        cid = c["id"]
+        cname = (c.get("name") or "").strip()
+        seen_co_names.add(cname.lower())
+        cl = login_by_company.get(cid)
+        cprof = company_profiles.get(cl["profile_id"]) if cl else None
+
+        contact_person = (cprof.get("full_name") if cprof else "") or "–"
+        email = (cl.get("login_email") if cl else "") or "–"
+        phone = (cprof.get("mobile_number") if cprof else "") or "–"
+
+        raw_reg = (cl.get("created_at") if cl else "") or ""
+        reg_str = ""
+        if raw_reg:
+            try:
+                reg_str = datetime.fromisoformat(str(raw_reg).replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                reg_str = str(raw_reg)[:16]
+
+        roles_list = c.get("roles") or []
+        open_roles = ", ".join(roles_list) if roles_list else "None"
+        hiring_status = "Currently Hiring" if c.get("has_openings") else "Not Hiring"
+
+        companies_out.append({
+            "id": cid,
+            "name": cname,
+            "contact_person": contact_person,
+            "email": email,
+            "phone": phone,
+            "registered_at": reg_str or "–",
+            "raw_registered_at": str(raw_reg),
+            "hiring_status": hiring_status,
+            "open_roles": open_roles,
+            "access_request_status": "Active Tie-up",
+            "is_access_request": False,
+        })
+
+    for r in access_requests:
+        rname = (r.get("company_name") or "").strip()
+        if rname.lower() in seen_co_names:
+            continue
+        raw_reg = r.get("created_at") or ""
+        reg_str = ""
+        if raw_reg:
+            try:
+                reg_str = datetime.fromisoformat(str(raw_reg).replace("Z", "+00:00")).strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                reg_str = str(raw_reg)[:16]
+
+        companies_out.append({
+            "id": r["id"],
+            "name": rname,
+            "contact_person": "–",
+            "email": r.get("email") or "–",
+            "phone": r.get("contact_number") or "–",
+            "registered_at": reg_str or "–",
+            "raw_registered_at": str(raw_reg),
+            "hiring_status": "Access Requested",
+            "open_roles": "–",
+            "access_request_status": (r.get("status") or "pending").capitalize(),
+            "is_access_request": True,
+        })
+
+    data = {
+        "students": students_out,
+        "companies": companies_out,
+        "domains": sorted(list(DOMAIN_NAMES.values())),
+    }
+    _EXPORT_CACHE["timestamp"] = now_ts
+    _EXPORT_CACHE["data"] = data
+    return data
+
+
+@app.route("/api/admin/export/data", methods=["GET"])
+def admin_export_data():
+    """Provides full normalized dataset for the admin dashboard download modal."""
+    if not _admin_ok():
+        return error("Unauthorized.", 401)
+    try:
+        data = _get_export_data()
+        return jsonify(data)
+    except Exception as e:
+        return error(f"Could not load export data: {e}", 500)
+
+
+@app.route("/api/admin/export", methods=["GET"])
+def admin_export():
+    """
+    Direct export endpoint with server-side filtering, CSV injection protection,
+    and download headers.
+    Query parameters:
+        type: students | companies | both (default: students)
+        from: YYYY-MM-DD (inclusive start)
+        to: YYYY-MM-DD (inclusive through 23:59:59)
+        format: csv | json (default: csv)
+        attended_test: all | yes | no
+        eligible: all | yes | no
+        resume: all | yes | no
+        placed: all | yes | no
+        domain: all | <domain name>
+        hiring: all | hiring | not_hiring
+        access_requested: all | yes | no
+    """
+    if not _admin_ok():
+        return error("Unauthorized.", 401)
+
+    export_type = (request.args.get("type") or "students").strip().lower()
+    export_format = (request.args.get("format") or "csv").strip().lower()
+    from_date_str = (request.args.get("from") or "").strip()
+    to_date_str = (request.args.get("to") or "").strip()
+
+    from_d, to_d = None, None
+    try:
+        if from_date_str:
+            from_d = date.fromisoformat(from_date_str)
+        if to_date_str:
+            to_d = date.fromisoformat(to_date_str)
+    except ValueError:
+        return error("Invalid date format. Use YYYY-MM-DD.", 400)
+
+    if from_d and to_d and from_d > to_d:
+        return error("From date cannot be after To date.", 400)
+
+    data = _get_export_data()
+    students = data["students"]
+    companies = data["companies"]
+
+    # Filter helper for dates (inclusive)
+    def _in_date_range(raw_iso):
+        if not raw_iso:
+            return from_d is None and to_d is None
+        try:
+            d = datetime.fromisoformat(str(raw_iso).replace("Z", "+00:00")).date()
+            if from_d and d < from_d:
+                return False
+            if to_d and d > to_d:
+                return False
+            return True
+        except Exception:
+            return True
+
+    # Filter students
+    filtered_students = []
+    if export_type in ("students", "both"):
+        f_att = (request.args.get("attended_test") or "all").lower()
+        f_eli = (request.args.get("eligible") or "all").lower()
+        f_res = (request.args.get("resume") or "all").lower()
+        f_plc = (request.args.get("placed") or "all").lower()
+        f_dom = (request.args.get("domain") or "all").strip().lower()
+
+        for s in students:
+            if not _in_date_range(s.get("raw_registered_at")):
+                continue
+            if f_att == "yes" and s["attended_test"] != "Y":
+                continue
+            if f_att == "no" and s["attended_test"] != "N":
+                continue
+            if f_eli == "yes" and s["test_eligible"] != "Eligible":
+                continue
+            if f_eli == "no" and s["test_eligible"] == "Eligible":
+                continue
+            if f_res == "yes" and s["resume_uploaded"] != "Y":
+                continue
+            if f_res == "no" and s["resume_uploaded"] != "N":
+                continue
+            if f_plc == "yes" and s["placed"] != "Y":
+                continue
+            if f_plc == "no" and s["placed"] != "N":
+                continue
+            if f_dom != "all" and s["domain"].lower() != f_dom:
+                continue
+            filtered_students.append(s)
+
+    # Filter companies
+    filtered_companies = []
+    if export_type in ("companies", "both"):
+        f_hire = (request.args.get("hiring") or "all").lower()
+        f_req = (request.args.get("access_requested") or "all").lower()
+
+        for c in companies:
+            if not _in_date_range(c.get("raw_registered_at")):
+                continue
+            if f_hire == "hiring" and c["hiring_status"] != "Currently Hiring":
+                continue
+            if f_hire == "not_hiring" and c["hiring_status"] == "Currently Hiring":
+                continue
+            if f_req == "yes" and not c["is_access_request"]:
+                continue
+            if f_req == "no" and c["is_access_request"]:
+                continue
+            filtered_companies.append(c)
+
+    # Determine date tag for filenames
+    if from_date_str and to_date_str:
+        date_tag = f"{from_date_str}_to_{to_date_str}"
+    elif from_date_str:
+        date_tag = f"{from_date_str}_to_latest"
+    elif to_date_str:
+        date_tag = f"upto_{to_date_str}"
+    else:
+        date_tag = "all"
+
+    # JSON output
+    if export_format == "json":
+        res_obj = {}
+        if export_type == "students":
+            res_obj = {"count": len(filtered_students), "students": filtered_students}
+            fn = f"pgi_students_{date_tag}.json"
+        elif export_type == "companies":
+            res_obj = {"count": len(filtered_companies), "companies": filtered_companies}
+            fn = f"pgi_companies_{date_tag}.json"
+        else:
+            res_obj = {
+                "student_count": len(filtered_students),
+                "company_count": len(filtered_companies),
+                "students": filtered_students,
+                "companies": filtered_companies,
+            }
+            fn = f"pgi_report_{date_tag}.json"
+        return Response(
+            json.dumps(res_obj, indent=2),
+            mimetype="application/json",
+            headers={
+                "Content-Disposition": f'attachment; filename="{fn}"',
+                "Content-Type": "application/json; charset=utf-8",
+            },
+        )
+
+    # Headers for CSV
+    student_headers = [
+        "ID", "Name", "Email", "Phone", "College/Department", "Domain",
+        "Registered Date", "Attended Test (Y/N)", "Test Score", "Test Eligible",
+        "Resume Uploaded", "Placed", "Company Placed In"
+    ]
+    student_rows = [
+        [s["id"], s["name"], s["email"], s["phone"], s["college_dept"], s["domain"],
+         s["registered_at"], s["attended_test"], s["test_score"], s["test_eligible"],
+         s["resume_uploaded"], s["placed"], s["company_placed_in"]]
+        for s in filtered_students
+    ]
+
+    company_headers = [
+        "ID", "Company Name", "Contact Person", "Email", "Phone",
+        "Registered Date", "Hiring Status", "Open Roles", "Access Request Status"
+    ]
+    company_rows = [
+        [c["id"], c["name"], c["contact_person"], c["email"], c["phone"],
+         c["registered_at"], c["hiring_status"], c["open_roles"], c["access_request_status"]]
+        for c in filtered_companies
+    ]
+
+    if export_type == "students":
+        csv_text = _build_csv_content(student_headers, student_rows)
+        fn = f"pgi_students_{date_tag}.csv"
+        return Response(
+            csv_text,
+            mimetype="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="{fn}"',
+                "Content-Type": "text/csv; charset=utf-8",
+            },
+        )
+    elif export_type == "companies":
+        csv_text = _build_csv_content(company_headers, company_rows)
+        fn = f"pgi_companies_{date_tag}.csv"
+        return Response(
+            csv_text,
+            mimetype="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="{fn}"',
+                "Content-Type": "text/csv; charset=utf-8",
+            },
+        )
+    else:
+        # Both -> zip bundle containing both CSVs
+        stu_csv = _build_csv_content(student_headers, student_rows)
+        co_csv = _build_csv_content(company_headers, company_rows)
+        zip_buf = io.BytesIO()
+        with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr(f"pgi_students_{date_tag}.csv", stu_csv.encode("utf-8-sig"))
+            zf.writestr(f"pgi_companies_{date_tag}.csv", co_csv.encode("utf-8-sig"))
+        zip_buf.seek(0)
+        fn = f"pgi_report_{date_tag}.zip"
+        return Response(
+            zip_buf.getvalue(),
+            mimetype="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{fn}"',
+                "Content-Type": "application/zip",
+            },
+        )
 
 
 if __name__ == "__main__":

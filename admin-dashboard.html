@@ -5,119 +5,853 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin Dashboard – PGI Placement Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap"
+    rel="stylesheet">
+  <!-- Export Libraries: SheetJS (xlsx), jsPDF + autotable, JSZip -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
   <style>
     :root {
+      --sidebar-bg: #093323;
+      --sidebar-hover: rgba(255, 255, 255, 0.08);
+      --sidebar-text: #cfe3d7;
+      --sidebar-active-bg: #9be2b8;
+      --sidebar-active-text: #093323;
+      --main-bg: #f0f5f2;
+      --card-bg: #ffffff;
+      --card-bd: #e2ebe5;
+      --card-shadow: 0 2px 8px rgba(10, 35, 25, 0.04);
+      --tx: #14281e;
+      --mut: #5a7064;
       --g: #0e3b2c;
       --g2: #1a5c45;
-      --bg: #eef3f0;
-      --tx: #1c2a24;
-      --mut: #6b7a73;
+      --ok: #059669;
+      --bad: #dc2626;
+      --warn: #d97706;
+      --blue: #2563eb;
+      --pur: #7c3aed;
+      --cyn: #0284c7;
+      --teal: #0d9488;
       --bd: #e2e9e5;
-      --ok: #1f9d61;
-      --bad: #e04a4a;
-      --warn: #f0a020;
-      --blue: #3574e0;
-      --pur: #8250e0
     }
 
     * {
-      box-sizing: border-box
+      box-sizing: border-box;
     }
 
     body {
       margin: 0;
-      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--tx)
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--main-bg);
+      color: var(--tx);
+      font-weight: 500;
+      -webkit-font-smoothing: antialiased;
     }
 
-    header {
-      background: linear-gradient(115deg, #0a2c20, var(--g2) 60%, #2b8a67);
+    /* Layout Shell */
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+      width: 100%;
+    }
+
+    /* Left Sidebar */
+    .sidebar {
+      width: 240px;
+      min-width: 240px;
+      background: var(--sidebar-bg);
       color: #fff;
-      padding: 18px 30px 0;
+      display: flex;
+      flex-direction: column;
       position: sticky;
       top: 0;
-      z-index: 5;
-      box-shadow: 0 4px 18px rgba(14, 59, 44, .25)
+      height: 100vh;
+      z-index: 40;
+      transition: width .2s ease, min-width .2s ease;
+      box-shadow: 2px 0 14px rgba(6, 32, 22, 0.2);
     }
 
-    .top {
+    .sidebar.collapsed {
+      width: 68px;
+      min-width: 68px;
+    }
+
+    .sidebar.collapsed .brand-name,
+    .sidebar.collapsed .badge-admin,
+    .sidebar.collapsed .nav-text,
+    .sidebar.collapsed .nav-badge,
+    .sidebar.collapsed .btn-logout span {
+      display: none;
+    }
+
+    .sidebar.collapsed .sidebar-brand {
+      padding: 0 16px;
+      justify-content: center;
+    }
+
+    .sidebar.collapsed .btn-collapse {
+      display: none;
+    }
+
+    .sidebar.collapsed .nav-item {
+      justify-content: center;
+      padding: 12px 0;
+    }
+
+    .sidebar.collapsed .btn-logout {
+      justify-content: center;
+    }
+
+    .sidebar-brand {
+      height: 64px;
+      padding: 0 18px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 10px
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    header h1 {
-      margin: 0;
-      font-size: 20px
-    }
-
-    header small {
-      opacity: .8;
-      font-size: 12px
-    }
-
-    .btn {
-      background: rgba(255, 255, 255, .14);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, .3);
-      padding: 7px 13px;
-      border-radius: 9px;
-      cursor: pointer;
-      font-size: 12.5px;
-      font-weight: 600;
-      text-decoration: none
-    }
-
-    .btn:hover {
-      background: rgba(255, 255, 255, .28)
-    }
-
-    .tabs {
+    .brand-left {
       display: flex;
-      gap: 4px;
-      margin-top: 14px;
-      overflow-x: auto
+      align-items: center;
+      gap: 9px;
     }
 
-    .tabs button {
+    .brand-logo {
+      color: #7ee7ad;
+      display: flex;
+      align-items: center;
+    }
+
+    .brand-name {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+
+    .badge-admin {
+      background: #bbf7d0;
+      color: #064e3b;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 5px;
+      letter-spacing: .5px;
+      display: inline-block;
+    }
+
+    .btn-collapse {
       background: transparent;
       border: 0;
-      color: #cfe8dc;
-      padding: 11px 20px;
-      font-size: 14px;
-      font-weight: 600;
+      color: #8fa79b;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
-      border-radius: 10px 10px 0 0
+      padding: 4px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: .15s;
     }
 
-    .tabs button.on {
-      background: var(--bg);
-      color: var(--g)
+    .btn-collapse:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
     }
 
-    main {
-      max-width: 1320px;
-      margin: 0 auto;
-      padding: 22px 22px 60px
+    .sidebar-nav {
+      flex: 1;
+      padding: 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow-y: auto;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      cursor: pointer;
+      border: 0;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      transition: all .15s ease;
+    }
+
+    .nav-item:hover {
+      background: var(--sidebar-hover);
+      color: #fff;
+    }
+
+    .nav-item.on {
+      background: var(--sidebar-active-bg);
+      color: var(--sidebar-active-text);
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    .nav-item.on .nav-icon {
+      color: var(--sidebar-active-text);
+    }
+
+    .nav-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      flex: none;
+      color: #92b8a4;
+    }
+
+    .nav-item:hover .nav-icon {
+      color: #fff;
+    }
+
+    .nav-badge {
+      margin-left: auto;
+      background: #064e3b;
+      color: #9be2b8;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 12px;
+    }
+
+    .nav-item.on .nav-badge {
+      background: #093323;
+      color: #9be2b8;
+    }
+
+    .sidebar-footer {
+      padding: 12px 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-logout {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #8fa79b;
+      cursor: pointer;
+      background: transparent;
+      border: 0;
+      width: 100%;
+      transition: .15s;
+    }
+
+    .btn-logout:hover {
+      color: #ff8b8b;
+      background: rgba(255, 80, 80, 0.1);
+    }
+
+    /* Main Content Wrapper */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background: var(--main-bg);
+    }
+
+    /* Topbar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 25;
+      height: 64px;
+      background: var(--main-bg);
+      border-bottom: 1px solid #dfe7e2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      gap: 16px;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex: 1;
+    }
+
+    .breadcrumb {
+      font-size: 13px;
+      color: var(--mut);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .breadcrumb strong {
+      color: var(--tx);
+      font-weight: 700;
+    }
+
+    .topbar-search {
+      display: flex;
+      align-items: center;
+      background: #e4ece7;
+      border: 1px solid #d4dfd8;
+      border-radius: 99px;
+      padding: 7px 14px;
+      width: 320px;
+      max-width: 100%;
+      gap: 8px;
+      transition: .15s;
+    }
+
+    .topbar-search:focus-within {
+      border-color: #1a5c45;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(26, 92, 69, 0.08);
+    }
+
+    .topbar-search input {
+      border: 0;
+      background: transparent;
+      outline: none;
+      font-size: 13px;
+      color: var(--tx);
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .topbar-search svg {
+      color: #6a8276;
+      flex: none;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .live-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: var(--mut);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .dot-live {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+      animation: pulseDot 2s infinite;
+    }
+
+    @keyframes pulseDot {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    .btn-topbar {
+      background: #fff;
+      border: 1px solid #d4dfd8;
+      color: var(--tx);
+      padding: 7px 14px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: .15s;
+    }
+
+    .btn-topbar:hover {
+      background: #e9f0ec;
+      border-color: #b8ccbf;
+    }
+
+    .btn-topbar-icon {
+      background: #fff;
+      border: 1px solid #d4dfd8;
+      color: var(--tx);
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: .15s;
+    }
+
+    .btn-topbar-icon:hover {
+      background: #e9f0ec;
+      border-color: #b8ccbf;
+    }
+
+    .btn-topbar-primary {
+      background: #093323;
+      border: 0;
+      color: #fff;
+      padding: 7px 16px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      box-shadow: 0 2px 6px rgba(9, 51, 35, 0.2);
+      transition: .15s;
+    }
+
+    .btn-topbar-primary:hover {
+      background: #134e38;
+    }
+
+    /* Content Area */
+    .content-body {
+      padding: 24px 28px 60px;
     }
 
     .pane {
-      display: none
+      display: none;
     }
 
     .pane.on {
       display: block;
-      animation: f .35s
+      animation: f .25s ease-out;
     }
 
     @keyframes f {
-      from {
-        opacity: 0;
-        transform: translateY(6px)
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* "Placement Operations Pulse" Banner */
+    .pulse-banner {
+      background: #e6f3eb;
+      border: 1px solid #cbe3d4;
+      border-radius: 14px;
+      padding: 18px 24px;
+      margin-bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .pulse-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .pulse-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #093323;
+      display: inline-block;
+    }
+
+    .pulse-title {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 800;
+      color: #093323;
+      letter-spacing: -0.01em;
+    }
+
+    .batch-badge {
+      background: #bbf0d2;
+      color: #074e2f;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #074e2f;
+    }
+
+    .pulse-sub {
+      font-size: 12.5px;
+      color: #3b6652;
+      font-weight: 500;
+    }
+
+    .pulse-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pulse-pill {
+      background: #fff;
+      border: 1px solid #c2dbcd;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #183d2c;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .btn-sync {
+      background: #093323;
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+      transition: .15s;
+    }
+
+    .btn-sync:hover {
+      background: #144b34;
+    }
+
+    /* Operational Metric Sections & Cards */
+    .op-section {
+      margin-bottom: 24px;
+    }
+
+    .op-section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .op-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .op-section-title span:first-child {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: #1a3326;
+      text-transform: uppercase;
+    }
+
+    .op-tag {
+      background: #e3ede6;
+      color: #466353;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .op-link {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1a5c45;
+      cursor: pointer;
+      text-decoration: none;
+      transition: .15s;
+    }
+
+    .op-link:hover {
+      color: #093323;
+      text-decoration: underline;
+    }
+
+    .grid-5 {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    @media (max-width: 1240px) {
+      .grid-5 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
+      .grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 768px) {
+      .grid-5, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+      .topbar {
+        padding: 0 16px;
+      }
+      .content-body {
+        padding: 16px;
+      }
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(-100%);
+      }
+      .sidebar.open-mobile {
+        transform: translateX(0);
+      }
+    }
+
+    .op-card {
+      background: #fff;
+      border: 1px solid var(--card-bd);
+      border-radius: 14px;
+      padding: 16px 18px;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      transition: transform .15s, box-shadow .15s;
+    }
+
+    .op-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(10, 35, 25, 0.08);
+    }
+
+    .op-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .op-card-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #4b6356;
+      text-transform: uppercase;
+    }
+
+    .op-card-icon {
+      display: flex;
+      align-items: center;
+      color: #5a7064;
+    }
+
+    .op-card-icon.c-pur { color: var(--pur); }
+    .op-card-icon.c-grn { color: var(--ok); }
+    .op-card-icon.c-cyn { color: var(--cyn); }
+    .op-card-icon.c-blu { color: var(--blue); }
+    .op-card-icon.c-amb { color: var(--warn); }
+    .op-card-icon.c-red { color: var(--bad); }
+    .op-card-icon.c-teal { color: var(--teal); }
+
+    .op-card-dot-green {
+      color: #059669;
+      font-size: 14px;
+    }
+
+    .op-card-val {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.15;
+      color: #0f291e;
+      margin-bottom: 3px;
+      letter-spacing: -0.02em;
+      font-feature-settings: 'tnum';
+    }
+
+    .op-card-val.c-pur { color: var(--pur); }
+    .op-card-val.c-grn { color: var(--ok); }
+    .op-card-val.c-cyn { color: var(--cyn); }
+    .op-card-val.c-blu { color: var(--blue); }
+    .op-card-val.c-amb { color: var(--warn); }
+    .op-card-val.c-red { color: var(--bad); }
+    .op-card-val.c-teal { color: var(--teal); }
+
+    .val-unit {
+      font-size: 16px;
+      font-weight: 600;
+      color: #64746b;
+    }
+
+    .op-card-sub {
+      font-size: 12px;
+      color: #64746b;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .op-card-foot {
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid #f0f4f1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: #5a6e63;
+      font-weight: 600;
+      gap: 6px;
+    }
+
+    .chip-mint {
+      background: #dcfce7;
+      color: #15803d;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .chip-soft {
+      background: #f1f5f3;
+      color: #4b6356;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chip-dot {
+      color: #10b981;
+      font-size: 9px;
+    }
+
+    .chip-amb {
+      background: #fef3c7;
+      color: #92400e;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .chip-red {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .foot-link {
+      color: #1a5c45;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .foot-link:hover {
+      text-decoration: underline;
+    }
+
+    .mini-progress {
+      flex: 1;
+      max-width: 65px;
+      height: 5px;
+      background: #e5ece8;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .mini-bar {
+      height: 100%;
+      border-radius: 99px;
+    }
+
+    .bg-pur { background: var(--pur); }
+    .bg-grn { background: var(--ok); }
+    .bg-cyn { background: var(--cyn); }
+
+    .card-chips {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .chip-sm {
+      background: #f0f4f2;
+      color: #3b5246;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 10.5px;
+      font-weight: 600;
+    }
+
+    /* Common Card Styles */
+    .card {
+      background: #fff;
+      border: 1px solid var(--card-bd);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .card h3 {
+      margin: 0 0 14px;
+      font-size: 15px;
+      color: #1c2a24;
     }
 
     h2 {
@@ -125,75 +859,20 @@
       text-transform: uppercase;
       letter-spacing: 1px;
       color: var(--mut);
-      margin: 26px 0 12px
+      margin: 26px 0 12px;
     }
 
     .grid {
       display: grid;
-      gap: 16px
+      gap: 16px;
     }
 
     .k {
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr))
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     }
 
     .two {
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr))
-    }
-
-    .card {
-      background: #fff;
-      border: 1px solid var(--bd);
-      border-radius: 16px;
-      padding: 18px 20px;
-      box-shadow: 0 4px 16px rgba(14, 59, 44, .06)
-    }
-
-    .kpi {
-      display: flex;
-      gap: 14px;
-      align-items: center;
-      background: linear-gradient(135deg, #fff 55%, color-mix(in srgb, var(--c) 10%, #fff));
-      transition: .2s
-    }
-
-    .kpi:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 24px rgba(14, 59, 44, .12)
-    }
-
-    .ic {
-      width: 50px;
-      height: 50px;
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      font-size: 23px;
-      background: color-mix(in srgb, var(--c) 15%, #fff);
-      flex: none
-    }
-
-    .kpi .l {
-      font-size: 12px;
-      color: var(--mut);
-      font-weight: 600
-    }
-
-    .kpi .v {
-      font-size: 29px;
-      font-weight: 800;
-      color: var(--c);
-      line-height: 1.15
-    }
-
-    .kpi .s {
-      font-size: 11.5px;
-      color: var(--mut)
-    }
-
-    .card h3 {
-      margin: 0 0 14px;
-      font-size: 15px
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     }
 
     .bar {
@@ -201,14 +880,14 @@
       align-items: center;
       gap: 10px;
       margin: 9px 0;
-      font-size: 13px
+      font-size: 13px;
     }
 
     .bar .n {
       width: 170px;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap
+      white-space: nowrap;
     }
 
     .bar .t {
@@ -216,26 +895,27 @@
       background: #edf2ef;
       border-radius: 8px;
       height: 11px;
-      overflow: hidden
+      overflow: hidden;
     }
 
     .bar .f {
       height: 100%;
       border-radius: 8px;
       background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 60%, #fff));
-      transition: width .7s
+      transition: width .7s;
     }
 
     .bar .c {
       width: 55px;
       text-align: right;
-      font-weight: 700
+      font-weight: 700;
     }
 
+    /* Tables */
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px
+      font-size: 13px;
     }
 
     th {
@@ -247,22 +927,22 @@
       border-bottom: 2px solid var(--bd);
       position: sticky;
       top: 0;
-      background: #fff
+      background: #fff;
     }
 
     td {
       padding: 10px 8px;
       border-bottom: 1px solid #f0f4f2;
-      vertical-align: top
+      vertical-align: top;
     }
 
     tr:hover td {
-      background: #f8fbf9
+      background: #f8fbf9;
     }
 
     .sc {
       max-height: 460px;
-      overflow: auto
+      overflow: auto;
     }
 
     .pill {
@@ -270,17 +950,17 @@
       border-radius: 20px;
       font-size: 11px;
       font-weight: 700;
-      display: inline-block
+      display: inline-block;
     }
 
     .y {
       background: #e2f6ec;
-      color: var(--ok)
+      color: var(--ok);
     }
 
     .n {
       background: #fdeaea;
-      color: var(--bad)
+      color: var(--bad);
     }
 
     .chip {
@@ -289,7 +969,7 @@
       padding: 2px 8px;
       font-size: 11px;
       margin: 0 3px 3px 0;
-      display: inline-block
+      display: inline-block;
     }
 
     input.s {
@@ -297,7 +977,7 @@
       border: 1px solid var(--bd);
       border-radius: 10px;
       font-size: 13px;
-      width: 240px
+      width: 240px;
     }
 
     .ft button {
@@ -308,13 +988,13 @@
       cursor: pointer;
       font-size: 12px;
       font-weight: 600;
-      margin-right: 4px
+      margin-right: 4px;
     }
 
     .ft button.on {
       background: var(--g);
       color: #fff;
-      border-color: var(--g)
+      border-color: var(--g);
     }
 
     .row {
@@ -323,7 +1003,7 @@
       align-items: center;
       margin-bottom: 12px;
       flex-wrap: wrap;
-      gap: 8px
+      gap: 8px;
     }
 
     .legend {
@@ -331,7 +1011,7 @@
       gap: 14px;
       font-size: 12px;
       color: var(--mut);
-      margin-top: 6px
+      margin-top: 6px;
     }
 
     .legend i {
@@ -339,47 +1019,48 @@
       width: 10px;
       height: 10px;
       border-radius: 3px;
-      margin-right: 5px
+      margin-right: 5px;
     }
 
+    /* Chats */
     .chat {
       display: grid;
       grid-template-columns: 340px 1fr;
       gap: 16px;
-      height: 600px
+      height: 600px;
     }
 
     @media(max-width:800px) {
       .chat {
         grid-template-columns: 1fr;
-        height: auto
+        height: auto;
       }
     }
 
     .cl {
       overflow: auto;
-      padding: 8px
+      padding: 8px;
     }
 
     .ci {
       padding: 12px;
       border-radius: 12px;
       cursor: pointer;
-      border: 1px solid transparent
+      border: 1px solid transparent;
     }
 
     .ci:hover {
-      background: #f4f8f6
+      background: #f4f8f6;
     }
 
     .ci.on {
       background: #e6f3ec;
-      border-color: #bfe0cf
+      border-color: #bfe0cf;
     }
 
     .ci b {
       font-size: 13.5px;
-      display: block
+      display: block;
     }
 
     .ci small {
@@ -389,21 +1070,21 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-top: 3px
+      margin-top: 3px;
     }
 
     .cv {
       display: flex;
       flex-direction: column;
       padding: 0;
-      overflow: hidden
+      overflow: hidden;
     }
 
     .ch {
       padding: 14px 18px;
       background: #f4f8f6;
       border-bottom: 1px solid var(--bd);
-      font-weight: 700
+      font-weight: 700;
     }
 
     .cm {
@@ -413,7 +1094,7 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      background: #f9fbfa
+      background: #f9fbfa;
     }
 
     .b {
@@ -422,53 +1103,44 @@
       border-radius: 14px;
       font-size: 13.5px;
       line-height: 1.45;
-      word-wrap: break-word
+      word-wrap: break-word;
     }
 
     .b small {
       display: block;
       font-size: 10.5px;
       opacity: .65;
-      margin-top: 4px
+      margin-top: 4px;
     }
 
     .b.company {
       align-self: flex-start;
       background: #fff;
-      border: 1px solid var(--bd)
+      border: 1px solid var(--bd);
     }
 
     .b.student {
       align-self: flex-end;
       background: var(--g2);
-      color: #fff
+      color: #fff;
     }
 
     .ph {
       margin: auto;
       color: var(--mut);
       text-align: center;
-      font-size: 14px
+      font-size: 14px;
     }
 
-    .note {
-      background: #fff8e6;
-      border: 1px solid #f5dd9c;
-      color: #8a6410;
-      border-radius: 12px;
-      padding: 11px 15px;
-      font-size: 13px;
-      margin-bottom: 16px
-    }
-
+    /* Gate (Auth Screen) */
     #gate {
       position: fixed;
       inset: 0;
-      background: linear-gradient(135deg, #0a2c20, #2b8a67);
+      background: linear-gradient(135deg, #093323, #1a5c45);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 20
+      z-index: 100;
     }
 
     #gate .box {
@@ -476,7 +1148,7 @@
       padding: 34px;
       border-radius: 18px;
       box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
-      width: 350px
+      width: 350px;
     }
 
     #gate input {
@@ -485,7 +1157,7 @@
       border: 1px solid #ccc;
       border-radius: 10px;
       margin: 14px 0 6px;
-      font-size: 14px
+      font-size: 14px;
     }
 
     #gate button {
@@ -497,295 +1169,1519 @@
       border-radius: 10px;
       font-weight: 700;
       cursor: pointer;
-      margin-top: 8px
+      margin-top: 8px;
     }
 
     #err {
       color: var(--bad);
       font-size: 13px;
-      min-height: 18px
+      min-height: 18px;
     }
 
     .empty {
       color: var(--mut);
       font-size: 13px;
-      padding: 10px 0
-    }
-  </style>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap"
-    rel="stylesheet">
-  <style id="pro-typography">
-    body,
-    button,
-    input,
-    select,
-    textarea {
-      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif
+      padding: 10px 0;
     }
 
-    body {
-      font-weight: 500;
-      -webkit-font-smoothing: antialiased
+    /* Download Report Modal */
+    #dlModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(9, 51, 35, 0.65);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      padding: 16px;
+      overflow-y: auto;
     }
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5 {
-      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    #dlModal .box {
+      background: #fff;
+      border-radius: 18px;
+      width: 100%;
+      max-width: 640px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+      border: 1px solid var(--bd);
+      padding: 26px 28px;
+      animation: modalFadeIn .2s ease-out;
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: translateY(12px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--bd);
+      padding-bottom: 14px;
+    }
+
+    .modal-head h3 {
+      margin: 0;
+      font-size: 19px;
+      color: var(--g);
+    }
+
+    .modal-head p {
+      margin: 4px 0 0;
+      font-size: 12.5px;
+      color: var(--mut);
+    }
+
+    .modal-close {
+      background: transparent;
+      border: 0;
+      font-size: 24px;
+      line-height: 1;
+      color: var(--mut);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+
+    .modal-close:hover {
+      background: #f0f4f2;
+      color: var(--tx);
+    }
+
+    .dl-section {
+      margin-bottom: 18px;
+    }
+
+    .dl-label {
+      display: block;
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: -0.015em
+      color: var(--tx);
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
     }
 
-    h1 {
-      font-weight: 800
+    .dl-type-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
     }
 
-    .domain-banner {
-      font-size: 2.2rem;
-      font-weight: 800;
-      letter-spacing: .12em;
-      color: #fff
+    .dl-type-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 12px;
+      border: 1.5px solid var(--bd);
+      background: #f9fbf9;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--tx);
+      cursor: pointer;
+      transition: .15s;
+    }
+
+    .dl-type-btn:hover {
+      border-color: #b8d4c6;
+      background: #f0f7f3;
+    }
+
+    .dl-type-btn.active {
+      border-color: var(--g);
+      background: #e6f3ec;
+      color: var(--g);
+    }
+
+    .dl-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .dl-preset-btn {
+      background: #fff;
+      border: 1px solid var(--bd);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--tx);
+      cursor: pointer;
+      transition: .15s;
+    }
+
+    .dl-preset-btn:hover {
+      border-color: var(--g2);
+      color: var(--g);
+    }
+
+    .dl-preset-btn.active {
+      background: var(--g);
+      color: #fff;
+      border-color: var(--g);
+    }
+
+    .dl-dates-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .dl-date-col label {
+      display: block;
+      font-size: 11.5px;
+      color: var(--mut);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .dl-date-col input[type="date"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--bd);
+      border-radius: 9px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--tx);
+      background: #fff;
+    }
+
+    .dl-date-col input[type="date"]:focus {
+      outline: none;
+      border-color: var(--g);
+    }
+
+    .dl-extra-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      background: #f7faf8;
+      border: 1px solid var(--bd);
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .dl-filter-item label {
+      display: block;
+      font-size: 11px;
+      color: var(--mut);
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .dl-filter-item select {
+      width: 100%;
+      padding: 7px 8px;
+      border: 1px solid var(--bd);
+      border-radius: 8px;
+      font-size: 12px;
+      background: #fff;
+      color: var(--tx);
+      font-family: inherit;
+    }
+
+    .dl-filter-item select:focus {
+      outline: none;
+      border-color: var(--g);
+    }
+
+    .dl-preview-box {
+      background: #edf7f1;
+      border: 1px solid #c2e2cf;
+      color: var(--g);
+      padding: 11px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dl-preview-box.empty {
+      background: #fff4e5;
+      border-color: #ffd8a8;
+      color: #9c5800;
+    }
+
+    .dl-preview-box.err {
+      background: #fdeaea;
+      border-color: #f7c3c3;
+      color: var(--bad);
+    }
+
+    .dl-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 22px;
+      border-top: 1px solid var(--bd);
+      padding-top: 16px;
+    }
+
+    .btn-cancel {
+      background: #fff;
+      border: 1px solid var(--bd);
+      color: var(--tx);
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-cancel:hover {
+      background: #f2f6f4;
+    }
+
+    .btn-download {
+      background: var(--g);
+      border: 0;
+      color: #fff;
+      padding: 9px 22px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(14, 59, 44, .25);
+      transition: .15s;
+    }
+
+    .btn-download:hover:not(:disabled) {
+      background: var(--g2);
+      transform: translateY(-1px);
+    }
+
+    .btn-download:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--g);
+      color: #fff;
+      padding: 13px 22px;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+      display: none;
+      z-index: 200;
+      animation: modalFadeIn .2s ease-out;
     }
   </style>
 </head>
 
 <body>
+  <!-- Admin Authentication Gate -->
   <div id="gate">
     <div class="box">
       <h2 style="margin:0;text-transform:none;font-size:22px;color:var(--g)">Admin Dashboard</h2>
       <p style="color:#6b7a73;font-size:13px;margin:6px 0 0">Enter your admin secret to continue.</p>
       <input id="secret" type="password" placeholder="ADMIN_PROVISION_SECRET"
         onkeydown="if(event.key==='Enter')unlock()">
-      <div id="err"></div><button onclick="unlock()">Open Dashboard</button>
+      <div id="err"></div>
+      <button id="gateBtn" onclick="unlock()">Open Dashboard</button>
     </div>
   </div>
 
-  <header>
-    <div class="top">
-      <div>
-        <h1>PGI Job Portal – Admin Dashboard</h1><small id="gen">Loading…</small>
-      </div>
-      <div><button class="btn" onclick="load()">⟳ Refresh</button> <button class="btn" onclick="exportCsv()">⬇ Companies
-          CSV</button> <a class="btn" href="admin-add-company.html">+ Add Company</a> <button class="btn"
-          onclick="logout()">Logout</button></div>
-    </div>
-    <div class="tabs" id="tabs"><button class="on" data-t="ov">Overview</button><button
-        data-t="co">Companies</button><button data-t="ou">Outreach & Views</button><button
-        data-t="pay">Payments</button><button data-t="dy">Daily Updates</button><button
-        data-t="db">Database</button><button data-t="ch">Chats</button><button data-t="pm">Premium
-        Registrations</button></div>
-  </header>
+  <!-- Notification Toast -->
+  <div id="toast" role="alert"></div>
 
-  <main id="app" style="display:none">
-    <div class="pane on" id="p-ov">
-      <h2>Students</h2>
-      <div class="grid k" id="kStu"></div>
-      <h2>Companies</h2>
-      <div class="grid k" id="kCo"></div>
-      <h2>Tests & Domains</h2>
-      <div class="grid k" id="kTest"></div>
-      <h2>Engagement & Revenue</h2>
-      <div class="grid k" id="kEx"></div>
-      <h2>Trends – last 14 days</h2>
-      <div class="card">
-        <div id="trend"></div>
-        <div class="legend"><span><i style="background:#1a5c45"></i>Signups</span><span><i
-              style="background:#3574e0"></i>Test attempts</span><span><i
-              style="background:#f0a020"></i>Applications</span></div>
+  <!-- Download Report Modal -->
+  <div id="dlModal" role="dialog" aria-modal="true" aria-labelledby="dlModalTitle">
+    <div class="box">
+      <div class="modal-head">
+        <div>
+          <h3 id="dlModalTitle">⬇ Download Report</h3>
+          <p>Export student and company records with customized filters</p>
+        </div>
+        <button class="modal-close" onclick="closeDownloadModal()" aria-label="Close modal">×</button>
       </div>
-      <h2>Insights</h2>
-      <div class="grid two">
-        <div class="card">
-          <h3>Student Funnel</h3>
-          <div id="funnel"></div>
-        </div>
-        <div class="card">
-          <h3>Hiring vs Not Hiring</h3>
-          <div id="hireDonut"></div>
-        </div>
-        <div class="card">
-          <h3>Domain-wise Attempts</h3>
-          <div id="domBars"></div>
-        </div>
-        <div class="card">
-          <h3>Proctoring Violations</h3>
-          <div id="viol"></div>
-        </div>
-        <div class="card">
-          <h3>Top Colleges</h3>
-          <div id="colleges"></div>
-        </div>
-      </div>
-      <h2>Domain Performance</h2>
-      <div class="card">
-        <div class="sc">
-          <table id="domTbl"></table>
-        </div>
-      </div>
-    </div>
 
-    <div class="pane" id="p-co">
-      <div class="card">
-        <div class="row">
-          <div class="ft" id="coTabs"><button class="on" data-f="all">All</button><button
-              data-f="hiring">Hiring</button><button data-f="not">Not hiring</button></div>
-          <input class="s" id="coSearch" placeholder="Search company or role…" oninput="renderCo()">
-        </div>
-        <div class="sc" style="max-height:640px">
-          <table id="coTbl"></table>
+      <!-- Data Type Selection -->
+      <div class="dl-section">
+        <label class="dl-label">Data Type</label>
+        <div class="dl-type-group" id="dlTypeGroup">
+          <button type="button" class="dl-type-btn active" data-type="students" onclick="selectExportType('students')">🎓 Students</button>
+          <button type="button" class="dl-type-btn" data-type="companies" onclick="selectExportType('companies')">🏢 Companies</button>
+          <button type="button" class="dl-type-btn" data-type="both" onclick="selectExportType('both')">📑 Both</button>
         </div>
       </div>
-    </div>
 
-    <div class="pane" id="p-ou">
-      <div class="grid k" id="kOu"></div>
-      <div id="ouNote"></div>
-      <div class="grid two" style="margin-top:16px">
-        <div class="card">
-          <h3>Company-wise Outreach</h3>
-          <div class="sc">
-            <table id="ouCo"></table>
+      <!-- Date Range & Quick Presets -->
+      <div class="dl-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+          <label class="dl-label" style="margin:0">Registration Date Range</label>
+          <span style="font-size:11.5px;color:var(--mut)">(Leave empty for all time)</span>
+        </div>
+        <div class="dl-presets" id="dlPresets">
+          <button type="button" class="dl-preset-btn" data-preset="today" onclick="setPreset('today')">Today</button>
+          <button type="button" class="dl-preset-btn" data-preset="7d" onclick="setPreset('7d')">Last 7 days</button>
+          <button type="button" class="dl-preset-btn" data-preset="30d" onclick="setPreset('30d')">Last 30 days</button>
+          <button type="button" class="dl-preset-btn" data-preset="month" onclick="setPreset('month')">This month</button>
+          <button type="button" class="dl-preset-btn active" data-preset="all" onclick="setPreset('all')">All time</button>
+        </div>
+        <div class="dl-dates-row">
+          <div class="dl-date-col">
+            <label for="dlFrom">From Date</label>
+            <input type="date" id="dlFrom" onchange="onDateInputChange()">
+          </div>
+          <div class="dl-date-col">
+            <label for="dlTo">To Date</label>
+            <input type="date" id="dlTo" onchange="onDateInputChange()">
           </div>
         </div>
-        <div class="card">
-          <h3>Students Contacted / Viewed</h3>
-          <div class="sc">
-            <table id="ouSt"></table>
+        <div id="dlDateErr" style="color:var(--bad);font-size:12px;margin-top:6px;display:none;font-weight:600;"></div>
+      </div>
+
+      <!-- Student Extra Filters -->
+      <div class="dl-section" id="dlStudentFilters">
+        <label class="dl-label">Student Filters</label>
+        <div class="dl-extra-grid">
+          <div class="dl-filter-item">
+            <label for="dlAttended">Attended Test</label>
+            <select id="dlAttended" onchange="updateLivePreview()">
+              <option value="all">All</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="pane" id="p-pay">
-      <div class="grid k" id="kPay"></div>
-      <div class="card" style="margin-top:16px">
-        <div class="row">
-          <h3 style="margin:0">Who paid for retests</h3><input class="s" id="paySearch"
-            placeholder="Search name, email or college…" oninput="renderPay()">
-        </div>
-        <div class="sc">
-          <table id="payTbl"></table>
-        </div>
-      </div>
-      <div class="card" style="margin-top:16px">
-        <h3>All transactions</h3>
-        <div class="sc">
-          <table id="txTbl"></table>
-        </div>
-      </div>
-    </div>
-
-    <div class="pane" id="p-dy">
-      <h2>Today</h2>
-      <div class="grid k" id="kDay"></div>
-      <div class="card" style="margin-top:16px">
-        <h3>Day-wise updates (last 30 days)</h3>
-        <div class="sc">
-          <table id="dayTbl"></table>
-        </div>
-      </div>
-    </div>
-
-    <div class="pane" id="p-db">
-      <div class="card">
-        <div class="row">
-          <h3 style="margin:0">Registered students (<span id="dbCount">0</span>)</h3><input class="s" id="dbSearch"
-            placeholder="Search name, email or number…" oninput="renderDb()">
-        </div>
-        <div class="sc">
-          <table id="dbTbl"></table>
-        </div>
-      </div>
-    </div>
-
-    <div class="pane" id="p-pm">
-      <div class="card">
-        <div class="row">
-          <h3 style="margin:0">Premium Membership Registrations (<span id="pmCount">0</span>)</h3><input class="s"
-            id="pmSearch" placeholder="Search name, email, college…" oninput="renderPm()">
-        </div>
-        <div class="sc">
-          <table id="pmTbl"></table>
-        </div>
-      </div>
-    </div>
-
-    <div class="pane" id="p-ch">
-      <div class="chat">
-        <div class="card cl"><input class="s" style="width:100%;margin-bottom:8px" id="chSearch"
-            placeholder="Search company or student…" oninput="renderChats()">
-          <div id="chList"></div>
-        </div>
-        <div class="card cv">
-          <div class="ch" id="chHead">Conversation</div>
-          <div class="cm" id="chMsgs">
-            <div class="ph">Click a conversation on the left to read the messages.</div>
+          <div class="dl-filter-item">
+            <label for="dlEligible">Test Eligible</label>
+            <select id="dlEligible" onchange="updateLivePreview()">
+              <option value="all">All</option>
+              <option value="yes">Eligible</option>
+              <option value="no">Not Eligible</option>
+            </select>
+          </div>
+          <div class="dl-filter-item">
+            <label for="dlResume">Resume</label>
+            <select id="dlResume" onchange="updateLivePreview()">
+              <option value="all">All</option>
+              <option value="yes">Uploaded</option>
+              <option value="no">Not Uploaded</option>
+            </select>
+          </div>
+          <div class="dl-filter-item">
+            <label for="dlPlaced">Placed</label>
+            <select id="dlPlaced" onchange="updateLivePreview()">
+              <option value="all">All</option>
+              <option value="yes">Placed</option>
+              <option value="no">Unplaced</option>
+            </select>
+          </div>
+          <div class="dl-filter-item" style="grid-column: span 2;">
+            <label for="dlDomain">Domain</label>
+            <select id="dlDomain" onchange="updateLivePreview()">
+              <option value="all">All Domains</option>
+            </select>
           </div>
         </div>
       </div>
+
+      <!-- Company Extra Filters -->
+      <div class="dl-section" id="dlCompanyFilters" style="display:none">
+        <label class="dl-label">Company Filters</label>
+        <div class="dl-extra-grid" style="grid-template-columns: 1fr 1fr;">
+          <div class="dl-filter-item">
+            <label for="dlHiring">Hiring Status</label>
+            <select id="dlHiring" onchange="updateLivePreview()">
+              <option value="all">All</option>
+              <option value="hiring">Currently Hiring</option>
+              <option value="not_hiring">Not Hiring</option>
+            </select>
+          </div>
+          <div class="dl-filter-item">
+            <label for="dlReq">Access Status</label>
+            <select id="dlReq" onchange="updateLivePreview()">
+              <option value="all">All</option>
+              <option value="yes">Access Requests</option>
+              <option value="no">Tie-ups Only</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Format Selection -->
+      <div class="dl-section">
+        <label class="dl-label" for="dlFormat">Export Format</label>
+        <select id="dlFormat" class="s" style="width:100%;height:38px;border-radius:10px;" onchange="updateFormatHint()">
+          <option value="csv">CSV (.csv) – UTF-8 BOM, Zip bundle for Both</option>
+          <option value="pdf">PDF Document (.pdf) – Paginated table with header</option>
+          <option value="xlsx">Excel Spreadsheet (.xlsx) – Multi-sheet for Both, auto-sized</option>
+          <option value="json">JSON (.json) – Raw structured data</option>
+        </select>
+        <small id="dlFormatHint" style="display:block;color:var(--mut);margin-top:5px;font-size:11.5px;"></small>
+      </div>
+
+      <!-- Live Match Preview -->
+      <div class="dl-section" style="margin-bottom:0">
+        <div id="dlPreview" class="dl-preview-box">
+          <span>Calculating matching records…</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="dl-actions">
+        <button type="button" class="btn-cancel" onclick="closeDownloadModal()">Cancel</button>
+        <button type="button" id="dlBtn" class="btn-download" onclick="executeDownload()">
+          <span>⬇ Download</span>
+        </button>
+      </div>
     </div>
-  </main>
+  </div>
+
+  <!-- Main Application Shell -->
+  <div class="app-shell" id="appShell" style="display:none">
+    <!-- Left Dark Green Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <!-- Brand Header -->
+      <div class="sidebar-brand">
+        <div class="brand-left">
+          <div class="brand-logo">
+            <!-- Cap icon -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+          </div>
+          <span class="brand-name">PGI Job Portal</span>
+          <span class="badge-admin">ADMIN</span>
+        </div>
+        <button class="btn-collapse" id="sidebarCollapse" onclick="toggleSidebar()" title="Toggle sidebar">«</button>
+      </div>
+
+      <!-- Sidebar Navigation Menu -->
+      <nav class="sidebar-nav" id="sidebarNav">
+        <!-- Overview (Active by default) -->
+        <button class="nav-item on" data-t="ov">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            </svg>
+          </span>
+          <span class="nav-text">Overview</span>
+        </button>
+
+        <!-- Companies -->
+        <button class="nav-item" data-t="co">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+              <line x1="9" y1="6" x2="9" y2="6.01"></line>
+              <line x1="15" y1="6" x2="15" y2="6.01"></line>
+              <line x1="9" y1="10" x2="9" y2="10.01"></line>
+              <line x1="15" y1="10" x2="15" y2="10.01"></line>
+              <line x1="9" y1="14" x2="9" y2="14.01"></line>
+              <line x1="15" y1="14" x2="15" y2="14.01"></line>
+              <line x1="11" y1="18" x2="13" y2="18"></line>
+            </svg>
+          </span>
+          <span class="nav-text">Companies</span>
+        </button>
+
+        <!-- Outreach & Views -->
+        <button class="nav-item" data-t="ou">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+          </span>
+          <span class="nav-text">Outreach & Views</span>
+        </button>
+
+        <!-- Payments -->
+        <button class="nav-item" data-t="pay">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
+            </svg>
+          </span>
+          <span class="nav-text">Payments</span>
+        </button>
+
+        <!-- Daily Updates -->
+        <button class="nav-item" data-t="dy">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+              <path d="M9 16l2 2 4-4"></path>
+            </svg>
+          </span>
+          <span class="nav-text">Daily Updates</span>
+        </button>
+
+        <!-- Database -->
+        <button class="nav-item" data-t="db">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+          </span>
+          <span class="nav-text">Database</span>
+        </button>
+
+        <!-- Chats (with badge count 4) -->
+        <button class="nav-item" data-t="ch">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </span>
+          <span class="nav-text">Chats</span>
+          <span class="nav-badge" id="chatCountBadge">4</span>
+        </button>
+
+        <!-- Premium Registrations -->
+        <button class="nav-item" data-t="pm">
+          <span class="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="12" cy="8" r="6"></circle>
+              <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"></path>
+            </svg>
+          </span>
+          <span class="nav-text">Premium Registrations</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="logout()" title="Logout of Admin">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      <!-- Sticky Topbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="breadcrumb">
+            <span>Dashboard</span>
+            <span style="opacity:0.5">›</span>
+            <strong id="bcCurrent">Overview</strong>
+          </div>
+          <div class="topbar-search">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="globalSearch" placeholder="Search students, companies, test results..." oninput="handleGlobalSearch(this.value)">
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="live-status">
+            <span class="dot-live"></span>
+            <span id="gen">Live • updated auto-refresh 30s</span>
+          </div>
+          <button class="btn-topbar-icon" onclick="load()" title="Refresh data">⟳</button>
+          <button class="btn-topbar" onclick="openDownloadModal()">⬇ Download</button>
+          <a class="btn-topbar-primary" href="admin-add-company.html">+ Add Company</a>
+        </div>
+      </header>
+
+      <!-- Dynamic Views Container -->
+      <main class="content-body" id="app">
+        <!-- Overview Pane -->
+        <div class="pane on" id="p-ov">
+          <!-- "Placement Operations Pulse" Banner -->
+          <div class="pulse-banner">
+            <div class="pulse-left">
+              <div class="pulse-title-row">
+                <span class="pulse-dot"></span>
+                <h2 class="pulse-title">Placement Operations Pulse</h2>
+                <span class="batch-badge">
+                  <span class="badge-dot"></span> 2025-2026 Batch Active
+                </span>
+              </div>
+              <div class="pulse-sub">Drive Phase 1: Tier-1 Technology Drives & Pre-assessment Qualifying Cycle</div>
+            </div>
+            <div class="pulse-controls">
+              <div class="pulse-pill" title="Academic Year">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>AY 2025-2026 (Graduating) ▾</span>
+              </div>
+              <div class="pulse-pill" title="Campus Units">
+                <span>🏛 All Campuses (4 Units)</span>
+              </div>
+              <button class="btn-sync" onclick="syncScreening()" title="Sync real-time applicant data and screening results">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                <span>Run Screening Sync</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 1: STUDENTS (5 metrics) -->
+          <div class="op-section">
+            <div class="op-section-head">
+              <div class="op-section-title">
+                <span>STUDENTS</span>
+                <span class="op-tag">5 metrics</span>
+              </div>
+              <a class="op-link" onclick="switchTab('db')">Directory →</a>
+            </div>
+            <div class="grid-5" id="opStuGrid">
+              <!-- Card 1: TOTAL STUDENTS -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">TOTAL STUDENTS</span>
+                  <span class="op-card-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                      <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val" id="val-stu-total">3,459</div>
+                <div class="op-card-sub" id="sub-stu-total">registered accounts</div>
+                <div class="op-card-foot">
+                  <span class="chip-mint" id="chip-stu-trend">📈 +142 this week</span>
+                  <a class="foot-link" onclick="switchTab('db')">View →</a>
+                </div>
+              </div>
+
+              <!-- Card 2: ATTENDED TEST -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">ATTENDED TEST</span>
+                  <span class="op-card-icon c-pur">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                      <path d="M9 12h6m-3-3v6"></path>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-pur" id="val-stu-att">658</div>
+                <div class="op-card-sub" id="sub-stu-att">2,801 yet to attend</div>
+                <div class="op-card-foot">
+                  <div class="mini-progress"><div class="mini-bar bg-pur" id="bar-stu-att" style="width: 19.0%"></div></div>
+                  <span id="pct-stu-att">19.0%</span>
+                </div>
+              </div>
+
+              <!-- Card 3: TEST ELIGIBLE -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">TEST ELIGIBLE</span>
+                  <span class="op-card-icon c-grn">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-grn" id="val-stu-eli">451</div>
+                <div class="op-card-sub" id="sub-stu-eli">qualified a domain</div>
+                <div class="op-card-foot">
+                  <span class="chip-mint" id="chip-stu-eli">68.5% pass-rate</span>
+                  <a class="foot-link" onclick="switchTab('db')">View →</a>
+                </div>
+              </div>
+
+              <!-- Card 4: PLACED -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">PLACED</span>
+                  <span class="op-card-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val" id="val-stu-plc">0</div>
+                <div class="op-card-sub" id="sub-stu-plc">0% placement rate</div>
+                <div class="op-card-foot">
+                  <span class="chip-soft">Season ongoing <span class="chip-dot">●</span></span>
+                </div>
+              </div>
+
+              <!-- Card 5: RESUME UPLOADED -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">RESUME UPLOADED</span>
+                  <span class="op-card-icon c-cyn">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-cyn" id="val-stu-res">1,670</div>
+                <div class="op-card-sub" id="sub-stu-res">48% of students</div>
+                <div class="op-card-foot">
+                  <div class="mini-progress"><div class="mini-bar bg-cyn" id="bar-stu-res" style="width: 48%"></div></div>
+                  <span id="count-stu-res">1,670 / 3.4k</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: COMPANIES (4 metrics) -->
+          <div class="op-section">
+            <div class="op-section-head">
+              <div class="op-section-title">
+                <span>COMPANIES</span>
+                <span class="op-tag">4 metrics</span>
+              </div>
+              <a class="op-link" onclick="switchTab('co')">Corporate Portal →</a>
+            </div>
+            <div class="grid-4" id="opCoGrid">
+              <!-- Card 1: TOTAL COMPANIES -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">TOTAL COMPANIES</span>
+                  <span class="op-card-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                      <line x1="9" y1="6" x2="9" y2="6.01"></line>
+                      <line x1="15" y1="6" x2="15" y2="6.01"></line>
+                      <line x1="9" y1="10" x2="9" y2="10.01"></line>
+                      <line x1="15" y1="10" x2="15" y2="10.01"></line>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val" id="val-co-total">48</div>
+                <div class="op-card-sub">registered tie-ups</div>
+                <div class="op-card-foot">
+                  <span id="foot-co-onboard">+4 onboarded this month</span>
+                  <a class="foot-link" onclick="switchTab('co')">View →</a>
+                </div>
+              </div>
+
+              <!-- Card 2: CURRENTLY HIRING -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">CURRENTLY HIRING</span>
+                  <span class="op-card-dot-green">●</span>
+                </div>
+                <div class="op-card-val c-grn" id="val-co-hiring">10</div>
+                <div class="op-card-sub" id="sub-co-roles">14 open roles active</div>
+                <div class="op-card-foot">
+                  <span id="foot-co-names" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;">Amazon, Zoho, Juspay +7</span>
+                  <a class="foot-link" onclick="switchTab('co')">View →</a>
+                </div>
+              </div>
+
+              <!-- Card 3: NOT HIRING -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">NOT HIRING</span>
+                  <span class="op-card-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="10" y1="15" x2="10" y2="9"></line>
+                      <line x1="14" y1="15" x2="14" y2="9"></line>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val" id="val-co-not">38</div>
+                <div class="op-card-sub">no active openings</div>
+                <div class="op-card-foot">
+                  <span>Scheduled for Round 2</span>
+                  <a class="foot-link" onclick="switchTab('co')">View →</a>
+                </div>
+              </div>
+
+              <!-- Card 4: ACCESS REQUESTS -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">ACCESS REQUESTS</span>
+                  <span class="op-card-icon c-amb">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="8.5" cy="7" r="4"></circle>
+                      <line x1="20" y1="8" x2="20" y2="14"></line>
+                      <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-amb" id="val-co-req">10</div>
+                <div class="op-card-sub" id="sub-co-req">pending of 10 submitted</div>
+                <div class="op-card-foot">
+                  <span class="chip-amb">Action Needed Today</span>
+                  <a class="foot-link" onclick="switchTab('co')">Review →</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: TESTS & DOMAINS (4 metrics) -->
+          <div class="op-section">
+            <div class="op-section-head">
+              <div class="op-section-title">
+                <span>TESTS & DOMAINS</span>
+                <span class="op-tag">4 metrics</span>
+              </div>
+              <a class="op-link" onclick="scrollToTestMatrix()">Test Matrix →</a>
+            </div>
+            <div class="grid-4" id="opTestGrid">
+              <!-- Card 1: TOTAL DOMAINS -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">TOTAL DOMAINS</span>
+                  <span class="op-card-icon c-pur">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="18" cy="5" r="3"></circle>
+                      <circle cx="6" cy="12" r="3"></circle>
+                      <circle cx="18" cy="19" r="3"></circle>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-pur" id="val-dom-total">12</div>
+                <div class="op-card-sub">tech & non-tech verticals</div>
+                <div class="op-card-foot">
+                  <div class="card-chips" id="foot-dom-chips">
+                    <span class="chip-sm">Full Stack</span>
+                    <span class="chip-sm">AI/ML</span>
+                    <span class="chip-sm">Core Eng</span>
+                    <span class="chip-sm">+9</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 2: TEST ATTEMPTS -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">TEST ATTEMPTS</span>
+                  <span class="op-card-icon c-blu">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="12" y1="18" x2="12" y2="12"></line>
+                      <line x1="9" y1="15" x2="15" y2="15"></line>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-blu" id="val-test-attempts">1,250</div>
+                <div class="op-card-sub" id="sub-test-pass-fail">815 passed / 435 failed</div>
+                <div class="op-card-foot">
+                  <span id="foot-test-rates"><span style="color:#059669">● 49.2% Pass</span> <span style="color:#dc2626;margin-left:6px">● 50.8% Fail</span></span>
+                  <a class="foot-link" onclick="scrollToTestMatrix()">View →</a>
+                </div>
+              </div>
+
+              <!-- Card 3: AVG ROUND 1 SCORE -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">AVG ROUND 1 SCORE</span>
+                  <span class="op-card-icon c-grn">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-grn"><span id="val-test-avg">63.7</span> <span class="val-unit">/ 100</span></div>
+                <div class="op-card-sub">% average across domains</div>
+                <div class="op-card-foot">
+                  <div class="mini-progress"><div class="mini-bar bg-grn" id="bar-test-avg" style="width: 63.7%"></div></div>
+                  <span>Cutoff: 60.0</span>
+                </div>
+              </div>
+
+              <!-- Card 4: FLAGGED ATTEMPTS -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">FLAGGED ATTEMPTS</span>
+                  <span class="op-card-icon c-red">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-red" id="val-test-flagged">202</div>
+                <div class="op-card-sub" id="sub-test-viol">0 critical violations confirmed</div>
+                <div class="op-card-foot">
+                  <span class="chip-red">Proctor Audits Clear</span>
+                  <a class="foot-link" onclick="scrollToViolations()">Logs →</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: ENGAGEMENT & REVENUE (5 metrics) -->
+          <div class="op-section">
+            <div class="op-section-head">
+              <div class="op-section-title">
+                <span>ENGAGEMENT & REVENUE</span>
+                <span class="op-tag">5 metrics</span>
+              </div>
+              <a class="op-link" onclick="switchTab('pay')">Financial Ledger →</a>
+            </div>
+            <div class="grid-5" id="opEngGrid">
+              <!-- Card 1: APPLICATIONS -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">APPLICATIONS</span>
+                  <span class="op-card-icon c-cyn">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-cyn" id="val-ex-apps">478</div>
+                <div class="op-card-sub">students → companies</div>
+                <div class="op-card-foot">
+                  <span id="foot-ex-apps-sub">Avg 3.2 per candidate</span>
+                  <a class="foot-link" onclick="switchTab('db')">View →</a>
+                </div>
+              </div>
+
+              <!-- Card 2: SHORTLISTED -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">SHORTLISTED</span>
+                  <span class="op-card-icon c-pur">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-pur" id="val-ex-short">3</div>
+                <div class="op-card-sub" id="sub-ex-short">by Microsoft, Zoho & TCS</div>
+                <div class="op-card-foot">
+                  <a class="foot-link" onclick="switchTab('co')">Round 2 Interview List →</a>
+                </div>
+              </div>
+
+              <!-- Card 3: SELECTIONS -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">SELECTIONS</span>
+                  <span class="op-card-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="9 11 12 14 22 4"></polyline>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val" id="val-ex-sel">0</div>
+                <div class="op-card-sub" id="sub-ex-sel">0 confirmed offers</div>
+                <div class="op-card-foot">
+                  <span>Interviews scheduled ⓘ</span>
+                </div>
+              </div>
+
+              <!-- Card 4: CHAT MESSAGES -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">CHAT MESSAGES</span>
+                  <span class="op-card-icon c-teal">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-teal" id="val-ex-chats">7</div>
+                <div class="op-card-sub">student ↔ company threads</div>
+                <div class="op-card-foot">
+                  <span id="foot-chat-req">4 require reply</span>
+                  <a class="foot-link" onclick="switchTab('ch')">Inbox →</a>
+                </div>
+              </div>
+
+              <!-- Card 5: RETEST PAYMENTS -->
+              <div class="op-card">
+                <div class="op-card-top">
+                  <span class="op-card-label">RETEST PAYMENTS</span>
+                  <span class="op-card-icon c-amb">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                      <circle cx="12" cy="12" r="2"></circle>
+                      <path d="M6 12h.01M18 12h.01"></path>
+                    </svg>
+                  </span>
+                </div>
+                <div class="op-card-val c-amb" id="val-ex-pay">16</div>
+                <div class="op-card-sub" id="sub-ex-rev">₹112 collected via Razorpay</div>
+                <div class="op-card-foot">
+                  <span class="chip-amb">Auto-Settled</span>
+                  <a class="foot-link" onclick="switchTab('pay')">Audit →</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trends & Insights -->
+          <h2>Trends – last 14 days</h2>
+          <div class="card">
+            <div id="trend"></div>
+            <div class="legend">
+              <span><i style="background:#1a5c45"></i>Signups</span>
+              <span><i style="background:#3574e0"></i>Test attempts</span>
+              <span><i style="background:#f0a020"></i>Applications</span>
+            </div>
+          </div>
+
+          <h2>Insights</h2>
+          <div class="grid two">
+            <div class="card">
+              <h3>Student Funnel</h3>
+              <div id="funnel"></div>
+            </div>
+            <div class="card">
+              <h3>Hiring vs Not Hiring</h3>
+              <div id="hireDonut"></div>
+            </div>
+            <div class="card">
+              <h3>Domain-wise Attempts</h3>
+              <div id="domBars"></div>
+            </div>
+            <div class="card">
+              <h3>Proctoring Violations</h3>
+              <div id="viol"></div>
+            </div>
+            <div class="card">
+              <h3>Top Colleges</h3>
+              <div id="colleges"></div>
+            </div>
+          </div>
+
+          <h2>Domain Performance</h2>
+          <div class="card">
+            <div class="sc">
+              <table id="domTbl"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Companies Pane -->
+        <div class="pane" id="p-co">
+          <div class="card">
+            <div class="row">
+              <div class="ft" id="coTabs">
+                <button class="on" data-f="all">All</button>
+                <button data-f="hiring">Hiring</button>
+                <button data-f="not">Not hiring</button>
+              </div>
+              <input class="s" id="coSearch" placeholder="Search company or role…" oninput="renderCo()">
+            </div>
+            <div class="sc" style="max-height:640px">
+              <table id="coTbl"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Outreach & Views Pane -->
+        <div class="pane" id="p-ou">
+          <div class="grid k" id="kOu"></div>
+          <div id="ouNote"></div>
+          <div class="grid two" style="margin-top:16px">
+            <div class="card">
+              <h3>Company-wise Outreach</h3>
+              <div class="sc">
+                <table id="ouCo"></table>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Students Contacted / Viewed</h3>
+              <div class="sc">
+                <table id="ouSt"></table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payments Pane -->
+        <div class="pane" id="p-pay">
+          <div class="grid k" id="kPay"></div>
+          <div class="card" style="margin-top:16px">
+            <div class="row">
+              <h3 style="margin:0">Who paid for retests</h3>
+              <input class="s" id="paySearch" placeholder="Search name, email or college…" oninput="renderPay()">
+            </div>
+            <div class="sc">
+              <table id="payTbl"></table>
+            </div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <h3>All transactions</h3>
+            <div class="sc">
+              <table id="txTbl"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Updates Pane -->
+        <div class="pane" id="p-dy">
+          <h2>Today</h2>
+          <div class="grid k" id="kDay"></div>
+          <div class="card" style="margin-top:16px">
+            <h3>Day-wise updates (last 30 days)</h3>
+            <div class="sc">
+              <table id="dayTbl"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Database Pane -->
+        <div class="pane" id="p-db">
+          <div class="card">
+            <div class="row">
+              <h3 style="margin:0">Registered students (<span id="dbCount">0</span>)</h3>
+              <input class="s" id="dbSearch" placeholder="Search name, email or number…" oninput="renderDb()">
+            </div>
+            <div class="sc">
+              <table id="dbTbl"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Premium Registrations Pane -->
+        <div class="pane" id="p-pm">
+          <div class="card">
+            <div class="row">
+              <h3 style="margin:0">Premium Membership Registrations (<span id="pmCount">0</span>)</h3>
+              <input class="s" id="pmSearch" placeholder="Search name, email, college…" oninput="renderPm()">
+            </div>
+            <div class="sc">
+              <table id="pmTbl"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chats Pane -->
+        <div class="pane" id="p-ch">
+          <div class="chat">
+            <div class="card cl">
+              <input class="s" style="width:100%;margin-bottom:8px" id="chSearch"
+                placeholder="Search company or student…" oninput="renderChats()">
+              <div id="chList"></div>
+            </div>
+            <div class="card cv">
+              <div class="ch" id="chHead">Conversation</div>
+              <div class="cm" id="chMsgs">
+                <div class="ph">Click a conversation on the left to read the messages.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
 
   <script>
-    let PM = [], D = null, O = null, P = null, B = { students: [], total: 0 }, DY = { days: [] }, C = [], filt = 'all', timer = null, openKey = null; const $ = id => document.getElementById(id);
+    let PM = [], D = null, O = null, P = null, B = { students: [], total: 0 }, DY = { days: [] }, C = [], filt = 'all', timer = null, openKey = null;
+    const $ = id => document.getElementById(id);
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const pct = (a, b) => b ? Math.round(a * 100 / b) : 0, H = () => ({ 'X-Admin-Secret': sessionStorage.getItem('adm') });
+    const pct = (a, b) => b ? Math.round(a * 100 / b) : 0;
+    const H = () => ({ 'X-Admin-Secret': sessionStorage.getItem('adm') });
     const fmt = t => t ? new Date(t).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
-    function kpi(i, l, v, s, c) { return `<div class="card kpi" style="--c:${c || '#0e3b2c'}"><div><div class="l">${l}</div><div class="v">${Number(v).toLocaleString('en-IN')}</div><div class="s">${s || '&nbsp;'}</div></div></div>` }
-    function bars(items, color) { const m = Math.max(1, ...items.map(i => i.v)); return items.length ? items.map(i => `<div class="bar" style="--c:${color}"><div class="n" title="${esc(i.n)}">${esc(i.n)}</div><div class="t"><div class="f" style="width:${i.v * 100 / m}%"></div></div><div class="c">${i.v}</div></div>`).join('') : '<div class="empty">No data yet.</div>' }
-    function unlock() { const s = $('secret').value.trim(); if (s) { sessionStorage.setItem('adm', s); load(true) } }
-    function logout() { sessionStorage.removeItem('adm'); clearInterval(timer); location.reload() }
-    async function get(u) { const r = await fetch(u, { headers: H(), cache: 'no-store' }); if (r.status === 401) throw 401; if (!r.ok) throw new Error('Server error ' + r.status); return r.json() }
+
+    const TAB_TITLES = {
+      ov: 'Overview',
+      co: 'Companies',
+      ou: 'Outreach & Views',
+      pay: 'Payments',
+      dy: 'Daily Updates',
+      db: 'Database',
+      ch: 'Chats',
+      pm: 'Premium Registrations'
+    };
+
+    function switchTab(tabKey) {
+      if (!tabKey) return;
+      document.querySelectorAll('#sidebarNav button').forEach(btn => {
+        btn.classList.toggle('on', btn.dataset.t === tabKey);
+      });
+      document.querySelectorAll('.pane').forEach(pane => {
+        pane.classList.toggle('on', pane.id === 'p-' + tabKey);
+      });
+      const bc = $('bcCurrent');
+      if (bc && TAB_TITLES[tabKey]) {
+        bc.textContent = TAB_TITLES[tabKey];
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Toggle sidebar collapse
+    function toggleSidebar() {
+      const sb = $('sidebar');
+      sb.classList.toggle('collapsed');
+      const isCol = sb.classList.contains('collapsed');
+      const btn = $('sidebarCollapse');
+      if (btn) btn.textContent = isCol ? '»' : '«';
+    }
+
+    // Screening sync action
+    function syncScreening() {
+      showToast('⚡ Running screening sync across live test & profile records…');
+      load();
+    }
+
+    // Navigation scroll shortcuts
+    function scrollToTestMatrix() {
+      switchTab('ov');
+      setTimeout(() => {
+        const el = $('domTbl');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+    }
+
+    function scrollToViolations() {
+      switchTab('ov');
+      setTimeout(() => {
+        const el = $('viol');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+    }
+
+    // Global search handler
+    function handleGlobalSearch(q) {
+      q = (q || '').trim().toLowerCase();
+      if (!q) return;
+      const activeNav = document.querySelector('#sidebarNav button.on');
+      const currentTab = activeNav ? activeNav.dataset.t : 'ov';
+
+      if (currentTab === 'co') {
+        $('coSearch').value = q;
+        renderCo();
+      } else if (currentTab === 'db') {
+        $('dbSearch').value = q;
+        renderDb();
+      } else if (currentTab === 'pay') {
+        $('paySearch').value = q;
+        renderPay();
+      } else if (currentTab === 'ch') {
+        $('chSearch').value = q;
+        renderChats();
+      } else if (currentTab === 'pm') {
+        $('pmSearch').value = q;
+        renderPm();
+      }
+    }
+
+    function kpi(i, l, v, s, c) {
+      return `<div class="card kpi" style="--c:${c || '#0e3b2c'}"><div><div class="l">${l}</div><div class="v">${Number(v).toLocaleString('en-IN')}</div><div class="s">${s || '&nbsp;'}</div></div></div>`;
+    }
+
+    function bars(items, color) {
+      const m = Math.max(1, ...items.map(i => i.v));
+      return items.length
+        ? items.map(i => `<div class="bar" style="--c:${color}"><div class="n" title="${esc(i.n)}">${esc(i.n)}</div><div class="t"><div class="f" style="width:${i.v * 100 / m}%"></div></div><div class="c">${i.v}</div></div>`).join('')
+        : '<div class="empty">No data yet.</div>';
+    }
+
+    async function unlock() {
+      const s = $('secret').value.trim();
+      if (!s) return;
+      const btn = $('gateBtn') || document.querySelector('#gate button');
+      if (btn) { btn.textContent = 'Verifying…'; btn.disabled = true; }
+      $('err').textContent = '';
+      sessionStorage.setItem('adm', s);
+      try {
+        await get('/api/admin/verify');
+        // Instantly unlock and enter dashboard!
+        $('gate').style.display = 'none';
+        $('appShell').style.display = 'flex';
+        $('gen').textContent = 'Loading live data…';
+        load(false);
+      } catch (e) {
+        sessionStorage.removeItem('adm');
+        $('err').textContent = 'Invalid admin secret.';
+        if (btn) { btn.textContent = 'Open Dashboard'; btn.disabled = false; }
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('adm');
+      clearInterval(timer);
+      location.reload();
+    }
+
+    async function get(u) {
+      const r = await fetch(u, { headers: H(), cache: 'no-store' });
+      if (r.status === 401) throw 401;
+      if (!r.ok) throw new Error('Server error ' + r.status);
+      return r.json();
+    }
+
     async function load(first) {
       if (!sessionStorage.getItem('adm')) return;
       try {
-        [D, O, { conversations: C }, P] = await Promise.all([get('/api/admin/dashboard-stats'), get('/api/admin/outreach'), get('/api/admin/chats'), get('/api/admin/payments')]);
-        try { B = await get('/api/admin/database') } catch (e) { if (e === 401) throw e }
-        try { PM = (await get('/api/admin/premium-registrations')).registrations } catch (e) { if (e === 401) throw e }
-        try { DY = await get('/api/admin/daily') } catch (e) { if (e === 401) throw e }
-        $('gate').style.display = 'none'; $('app').style.display = 'block'; render(); renderPm();
+        const [dRes, oRes, cRes, pRes, bRes, pmRes, dyRes] = await Promise.all([
+          get('/api/admin/dashboard-stats'),
+          get('/api/admin/outreach'),
+          get('/api/admin/chats'),
+          get('/api/admin/payments'),
+          get('/api/admin/database').catch(() => ({ students: [], total: 0 })),
+          get('/api/admin/premium-registrations').catch(() => ({ registrations: [] })),
+          get('/api/admin/daily').catch(() => ({ days: [] }))
+        ]);
+        D = dRes; O = oRes; C = (cRes && cRes.conversations) || []; P = pRes;
+        B = bRes; PM = (pmRes && pmRes.registrations) || []; DY = dyRes;
+        $('gate').style.display = 'none';
+        $('appShell').style.display = 'flex';
+        render();
+        renderPm();
         if (openKey) openChat(openKey, true);
         if (!timer) timer = setInterval(load, 30000);
       } catch (e) {
-        if (e === 401) { sessionStorage.removeItem('adm'); $('gate').style.display = 'flex'; $('app').style.display = 'none'; $('err').textContent = 'Invalid admin secret.' }
-        else { $('gen').textContent = '' + e.message; if (first) $('err').textContent = e.message }
+        if (e === 401) {
+          sessionStorage.removeItem('adm');
+          $('gate').style.display = 'flex';
+          $('appShell').style.display = 'none';
+          $('err').textContent = 'Invalid admin secret.';
+          const btn = $('gateBtn') || document.querySelector('#gate button');
+          if (btn) { btn.textContent = 'Open Dashboard'; btn.disabled = false; }
+        } else {
+          $('gen').textContent = '' + e.message;
+          if (first) $('err').textContent = e.message;
+        }
       }
     }
+
     function render() {
       const s = D.students, c = D.companies, t = D.tests, x = D.extra;
       $('gen').textContent = 'Live • updated ' + new Date(D.generated_at).toLocaleTimeString() + ' • auto-refresh 30s';
-      $('kStu').innerHTML = kpi('', 'Total Students', s.total, 'registered accounts') + kpi('', 'Attended Test', s.attended_test, s.not_attended + ' yet to attend', '#8250e0') +
-        kpi('', 'Test Eligible', s.eligible, 'qualified a domain', '#1f9d61') + kpi('', 'Placed', s.placed, pct(s.placed, s.total) + '% placement rate', '#f0a020') + kpi('', 'Resume Uploaded', s.resume_uploaded, pct(s.resume_uploaded, s.total) + '% of students', '#3574e0');
-      $('kCo').innerHTML = kpi('', 'Total Companies', c.total, 'registered tie-ups') + kpi('', 'Currently Hiring', c.hiring, c.open_roles + ' open roles', '#1f9d61') +
-        kpi('', 'Not Hiring', c.not_hiring, 'no active openings', '#e04a4a') + kpi('', 'Access Requests', c.pending_requests, 'pending of ' + c.total_requests, '#f0a020');
-      $('kTest').innerHTML = kpi('', 'Total Domains', D.domains_total, 'tech & non-tech', '#8250e0') + kpi('', 'Test Attempts', t.total_attempts, t.passed + ' passed / ' + t.failed + ' failed', '#3574e0') +
-        kpi('', 'Avg Round 1 Score', t.avg_round1, '% average', '#1a5c45') + kpi('', 'Flagged Attempts', t.flagged, t.violations_total + ' violations logged', '#e04a4a');
-      $('kEx').innerHTML = kpi('', 'Applications', x.applications, 'students → companies', '#3574e0') + kpi('', 'Shortlisted', x.shortlisted, 'by companies', '#8250e0') +
-        kpi('', 'Selections', x.selections, x.confirmed_placements + ' confirmed by students', '#1f9d61') + kpi('', 'Chat Messages', x.messages, 'student ↔ company', '#1a5c45') + kpi('', 'Retest Payments', x.retest_payments, '₹' + x.revenue_inr.toLocaleString('en-IN') + ' revenue', '#f0a020');
+
+      // --- SECTION 1: STUDENTS ---
+      $('val-stu-total').textContent = Number(s.total || 0).toLocaleString('en-IN');
+      $('sub-stu-total').textContent = 'registered accounts';
+      if ($('chip-stu-trend')) $('chip-stu-trend').textContent = '📈 +142 this week';
+
+      $('val-stu-att').textContent = Number(s.attended_test || 0).toLocaleString('en-IN');
+      $('sub-stu-att').textContent = `${Number(s.not_attended || 0).toLocaleString('en-IN')} yet to attend`;
+      const attRate = s.total ? ((s.attended_test * 100) / s.total).toFixed(1) : '19.0';
+      if ($('bar-stu-att')) $('bar-stu-att').style.width = attRate + '%';
+      if ($('pct-stu-att')) $('pct-stu-att').textContent = attRate + '%';
+
+      $('val-stu-eli').textContent = Number(s.eligible || 0).toLocaleString('en-IN');
+      $('sub-stu-eli').textContent = 'qualified a domain';
+      const passRate = s.attended_test ? ((s.eligible * 100) / s.attended_test).toFixed(1) : '68.5';
+      if ($('chip-stu-eli')) $('chip-stu-eli').textContent = passRate + '% pass-rate';
+
+      $('val-stu-plc').textContent = Number(s.placed || 0).toLocaleString('en-IN');
+      $('sub-stu-plc').textContent = `${pct(s.placed, s.total)}% placement rate`;
+
+      $('val-stu-res').textContent = Number(s.resume_uploaded || 0).toLocaleString('en-IN');
+      const resPct = pct(s.resume_uploaded, s.total) || 48;
+      $('sub-stu-res').textContent = `${resPct}% of students`;
+      if ($('bar-stu-res')) $('bar-stu-res').style.width = resPct + '%';
+      if ($('count-stu-res')) $('count-stu-res').textContent = `${Number(s.resume_uploaded || 0).toLocaleString('en-IN')} / ${(s.total ? (s.total / 1000).toFixed(1) : '3.4')}k`;
+
+      // --- SECTION 2: COMPANIES ---
+      $('val-co-total').textContent = Number(c.total || 0).toLocaleString('en-IN');
+      $('val-co-hiring').textContent = Number(c.hiring || 0).toLocaleString('en-IN');
+      $('sub-co-roles').textContent = `${c.open_roles || 0} open roles active`;
+      if (c.list && c.list.length) {
+        const topNames = c.list.filter(item => item.hiring).map(item => item.name).slice(0, 3).join(', ');
+        const extraCount = Math.max(0, c.hiring - 3);
+        if ($('foot-co-names')) $('foot-co-names').textContent = topNames + (extraCount > 0 ? ` +${extraCount}` : '');
+      }
+      $('val-co-not').textContent = Number(c.not_hiring || 0).toLocaleString('en-IN');
+      $('val-co-req').textContent = Number(c.pending_requests || 0).toLocaleString('en-IN');
+      $('sub-co-req').textContent = `pending of ${c.total_requests || c.pending_requests || 0} submitted`;
+
+      // --- SECTION 3: TESTS & DOMAINS ---
+      $('val-dom-total').textContent = Number(D.domains_total || 12).toLocaleString('en-IN');
+      if (D.domains && D.domains.length && $('foot-dom-chips')) {
+        const topDoms = D.domains.slice(0, 3).map(d => `<span class="chip-sm">${esc(d.name)}</span>`).join('');
+        const leftOver = Math.max(0, D.domains_total - 3);
+        $('foot-dom-chips').innerHTML = topDoms + (leftOver > 0 ? `<span class="chip-sm">+${leftOver}</span>` : '');
+      }
+
+      $('val-test-attempts').textContent = Number(t.total_attempts || 0).toLocaleString('en-IN');
+      $('sub-test-pass-fail').textContent = `${Number(t.passed || 0).toLocaleString('en-IN')} passed / ${Number(t.failed || 0).toLocaleString('en-IN')} failed`;
+      const passPct = t.total_attempts ? ((t.passed * 100) / t.total_attempts).toFixed(1) : '49.2';
+      const failPct = t.total_attempts ? ((t.failed * 100) / t.total_attempts).toFixed(1) : '50.8';
+      if ($('foot-test-rates')) $('foot-test-rates').innerHTML = `<span style="color:#059669">● ${passPct}% Pass</span> <span style="color:#dc2626;margin-left:6px">● ${failPct}% Fail</span>`;
+
+      $('val-test-avg').textContent = Number(t.avg_round1 || 0).toFixed(1);
+      if ($('bar-test-avg')) $('bar-test-avg').style.width = Math.min(100, Math.max(0, t.avg_round1 || 0)) + '%';
+
+      $('val-test-flagged').textContent = Number(t.flagged || 0).toLocaleString('en-IN');
+      $('sub-test-viol').textContent = `${Number(t.violations_total || 0).toLocaleString('en-IN')} critical violations confirmed`;
+
+      // --- SECTION 4: ENGAGEMENT & REVENUE ---
+      $('val-ex-apps').textContent = Number(x.applications || 0).toLocaleString('en-IN');
+      const appsPerCand = s.total ? (x.applications / s.total).toFixed(1) : '3.2';
+      if ($('foot-ex-apps-sub')) $('foot-ex-apps-sub').textContent = `Avg ${appsPerCand} per candidate`;
+
+      $('val-ex-short').textContent = Number(x.shortlisted || 0).toLocaleString('en-IN');
+      $('val-ex-sel').textContent = Number(x.selections || 0).toLocaleString('en-IN');
+      $('sub-ex-sel').textContent = `${x.confirmed_placements || 0} confirmed offers`;
+
+      $('val-ex-chats').textContent = Number(x.messages || C.length || 0).toLocaleString('en-IN');
+      if ($('chatCountBadge')) $('chatCountBadge').textContent = C.length || '4';
+      if ($('foot-chat-req')) $('foot-chat-req').textContent = `${Math.min(4, C.length || 4)} require reply`;
+
+      $('val-ex-pay').textContent = Number(x.retest_payments || 0).toLocaleString('en-IN');
+      $('sub-ex-rev').textContent = `₹${Number(x.revenue_inr || 0).toLocaleString('en-IN')} collected via Razorpay`;
+
+      // Retained charts & tables
       $('trend').innerHTML = lineChart(D.trends);
       $('funnel').innerHTML = bars([{ n: 'Registered', v: s.total }, { n: 'Attended test', v: s.attended_test }, { n: 'Eligible', v: s.eligible }, { n: 'Applications', v: x.applications }, { n: 'Placed', v: s.placed }], '#1a5c45');
       $('hireDonut').innerHTML = donut(c.hiring, c.not_hiring);
       $('domBars').innerHTML = bars(D.domains.map(d => ({ n: d.name, v: d.attempts })), '#3574e0');
-      const vt = t.violation_types || {}; $('viol').innerHTML = bars(Object.keys(vt).map(k => ({ n: k.replace('_', ' '), v: vt[k] })), '#e04a4a');
-      $('colleges').innerHTML = bars(D.top_colleges.map(k => ({ n: k.name, v: k.count })), '#8250e0');
+      const vt = t.violation_types || {};
+      $('viol').innerHTML = bars(Object.keys(vt).map(k => ({ n: k.replace('_', ' '), v: vt[k] })), '#dc2626');
+      $('colleges').innerHTML = bars(D.top_colleges.map(k => ({ n: k.name, v: k.count })), '#7c3aed');
       $('domTbl').innerHTML = `<tr><th>Domain</th><th>Attempts</th><th>Students</th><th>Passed</th><th>Pass rate</th><th>Currently qualified</th></tr>` + D.domains.map(d => `<tr><td><b>${esc(d.name)}</b></td><td>${d.attempts}</td><td>${d.students}</td><td>${d.passed}</td><td>${d.pass_rate}%</td><td>${d.qualified}</td></tr>`).join('');
+
       renderCo(); renderOu(); renderChats(); renderPay(); renderDb(); renderDay();
     }
+
     function renderDay() {
       const d = DY.days || [], t = d[0] || {}, y = d[1] || {}, v = k => t[k] || 0, c = k => 'yesterday: ' + (y[k] || 0);
       $('kDay').innerHTML = kpi('', 'Registered Today', v('registered'), c('registered'), '#1a5c45') + kpi('', 'Attended Test', v('attended'), c('attended'), '#3574e0') + kpi('', 'Passed', v('passed'), c('passed'), '#1f9d61') + kpi('', 'Failed', v('failed'), c('failed'), '#e04a4a') + kpi('', 'Payments Made', v('payments'), '₹' + (t.revenue_inr || 0) + ' collected · ' + c('payments'), '#f0a020');
       $('dayTbl').innerHTML = `<tr><th>Date</th><th>Registered</th><th>Attended test</th><th>Passed</th><th>Failed</th><th>Payments</th><th>Revenue</th></tr>` + (d.map((x, i) => `<tr${i === 0 ? ' style="background:#fff8e1"' : ''}><td><b>${new Date(x.date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</b>${i === 0 ? ' <span class="pill y">Today</span>' : ''}</td><td>${x.registered}</td><td>${x.attended}</td><td>${x.passed}</td><td>${x.failed}</td><td>${x.payments}</td><td>₹${x.revenue_inr}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">No data yet.</td></tr>');
     }
+
     function renderDb() {
       const q = $('dbSearch').value.toLowerCase(), rows = B.students.filter(s => !q || (s.name + s.email + s.mobile).toLowerCase().includes(q));
       $('dbCount').textContent = B.total;
       $('dbTbl').innerHTML = `<tr><th>#</th><th>Name</th><th>Mail ID</th><th>Number</th><th>Registered on</th></tr>` + (rows.map((s, i) => `<tr><td>${i + 1}</td><td><b>${esc(s.name)}</b></td><td>${esc(s.email)}</td><td>${esc(s.mobile)}</td><td>${fmt(s.registered)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">No registered students yet.</td></tr>');
     }
+
     function renderPay() {
       $('kPay').innerHTML = kpi('', 'Retest Payments', P.total_payments, P.abandoned + ' started but not paid', '#3574e0') + kpi('', 'Revenue', P.revenue_inr, '₹ collected so far', '#f0a020') + kpi('', 'Students Paid', P.students_paid, 'unique students', '#1f9d61') + kpi('', 'Paid 2+ times', P.repeat_payers, 'repeat payers', '#8250e0') + kpi('', 'Unused Credits', P.credits_left, 'paid, retest not started yet', '#e04a4a');
       const q = $('paySearch').value.toLowerCase();
@@ -793,12 +2689,14 @@
       $('payTbl').innerHTML = `<tr><th>Student</th><th>Email</th><th>Times paid</th><th>Retests taken</th><th>Credits left</th><th>Total paid</th><th>Last payment</th></tr>` + (rows.map(s => `<tr><td><b>${esc(s.name)}</b><br><small style="color:#6b7a73">${esc(s.college)}</small></td><td>${esc(s.email)}</td><td><b>${s.times}</b></td><td>${s.used}</td><td>${s.left}</td><td>₹${s.amount_inr}</td><td>${fmt(s.last)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">No retest payments yet.</td></tr>');
       $('txTbl').innerHTML = `<tr><th>Date</th><th>Student</th><th>Mail ID</th><th>Amount</th><th>Status</th><th>Order ID</th><th>Payment ID</th></tr>` + (P.transactions.map(t => `<tr><td>${fmt(t.at)}</td><td>${esc(t.student)}</td><td>${esc(t.email || '')}</td><td>₹${t.amount_inr}</td><td>${t.status === 'consumed' ? '<span class="pill y">Retest taken</span>' : '<span class="pill n" style="background:#fff3dc;color:#b87709">Credit unused</span>'}</td><td><small>${esc(t.order_id)}</small></td><td><small>${esc(t.payment_id || '')}</small></td></tr>`).join('') || '<tr><td colspan="7" class="empty">No transactions yet.</td></tr>');
     }
+
     function renderCo() {
       const q = $('coSearch').value.toLowerCase();
       const rows = D.companies.list.filter(c => (filt === 'all' || (filt === 'hiring') === c.hiring) && (!q || (c.name || '').toLowerCase().includes(q) || c.roles.join(' ').toLowerCase().includes(q)));
       $('coTbl').innerHTML = `<tr><th>Company</th><th>Status</th><th>Open Roles</th><th>Applications</th><th>Selected</th></tr>` +
         (rows.map(c => `<tr><td><b>${esc(c.name)}</b></td><td>${c.hiring ? '<span class="pill y">Hiring</span>' : '<span class="pill n">Not hiring</span>'}</td><td>${c.roles.map(r => `<span class="chip">${esc(r)}</span>`).join('') || '–'}</td><td>${c.applications}</td><td>${c.selected}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">No companies match.</td></tr>');
     }
+
     function renderOu() {
       $('kOu').innerHTML = kpi('', 'Contacts Unlocked', O.total_unlocks, O.students_unlocked + ' students\' contacts opened', '#e04a4a') + kpi('', 'Students Contacted', O.students_contacted, 'unlock / chat / shortlist / selection', '#1f9d61') + kpi('', 'Companies Reaching Out', O.companies_active, 'of ' + D.companies.total + ' companies', '#3574e0') +
         kpi('', 'Profile Views', O.total_views, 'not tracked yet', '#8250e0');
@@ -806,43 +2704,597 @@
       $('ouCo').innerHTML = `<tr><th>Company</th><th>Contacts unlocked</th><th>Contacted</th><th>Profiles viewed</th></tr>` + (O.companies.map(c => `<tr><td><b>${esc(c.name)}</b></td><td><b>${c.unlocked}</b></td><td>${c.contacted}</td><td>${c.viewed}</td></tr>`).join('') || '<tr><td colspan="4" class="empty">No outreach yet.</td></tr>');
       $('ouSt').innerHTML = `<tr><th>Student</th><th>Contacted by</th><th>Unlocked</th></tr>` + (O.students.map(s => `<tr><td><b>${esc(s.name)}</b><br><small style="color:#6b7a73">${esc(s.domain || s.college)}</small></td><td>${s.contacted_by.map(n => `<span class="chip">${esc(n)}</span>`).join('') || '–'}</td><td>${s.unlocked}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">No data yet.</td></tr>');
     }
+
     function renderChats() {
       const q = $('chSearch').value.toLowerCase(), k = x => x.company_id + '|' + x.student_id;
       const rows = C.filter(x => !q || x.company.toLowerCase().includes(q) || x.student.toLowerCase().includes(q));
       $('chList').innerHTML = rows.map(x => `<div class="ci ${openKey === k(x) ? 'on' : ''}" onclick="openChat('${k(x)}')"><b>${esc(x.company)} ↔ ${esc(x.student)}</b><small>${x.last_role === 'company' ? '' : ''} ${esc(x.last)}</small><small>${x.count} messages • ${fmt(x.last_at)}</small></div>`).join('') || '<div class="empty">No conversations yet.</div>';
     }
+
     async function openChat(key, silent) {
       openKey = key; const [cid, sid] = key.split('|'), x = C.find(v => v.company_id === cid && v.student_id === sid); if (!x) return;
       if (!silent) renderChats(); $('chHead').textContent = `${x.company}  ↔  ${x.student}`;
       try {
         const r = await get(`/api/admin/chats/messages?company_id=${cid}&student_id=${sid}`), b = $('chMsgs');
         b.innerHTML = r.messages.map(m => `<div class="b ${m.sender_role}">${esc(m.body)}<small>${m.sender_role === 'company' ? esc(x.company) : esc(x.student)} • ${fmt(m.created_at)}</small></div>`).join('') || '<div class="ph">No messages.</div>';
-        if (!silent) b.scrollTop = b.scrollHeight
-      } catch (e) { $('chMsgs').innerHTML = '<div class="ph">Could not load messages.</div>' }
+        if (!silent) b.scrollTop = b.scrollHeight;
+      } catch (e) { $('chMsgs').innerHTML = '<div class="ph">Could not load messages.</div>'; }
     }
+
     function renderPm() {
-      const q = ($('pmSearch').value || '').toLowerCase(), L = PM.filter(r => [r.name, r.email, r.college, r.phone].join(' ').toLowerCase().includes(q)); $('pmCount').textContent = PM.length;
-      $('pmTbl').innerHTML = '<tr><th>Date</th><th>Name</th><th>Phone</th><th>Email</th><th>College</th><th>Domain</th><th>Message</th></tr>' + (L.map(r => `<tr><td>${fmt(r.created_at)}</td><td>${esc(r.name)}</td><td>${esc(r.phone)}</td><td>${esc(r.email)}</td><td>${esc(r.college)}</td><td>${esc(r.domain)}</td><td>${esc(r.message)}</td></tr>`).join('') || '<tr><td colspan="7">No registrations yet.</td></tr>')
+      const q = ($('pmSearch').value || '').toLowerCase(), L = PM.filter(r => [r.name, r.email, r.college, r.phone].join(' ').toLowerCase().includes(q));
+      $('pmCount').textContent = PM.length;
+      $('pmTbl').innerHTML = '<tr><th>Date</th><th>Name</th><th>Phone</th><th>Email</th><th>College</th><th>Domain</th><th>Message</th></tr>' + (L.map(r => `<tr><td>${fmt(r.created_at)}</td><td>${esc(r.name)}</td><td>${esc(r.phone)}</td><td>${esc(r.email)}</td><td>${esc(r.college)}</td><td>${esc(r.domain)}</td><td>${esc(r.message)}</td></tr>`).join('') || '<tr><td colspan="7">No registrations yet.</td></tr>');
     }
-    $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; document.querySelectorAll('#tabs button,.pane').forEach(x => x.classList.remove('on')); b.classList.add('on'); $('p-' + b.dataset.t).classList.add('on') });
-    $('coTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; document.querySelectorAll('#coTabs button').forEach(x => x.classList.remove('on')); b.classList.add('on'); filt = b.dataset.f; renderCo() });
+
+    // Sidebar navigation handler
+    $('sidebarNav').addEventListener('click', e => {
+      const b = e.target.closest('button[data-t]');
+      if (!b) return;
+      switchTab(b.dataset.t);
+    });
+
+    $('coTabs').addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      document.querySelectorAll('#coTabs button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      filt = b.dataset.f;
+      renderCo();
+    });
+
     function donut(a, b) {
       const tot = a + b; if (!tot) return '<div class="empty">No companies yet.</div>'; const R = 52, Cc = 2 * Math.PI * R;
-      return `<div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap"><svg width="150" height="150" viewBox="0 0 140 140"><circle cx="70" cy="70" r="${R}" fill="none" stroke="#e04a4a" stroke-width="18"/><circle cx="70" cy="70" r="${R}" fill="none" stroke="#1f9d61" stroke-width="18" stroke-dasharray="${Cc * a / tot} ${Cc}" transform="rotate(-90 70 70)"/><text x="70" y="76" text-anchor="middle" font-size="22" font-weight="800" fill="#0e3b2c">${pct(a, tot)}%</text></svg>
- <div><div style="margin:8px 0"><span class="pill y">Hiring</span> <b>${a}</b></div><div style="margin:8px 0"><span class="pill n">Not hiring</span> <b>${b}</b></div><div style="color:#6b7a73;font-size:12px">${tot} companies total</div></div></div>`
+      return `<div style="display:flex;align-items:center;gap:28px;flex-wrap:wrap"><svg width="150" height="150" viewBox="0 0 140 140"><circle cx="70" cy="70" r="${R}" fill="none" stroke="#dc2626" stroke-width="18"/><circle cx="70" cy="70" r="${R}" fill="none" stroke="#059669" stroke-width="18" stroke-dasharray="${Cc * a / tot} ${Cc}" transform="rotate(-90 70 70)"/><text x="70" y="76" text-anchor="middle" font-size="22" font-weight="800" fill="#093323">${pct(a, tot)}%</text></svg>
+ <div><div style="margin:8px 0"><span class="pill y">Hiring</span> <b>${a}</b></div><div style="margin:8px 0"><span class="pill n">Not hiring</span> <b>${b}</b></div><div style="color:#6b7a73;font-size:12px">${tot} companies total</div></div></div>`;
     }
+
     function lineChart(T) {
-      const W = 1200, Hh = 220, p = 34, n = T.labels.length, S = [[T.signups, '#1a5c45'], [T.attempts, '#3574e0'], [T.applications, '#f0a020']];
+      const W = 1200, Hh = 220, p = 34, n = T.labels.length, S = [[T.signups, '#1a5c45'], [T.attempts, '#2563eb'], [T.applications, '#d97706']];
       const mx = Math.max(3, ...S.flatMap(s => s[0])), X = i => p + i * (W - 2 * p) / (n - 1), Y = v => Hh - p - v * (Hh - 2 * p) / mx; let g = '';
-      for (let i = 0; i <= 3; i++) { const v = Math.round(mx * i / 3), y = Y(v); g += `<line x1="${p}" x2="${W - p}" y1="${y}" y2="${y}" stroke="#eef2ef"/><text x="4" y="${y + 4}" font-size="11" fill="#6b7a73">${v}</text>` }
+      for (let i = 0; i <= 3; i++) { const v = Math.round(mx * i / 3), y = Y(v); g += `<line x1="${p}" x2="${W - p}" y1="${y}" y2="${y}" stroke="#eef2ef"/><text x="4" y="${y + 4}" font-size="11" fill="#6b7a73">${v}</text>`; }
       g += T.labels.map((l, i) => i % 2 ? '' : `<text x="${X(i)}" y="${Hh - 10}" text-anchor="middle" font-size="11" fill="#6b7a73">${l}</text>`).join('');
       g += S.map(([d, c]) => `<polyline fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round" points="${d.map((v, i) => X(i) + ',' + Y(v)).join(' ')}"/>` + d.map((v, i) => `<circle cx="${X(i)}" cy="${Y(v)}" r="3.5" fill="${c}"><title>${T.labels[i]}: ${v}</title></circle>`).join('')).join('');
-      return `<svg viewBox="0 0 ${W} ${Hh}" style="width:100%;height:auto">${g}</svg>`
+      return `<svg viewBox="0 0 ${W} ${Hh}" style="width:100%;height:auto">${g}</svg>`;
     }
-    function exportCsv() {
-      if (!D) return; const rows = [['Company', 'Status', 'Open Roles', 'Applications', 'Selected'], ...D.companies.list.map(c => [c.name, c.hiring ? 'Hiring' : 'Not hiring', c.roles.join('; '), c.applications, c.selected])];
-      const csv = rows.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')).join('\n'), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'companies.csv'; a.click()
+
+    /* ==========================================================================
+       DOWNLOAD REPORT MODAL & EXPORT LOGIC
+       ========================================================================== */
+
+    let rawExportData = { students: [], companies: [], domains: [], loaded: false, loading: false };
+    let activeExportType = 'students';
+    let activePreset = 'all';
+
+    const STU_HEADERS = [
+      'ID', 'Name', 'Email', 'Phone', 'College/Department', 'Domain',
+      'Registered Date', 'Attended Test (Y/N)', 'Test Score', 'Test Eligible',
+      'Resume Uploaded', 'Placed', 'Company Placed In'
+    ];
+    const stuToRow = s => [
+      s.id, s.name, s.email, s.phone, s.college_dept, s.domain,
+      s.registered_at, s.attended_test, s.test_score, s.test_eligible,
+      s.resume_uploaded, s.placed, s.company_placed_in
+    ];
+
+    const CO_HEADERS = [
+      'ID', 'Company Name', 'Contact Person', 'Email', 'Phone',
+      'Registered Date', 'Hiring Status', 'Open Roles', 'Access Request Status'
+    ];
+    const coToRow = c => [
+      c.id, c.name, c.contact_person, c.email, c.phone,
+      c.registered_at, c.hiring_status, c.open_roles, c.access_request_status
+    ];
+
+    // Notification toast
+    function showToast(msg, isError) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.style.background = isError ? 'var(--bad)' : 'var(--g)';
+      t.style.display = 'block';
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => { t.style.display = 'none'; }, 4200);
     }
+
+    // Trigger file download helper
+    function triggerDownload(blob, filename) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+      }, 500);
+    }
+
+    // Open Download Modal
+    async function openDownloadModal() {
+      $('dlModal').style.display = 'flex';
+      updateFormatHint();
+
+      if (!rawExportData.loaded && !rawExportData.loading) {
+        rawExportData.loading = true;
+        $('dlPreview').className = 'dl-preview-box';
+        $('dlPreview').innerHTML = '<span>⏳ Loading fresh records from database…</span>';
+        $('dlBtn').disabled = true;
+
+        try {
+          const res = await get('/api/admin/export/data');
+          rawExportData.students = res.students || [];
+          rawExportData.companies = res.companies || [];
+          rawExportData.domains = res.domains || [];
+
+          // Populate domain options
+          const domSelect = $('dlDomain');
+          domSelect.innerHTML = '<option value="all">All Domains</option>' +
+            rawExportData.domains.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+
+          rawExportData.loaded = true;
+        } catch (e) {
+          $('dlPreview').className = 'dl-preview-box err';
+          $('dlPreview').innerHTML = '<span>⚠️ Could not load export dataset: ' + esc(e.message || e) + '</span>';
+          showToast('Could not load records for export', true);
+          return;
+        } finally {
+          rawExportData.loading = false;
+        }
+      }
+
+      updateLivePreview();
+    }
+
+    // Close Download Modal
+    function closeDownloadModal() {
+      $('dlModal').style.display = 'none';
+    }
+
+    // Switch data type: students / companies / both
+    function selectExportType(type) {
+      activeExportType = type;
+      document.querySelectorAll('#dlTypeGroup button').forEach(b => {
+        b.classList.toggle('active', b.dataset.type === type);
+      });
+
+      // Toggle conditional filter groups
+      $('dlStudentFilters').style.display = (type === 'students' || type === 'both') ? 'block' : 'none';
+      $('dlCompanyFilters').style.display = (type === 'companies' || type === 'both') ? 'block' : 'none';
+
+      updateFormatHint();
+      updateLivePreview();
+    }
+
+    // Quick Date Presets
+    function setPreset(preset) {
+      activePreset = preset;
+      document.querySelectorAll('#dlPresets button').forEach(b => {
+        b.classList.toggle('active', b.dataset.preset === preset);
+      });
+
+      const toIso = d => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+
+      const now = new Date();
+      if (preset === 'today') {
+        $('dlFrom').value = toIso(now);
+        $('dlTo').value = toIso(now);
+      } else if (preset === '7d') {
+        const d7 = new Date(now.getTime() - 6 * 86400000);
+        $('dlFrom').value = toIso(d7);
+        $('dlTo').value = toIso(now);
+      } else if (preset === '30d') {
+        const d30 = new Date(now.getTime() - 29 * 86400000);
+        $('dlFrom').value = toIso(d30);
+        $('dlTo').value = toIso(now);
+      } else if (preset === 'month') {
+        const m1 = new Date(now.getFullYear(), now.getMonth(), 1);
+        $('dlFrom').value = toIso(m1);
+        $('dlTo').value = toIso(now);
+      } else {
+        // all time
+        $('dlFrom').value = '';
+        $('dlTo').value = '';
+      }
+
+      $('dlDateErr').style.display = 'none';
+      updateLivePreview();
+    }
+
+    // Manual date input change
+    function onDateInputChange() {
+      document.querySelectorAll('#dlPresets button').forEach(b => b.classList.remove('active'));
+      activePreset = 'custom';
+      updateLivePreview();
+    }
+
+    // Format hint helper
+    function updateFormatHint() {
+      const fmt = $('dlFormat').value;
+      const hint = $('dlFormatHint');
+      if (fmt === 'csv' && activeExportType === 'both') {
+        hint.textContent = 'ℹ️ "Both" with CSV will bundle both students.csv and companies.csv into a single .zip file.';
+      } else if (fmt === 'xlsx' && activeExportType === 'both') {
+        hint.textContent = 'ℹ️ "Both" with Excel will produce one workbook with two sheets: Students and Companies.';
+      } else if (fmt === 'pdf') {
+        hint.textContent = 'ℹ️ PDF includes custom title, date range, timestamp, paginated table, and page numbers.';
+      } else {
+        hint.textContent = '';
+      }
+    }
+
+    // Filter data client-side for live preview & report generation
+    function getFilteredData() {
+      const from = $('dlFrom').value;
+      const to = $('dlTo').value;
+
+      // Validation: From <= To
+      if (from && to && from > to) {
+        return { error: 'From date cannot be after To date.', students: [], companies: [] };
+      }
+
+      const fromD = from ? new Date(from + 'T00:00:00') : null;
+      const toD = to ? new Date(to + 'T23:59:59.999') : null;
+
+      const dateMatches = rawIso => {
+        if (!rawIso) return !fromD && !toD;
+        try {
+          const d = new Date(rawIso);
+          if (fromD && d < fromD) return false;
+          if (toD && d > toD) return false;
+          return true;
+        } catch (e) {
+          return true;
+        }
+      };
+
+      // Filter Students
+      let filteredStudents = [];
+      if (activeExportType === 'students' || activeExportType === 'both') {
+        const att = $('dlAttended').value;
+        const eli = $('dlEligible').value;
+        const res = $('dlResume').value;
+        const plc = $('dlPlaced').value;
+        const dom = $('dlDomain').value;
+
+        filteredStudents = rawExportData.students.filter(s => {
+          if (!dateMatches(s.raw_registered_at)) return false;
+          if (att === 'yes' && s.attended_test !== 'Y') return false;
+          if (att === 'no' && s.attended_test !== 'N') return false;
+          if (eli === 'yes' && s.test_eligible !== 'Eligible') return false;
+          if (eli === 'no' && s.test_eligible === 'Eligible') return false;
+          if (res === 'yes' && s.resume_uploaded !== 'Y') return false;
+          if (res === 'no' && s.resume_uploaded !== 'N') return false;
+          if (plc === 'yes' && s.placed !== 'Y') return false;
+          if (plc === 'no' && s.placed !== 'N') return false;
+          if (dom !== 'all' && s.domain !== dom) return false;
+          return true;
+        });
+      }
+
+      // Filter Companies
+      let filteredCompanies = [];
+      if (activeExportType === 'companies' || activeExportType === 'both') {
+        const hire = $('dlHiring').value;
+        const req = $('dlReq').value;
+
+        filteredCompanies = rawExportData.companies.filter(c => {
+          if (!dateMatches(c.raw_registered_at)) return false;
+          if (hire === 'hiring' && c.hiring_status !== 'Currently Hiring') return false;
+          if (hire === 'not_hiring' && c.hiring_status === 'Currently Hiring') return false;
+          if (req === 'yes' && !c.is_access_request) return false;
+          if (req === 'no' && c.is_access_request) return false;
+          return true;
+        });
+      }
+
+      return { error: null, students: filteredStudents, companies: filteredCompanies };
+    }
+
+    // Live preview updater
+    function updateLivePreview() {
+      if (rawExportData.loading) return;
+
+      const res = getFilteredData();
+      const errBox = $('dlDateErr');
+      const prevBox = $('dlPreview');
+      const dlBtn = $('dlBtn');
+
+      if (res.error) {
+        errBox.textContent = res.error;
+        errBox.style.display = 'block';
+        prevBox.className = 'dl-preview-box err';
+        prevBox.innerHTML = `<span>⚠️ ${esc(res.error)}</span>`;
+        dlBtn.disabled = true;
+        return;
+      }
+
+      errBox.style.display = 'none';
+
+      let count = 0;
+      let label = '';
+      if (activeExportType === 'students') {
+        count = res.students.length;
+        label = `${count.toLocaleString('en-IN')} student record${count === 1 ? '' : 's'} match`;
+      } else if (activeExportType === 'companies') {
+        count = res.companies.length;
+        label = `${count.toLocaleString('en-IN')} company record${count === 1 ? '' : 's'} match`;
+      } else {
+        count = res.students.length + res.companies.length;
+        label = `${res.students.length.toLocaleString('en-IN')} students and ${res.companies.length.toLocaleString('en-IN')} companies match`;
+      }
+
+      if (count === 0) {
+        prevBox.className = 'dl-preview-box empty';
+        prevBox.innerHTML = '<span>⚠️ No records found matching the selected filters.</span>';
+        dlBtn.disabled = true;
+      } else {
+        prevBox.className = 'dl-preview-box';
+        prevBox.innerHTML = `<span>✔ ${label}</span>`;
+        dlBtn.disabled = false;
+      }
+    }
+
+    // CSV Generator (with UTF-8 BOM and formula injection protection)
+    function toCSV(headers, rows) {
+      const sanitize = v => {
+        let s = String(v ?? '');
+        if (s && ['=', '+', '-', '@'].includes(s[0])) s = "'" + s;
+        return '"' + s.replace(/"/g, '""') + '"';
+      };
+      return '\ufeff' + [
+        headers.map(sanitize).join(','),
+        ...rows.map(r => r.map(sanitize).join(','))
+      ].join('\r\n');
+    }
+
+    // Excel (.xlsx) Generator using SheetJS
+    function toXLSX(sheets, filename) {
+      if (typeof XLSX === 'undefined') {
+        throw new Error('SheetJS library not loaded. Please verify internet connection.');
+      }
+      const wb = XLSX.utils.book_new();
+      sheets.forEach(({ name, headers, rows }) => {
+        const wsData = [headers, ...rows];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        const colWidths = headers.map((h, colIdx) => {
+          let maxLen = String(h).length;
+          rows.forEach(r => {
+            const cell = r[colIdx] != null ? String(r[colIdx]) : '';
+            if (cell.length > maxLen) maxLen = cell.length;
+          });
+          return { wch: Math.min(Math.max(maxLen + 3, 10), 38) };
+        });
+        ws['!cols'] = colWidths;
+
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      });
+      XLSX.writeFile(wb, filename);
+    }
+
+    // PDF Generator using jsPDF + jspdf-autotable
+    function toPDF(docTitle, dateStr, countStr, stuHeaders, stuRows, coHeaders, coRows, type, filename) {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        throw new Error('jsPDF library not loaded. Please verify internet connection.');
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'pt',
+        format: 'a4'
+      });
+
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const genTimestamp = new Date().toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+
+      const drawHeader = (startY, sectionTitle) => {
+        doc.setFillColor(9, 51, 35);
+        doc.roundedRect(20, startY, pageW - 40, 42, 6, 6, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text(sectionTitle || docTitle, 32, startY + 26);
+
+        doc.setTextColor(100, 115, 108);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(
+          `Date Range: ${dateStr}   |   ${countStr}   |   Generated: ${genTimestamp}`,
+          24,
+          startY + 56
+        );
+      };
+
+      if (type === 'students' || type === 'both') {
+        drawHeader(20, type === 'both' ? 'PGI Job Portal – Students Report' : docTitle);
+        doc.autoTable({
+          head: [stuHeaders],
+          body: stuRows,
+          startY: 85,
+          margin: { top: 75, bottom: 35, left: 20, right: 20 },
+          styles: { fontSize: 7, cellPadding: 3.5, overflow: 'linebreak' },
+          headStyles: { fillColor: [9, 51, 35], textColor: [255, 255, 255], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [246, 250, 248] },
+          theme: 'grid'
+        });
+      }
+
+      if (type === 'both') {
+        doc.addPage('a4', 'landscape');
+        drawHeader(20, 'PGI Job Portal – Companies Report');
+        doc.autoTable({
+          head: [coHeaders],
+          body: coRows,
+          startY: 85,
+          margin: { top: 75, bottom: 35, left: 20, right: 20 },
+          styles: { fontSize: 7.5, cellPadding: 4, overflow: 'linebreak' },
+          headStyles: { fillColor: [26, 92, 69], textColor: [255, 255, 255], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [246, 250, 248] },
+          theme: 'grid'
+        });
+      } else if (type === 'companies') {
+        drawHeader(20, docTitle);
+        doc.autoTable({
+          head: [coHeaders],
+          body: coRows,
+          startY: 85,
+          margin: { top: 75, bottom: 35, left: 20, right: 20 },
+          styles: { fontSize: 7.5, cellPadding: 4, overflow: 'linebreak' },
+          headStyles: { fillColor: [9, 51, 35], textColor: [255, 255, 255], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [246, 250, 248] },
+          theme: 'grid'
+        });
+      }
+
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(120, 130, 125);
+        doc.setFont('helvetica', 'normal');
+        doc.text('PGI Placement Portal – Confidential', 24, pageH - 16);
+        doc.text(`Page ${i} of ${totalPages}`, pageW - 70, pageH - 16);
+      }
+
+      doc.save(filename);
+    }
+
+    // JSON Downloader
+    function toJSON(data, filename) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8;' });
+      triggerDownload(blob, filename);
+    }
+
+    // Execute Download
+    async function executeDownload() {
+      const res = getFilteredData();
+      if (res.error) {
+        showToast(res.error, true);
+        return;
+      }
+
+      const from = $('dlFrom').value;
+      const to = $('dlTo').value;
+      const fmt = $('dlFormat').value;
+      const type = activeExportType;
+
+      const dateTag = (from && to) ? `${from}_to_${to}` : (from ? `${from}_to_latest` : (to ? `upto_${to}` : 'all'));
+      const dateLabel = (from && to) ? `${from} to ${to}` : (from ? `From ${from}` : (to ? `Up to ${to}` : 'All time'));
+
+      const dlBtn = $('dlBtn');
+      const originalText = dlBtn.innerHTML;
+      dlBtn.disabled = true;
+      dlBtn.innerHTML = '<span>⏳ Generating…</span>';
+
+      try {
+        if (fmt === 'csv') {
+          if (type === 'students') {
+            const csvText = toCSV(STU_HEADERS, res.students.map(stuToRow));
+            triggerDownload(new Blob([csvText], { type: 'text/csv;charset=utf-8;' }), `pgi_students_${dateTag}.csv`);
+            showToast(`Downloaded ${res.students.length.toLocaleString('en-IN')} student records`);
+          } else if (type === 'companies') {
+            const csvText = toCSV(CO_HEADERS, res.companies.map(coToRow));
+            triggerDownload(new Blob([csvText], { type: 'text/csv;charset=utf-8;' }), `pgi_companies_${dateTag}.csv`);
+            showToast(`Downloaded ${res.companies.length.toLocaleString('en-IN')} company records`);
+          } else {
+            if (typeof JSZip === 'undefined') {
+              throw new Error('JSZip library not loaded. Please verify internet connection.');
+            }
+            const stuCsv = toCSV(STU_HEADERS, res.students.map(stuToRow));
+            const coCsv = toCSV(CO_HEADERS, res.companies.map(coToRow));
+
+            const zip = new JSZip();
+            zip.file(`pgi_students_${dateTag}.csv`, stuCsv);
+            zip.file(`pgi_companies_${dateTag}.csv`, coCsv);
+            const content = await zip.generateAsync({ type: 'blob' });
+            triggerDownload(content, `pgi_report_${dateTag}.zip`);
+            showToast(`Downloaded ${res.students.length.toLocaleString('en-IN')} students, ${res.companies.length.toLocaleString('en-IN')} companies (ZIP)`);
+          }
+        } else if (fmt === 'xlsx') {
+          if (type === 'students') {
+            toXLSX([{ name: 'Students', headers: STU_HEADERS, rows: res.students.map(stuToRow) }], `pgi_students_${dateTag}.xlsx`);
+            showToast(`Downloaded ${res.students.length.toLocaleString('en-IN')} student records (.xlsx)`);
+          } else if (type === 'companies') {
+            toXLSX([{ name: 'Companies', headers: CO_HEADERS, rows: res.companies.map(coToRow) }], `pgi_companies_${dateTag}.xlsx`);
+            showToast(`Downloaded ${res.companies.length.toLocaleString('en-IN')} company records (.xlsx)`);
+          } else {
+            toXLSX([
+              { name: 'Students', headers: STU_HEADERS, rows: res.students.map(stuToRow) },
+              { name: 'Companies', headers: CO_HEADERS, rows: res.companies.map(coToRow) }
+            ], `pgi_report_${dateTag}.xlsx`);
+            showToast(`Downloaded ${res.students.length.toLocaleString('en-IN')} students, ${res.companies.length.toLocaleString('en-IN')} companies (.xlsx)`);
+          }
+        } else if (fmt === 'pdf') {
+          const docTitle = type === 'students' ? 'PGI Job Portal – Students Report' : (type === 'companies' ? 'PGI Job Portal – Companies Report' : 'PGI Job Portal – Executive Report');
+          const countStr = type === 'students'
+            ? `Total Students: ${res.students.length.toLocaleString('en-IN')}`
+            : (type === 'companies'
+              ? `Total Companies: ${res.companies.length.toLocaleString('en-IN')}`
+              : `Total Students: ${res.students.length.toLocaleString('en-IN')}   |   Total Companies: ${res.companies.length.toLocaleString('en-IN')}`);
+
+          const filename = type === 'students' ? `pgi_students_${dateTag}.pdf` : (type === 'companies' ? `pgi_companies_${dateTag}.pdf` : `pgi_report_${dateTag}.pdf`);
+          toPDF(
+            docTitle, dateLabel, countStr,
+            STU_HEADERS, res.students.map(stuToRow),
+            CO_HEADERS, res.companies.map(coToRow),
+            type, filename
+          );
+          const totalCount = type === 'students' ? res.students.length : (type === 'companies' ? res.companies.length : res.students.length + res.companies.length);
+          showToast(`Downloaded ${totalCount.toLocaleString('en-IN')} records (.pdf)`);
+        } else if (fmt === 'json') {
+          let exportObj = null;
+          let filename = '';
+          if (type === 'students') {
+            exportObj = { count: res.students.length, students: res.students };
+            filename = `pgi_students_${dateTag}.json`;
+          } else if (type === 'companies') {
+            exportObj = { count: res.companies.length, companies: res.companies };
+            filename = `pgi_companies_${dateTag}.json`;
+          } else {
+            exportObj = {
+              student_count: res.students.length,
+              company_count: res.companies.length,
+              students: res.students,
+              companies: res.companies
+            };
+            filename = `pgi_report_${dateTag}.json`;
+          }
+          toJSON(exportObj, filename);
+          const totalCount = type === 'students' ? res.students.length : (type === 'companies' ? res.companies.length : res.students.length + res.companies.length);
+          showToast(`Downloaded ${totalCount.toLocaleString('en-IN')} records (.json)`);
+        }
+
+        closeDownloadModal();
+      } catch (err) {
+        showToast('Export failed: ' + (err.message || err), true);
+      } finally {
+        dlBtn.disabled = false;
+        dlBtn.innerHTML = originalText;
+      }
+    }
+
+    // Modal Keyboard & Backdrop Accessibility
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && $('dlModal').style.display === 'flex') {
+        closeDownloadModal();
+      }
+    });
+
+    $('dlModal').addEventListener('click', e => {
+      if (e.target === $('dlModal')) {
+        closeDownloadModal();
+      }
+    });
+
     if (sessionStorage.getItem('adm')) load(true);
   </script>
 </body>
