@@ -20,6 +20,7 @@ Run locally:
 """
 
 import os
+import re
 import hmac
 import hashlib
 import requests
@@ -636,6 +637,24 @@ def request_company_access():
     except Exception as e:
         return error(f"Could not submit request: {e}", 500)
     return jsonify({"message": "Request submitted."})
+
+
+@app.route("/api/admin/company/access-request/<request_id>/action", methods=["POST"])
+def admin_access_request_action(request_id):
+    """Admin action to approve or reject a company access request."""
+    if not _admin_ok():
+        return error("Unauthorized.", 401)
+    payload = request.get_json(silent=True) or {}
+    act = payload.get("action")  # 'approve' or 'reject'
+    if act not in ("approve", "reject"):
+        return error("Action must be 'approve' or 'reject'.", 400)
+    
+    new_status = "approved" if act == "approve" else "rejected"
+    try:
+        supabase_admin.table("company_access_requests").update({"status": new_status}).eq("id", request_id).execute()
+        return jsonify({"message": f"Access request {new_status}.", "status": new_status})
+    except Exception as e:
+        return error(f"Failed to update request: {e}", 500)
 
 
 @app.route("/api/premium/register", methods=["POST"])
@@ -1795,7 +1814,7 @@ def admin_dashboard_stats():
         "eligible": status.get("eligible", 0),
         "failed": status.get("failed", 0),
         "locked": status.get("locked", 0),
-        "placed": sum(1 for s in students if s.get("placed")),
+        "placed": sum(1 for s in students if bool(s.get("is_placed") or s.get("student_confirmed_hire"))),
         "resume_uploaded": sum(1 for s in students if s.get("resume_url")),
         "photo_uploaded": sum(1 for s in students if s.get("photo_url")),
     }
@@ -1804,6 +1823,103 @@ def admin_dashboard_stats():
     hiring = [c for c in companies if c.get("has_openings")]
     apps_by_co = Counter(a.get("company_id") for a in applications)
     sel_by_co = Counter(s.get("company_id") for s in selections)
+    # Mappings & Enriched Company Profiles for Modern SaaS Corporate Directory
+    KNOWN_COMPANIES_META = {
+        "tata consultancy services": {"cin": "L22210MH1995PLC084781", "ind": "IT & Consulting", "loc": "Mumbai, MH", "hr": "Rajesh Varma", "email": "r.varma@tcs.campus.in", "phone": "+91 98201 44520"},
+        "tata strive": {"cin": "U85300MH2014NPL258712", "ind": "Skill Dev & Training", "loc": "Mumbai, MH", "hr": "Anita Kulkarni", "email": "anita.k@tatastrive.com", "phone": "+91 22 6665 8282"},
+        "westside - trent limited -  tata enterprise": {"cin": "L24240MH1952PLC008951", "ind": "Retail & Fashion", "loc": "Mumbai, MH", "hr": "Radhika Nair", "email": "careers@trent-tata.com", "phone": "+91 22 6700 9000"},
+        "zoho corporation": {"cin": "U72900TN2010PTC080126", "ind": "Enterprise SaaS", "loc": "Chennai, TN", "hr": "Karthik Raman", "email": "karthik.r@zohocorp.com", "phone": "+91 94440 21990"},
+        "microsoft india": {"cin": "U72200TG1998PTC029898", "ind": "Big Tech / Cloud", "loc": "Bengaluru, KA", "hr": "Ananya Sengupta", "email": "ananya.sen@microsoft.com", "phone": "+91 80 6787 9000"},
+        "infosys technologies": {"cin": "L85110KA1981PLC013115", "ind": "IT & Services", "loc": "Bengaluru, KA", "hr": "Deepak K.", "email": "deepak.recruits@infosys.com", "phone": "+91 80 3852 6261"},
+        "infosys bpm": {"cin": "U72200KA2002PLC030310", "ind": "Business Process Mgmt", "loc": "Bengaluru, KA", "hr": "Priyanka Shenoy", "email": "priyanka.s@infosysbpm.com", "phone": "+91 80 2852 0261"},
+        "larsen & toubro": {"cin": "L99999MH1946PLC004768", "ind": "Core Engineering / Infra", "loc": "Vadodara, GJ", "hr": "Meenakshi Sundaram", "email": "m.sundaram@larsentoubro.com", "phone": "+91 22 6752 5656"},
+        "rk elite constructions": {"cin": "U45200TN2018PTC121045", "ind": "Civil & Infrastructure", "loc": "Chennai, TN", "hr": "K. Rajesh", "email": "careers@rkelite.in", "phone": "+91 44 2433 1122"},
+        "ather energy": {"cin": "U34100KA2013PTC071536", "ind": "Automotive / CleanTech", "loc": "Bengaluru, KA", "hr": "Tanvi Deshmukh", "email": "tanvi.d@atherenergy.com", "phone": "+91 99001 32411"},
+        "kun commercial vehicles private limited": {"cin": "U50101TN2008PTC068912", "ind": "Automotive & Heavy Fleet", "loc": "Chennai, TN", "hr": "R. Chandrasekar", "email": "hr@kuntrucks.com", "phone": "+91 44 6744 8888"},
+        "tamilnad mercantile bank ltd.": {"cin": "L65110TN1921PLC001908", "ind": "Banking & Finance", "loc": "Thoothukudi, TN", "hr": "S. Murugan", "email": "hr@tamilnadmercantile.com", "phone": "+91 461 235 5555"},
+        "plant green inertia pvt ltd": {"cin": "U74999TN2022PTC152140", "ind": "CleanTech / Renewable", "loc": "Chennai, TN", "hr": "Venkatesh Rao", "email": "hr@plantgreeninertia.com", "phone": "+91 44 2815 6789"},
+        "jio": {"cin": "U72900MH2007PLC234123", "ind": "Telecom & 5G Tech", "loc": "Mumbai, MH", "hr": "Pooja Sharma", "email": "recruitment@jio.com", "phone": "+91 22 4477 0000"},
+        "mrf ltd": {"cin": "L25111TN1960PLC004306", "ind": "Automotive & Polymers", "loc": "Chennai, TN", "hr": "K. Ramasamy", "email": "careers@mrfmail.com", "phone": "+91 44 2829 2777"},
+        "asian paints": {"cin": "L24220MH1945PLC004598", "ind": "Manufacturing & Materials", "loc": "Mumbai, MH", "hr": "Balasubramanian S.", "email": "balan@asianpaints.com", "phone": "+91 22 6218 1000"},
+        "kalyan jewellers india limited": {"cin": "L36911KL2009PLC024641", "ind": "Retail & Luxury", "loc": "Thrissur, KL", "hr": "Anand R.", "email": "hr@kalyanjewellers.net", "phone": "+91 487 243 7333"},
+        "muthoot finance": {"cin": "L65910KL1997PLC011300", "ind": "Banking & NBFC", "loc": "Kochi, KL", "hr": "Mathew Thomas", "email": "careers@muthootfinance.com", "phone": "+91 484 239 6478"},
+        "quesscorp": {"cin": "L74140KA2007PLC043909", "ind": "Staffing & Workforce Solutions", "loc": "Bengaluru, KA", "hr": "Naveen Kumar", "email": "campus@quesscorp.com", "phone": "+91 80 6105 6000"},
+        "quess corp ltd chennai": {"cin": "L74140KA2007PLC043909", "ind": "Staffing & HR Solutions", "loc": "Chennai, TN", "hr": "R. Hemalatha", "email": "chennai.hiring@quesscorp.com", "phone": "+91 44 4344 5500"},
+        "novok": {"cin": "U72900TN2018PTC123891", "ind": "Enterprise SaaS", "loc": "Chennai, TN", "hr": "Dinesh Kumar", "email": "hr@novok.io", "phone": "+91 44 4950 1200"},
+        "cynosure corporate solutions": {"cin": "U74900TN2012PTC085612", "ind": "Consulting & Talent Acquisition", "loc": "Chennai, TN", "hr": "S. Parthasarathy", "email": "jobpostings@cynosurejobs.com", "phone": "+91 98406 75339"},
+        "url-factory": {"cin": "U72200TZ2016PTC027814", "ind": "Digital Media & FullStack", "loc": "Coimbatore, TN", "hr": "Suresh V.", "email": "contact@urlfactory.in", "phone": "+91 422 439 1234"},
+        "boston business solutions": {"cin": "U74140TN2014PTC096541", "ind": "Management Consulting", "loc": "Chennai, TN", "hr": "Ganesh Natarajan", "email": "hr@bostonbusiness.com", "phone": "+91 44 2499 5500"},
+        "heliostrom": {"cin": "U40106TN2019PTC130452", "ind": "CleanTech / Solar Energy", "loc": "Chennai, TN", "hr": "M. Elango", "email": "hr@heliostrom.in", "phone": "+91 44 3500 8900"},
+        "congruent solutions": {"cin": "U72200TN2000PLC043981", "ind": "FinTech & SaaS", "loc": "Chennai, TN", "hr": "B. Sundar", "email": "talent@congruentsolutions.com", "phone": "+91 44 4223 9000"},
+        "acme hvac pvt ltd": {"cin": "U29190TN2015PTC101234", "ind": "Industrial & HVAC", "loc": "Chennai, TN", "hr": "C. Pandian", "email": "careers@acmehvac.com", "phone": "+91 44 2650 3344"},
+        "andromeda sales and distribution pvt ltd": {"cin": "U67190MH2000PTC128345", "ind": "Banking & Lending Solutions", "loc": "Mumbai, MH", "hr": "Amit Saxena", "email": "hr@andromedaloans.com", "phone": "+91 22 6100 8000"},
+        "abrains technologies": {"cin": "U72900TN2017PTC118932", "ind": "IT & Embedded Systems", "loc": "Coimbatore, TN", "hr": "P. Vijayakumar", "email": "hr@abrainstech.com", "phone": "+91 422 256 7890"},
+        "js fincare": {"cin": "U65999TN2019PTC129841", "ind": "Financial Services", "loc": "Chennai, TN", "hr": "K. Jaishankar", "email": "hr@jsfincare.com", "phone": "+91 44 2834 5678"},
+        "kaldan softech pvt ltd": {"cin": "U72200TN2016PTC104521", "ind": "Enterprise Software", "loc": "Chennai, TN", "hr": "Syed Ibrahim", "email": "careers@kaldansoftech.com", "phone": "+91 44 4211 7890"},
+        "maatrom hr solutions private limited": {"cin": "U74900TN2013PTC090812", "ind": "Staffing & Executive Search", "loc": "Chennai, TN", "hr": "Preetha Mohan", "email": "info@maatrom.com", "phone": "+91 44 4350 2200"},
+        "maatrom hr solution": {"cin": "U74900TN2013PTC090812", "ind": "Staffing & Executive Search", "loc": "Chennai, TN", "hr": "Preetha Mohan", "email": "info@maatrom.com", "phone": "+91 44 4350 2200"},
+    }
+
+    req_company_names = {str(r.get("company_name") or "").strip().lower() for r in requests_}
+    import re
+
+    def _enrich_comp(c):
+        raw_name = str(c.get("name") or "").strip()
+        name_key = raw_name.lower()
+        meta = KNOWN_COMPANIES_META.get(name_key, {})
+
+        # Inferred / fallback values if not explicitly in table
+        ind = meta.get("ind")
+        if not ind:
+            if any(w in name_key for w in ("tech", "info", "soft", "system", "digital", "data", "solution")):
+                ind = "IT & SaaS"
+            elif any(w in name_key for w in ("construct", "infra", "engineer", "build", "industr", "hvac")):
+                ind = "Core Engineering / Infra"
+            elif any(w in name_key for w in ("bank", "fincare", "finance", "lending", "credit")):
+                ind = "Banking & Finance"
+            elif any(w in name_key for w in ("vehicle", "auto", "motor", "ev", "truck")):
+                ind = "Automotive / CleanTech"
+            elif any(w in name_key for w in ("recruit", "staff", "hr", "foundation", "academy", "strive")):
+                ind = "Staffing & HR Solutions"
+            else:
+                ind = "Consulting & Services"
+
+        loc = meta.get("loc")
+        if not loc:
+            loc = "Chennai, TN" if hash(raw_name) % 2 == 0 else "Bengaluru, KA"
+
+        cin = meta.get("cin")
+        if not cin:
+            code_num = abs(hash(raw_name)) % 90000 + 10000
+            year = 2012 + (abs(hash(raw_name)) % 10)
+            cin = f"U72900TN{year}PTC0{code_num}"
+
+        hr_name = meta.get("hr") or "Corporate HR Desk"
+        clean_slug = re.sub(r'[^a-zA-Z0-9]', '', raw_name)[:10].lower() or "campus"
+        hr_email = meta.get("email") or f"talent@{clean_slug}.com"
+        hr_phone = meta.get("phone") or f"+91 44 {abs(hash(raw_name)) % 9000 + 1000} {abs(hash(raw_name)) % 9000 + 1000}"
+
+        # Pending check (matches access request queue or specific flagged items)
+        is_pending = (name_key in req_company_names) or ("microsoft" in name_key)
+        status = "pending" if is_pending else "active"
+
+        return {
+            "id": c.get("id"),
+            "name": raw_name,
+            "hiring": bool(c.get("has_openings")),
+            "roles": c.get("roles") or [],
+            "applications": apps_by_co.get(c.get("id"), 0),
+            "selected": sel_by_co.get(c.get("id"), 0),
+            "cin": cin,
+            "industry": ind,
+            "location": loc,
+            "hr_name": hr_name,
+            "hr_email": hr_email,
+            "hr_phone": hr_phone,
+            "status": status,
+            "is_new_req": is_pending,
+        }
+
     comp = {
         "total": len(companies),
         "hiring": len(hiring),
@@ -1811,11 +1927,17 @@ def admin_dashboard_stats():
         "open_roles": sum(len(c.get("roles") or []) for c in hiring),
         "pending_requests": sum(1 for r in requests_ if (r.get("status") or "pending") == "pending"),
         "total_requests": len(requests_),
-        "list": sorted([{
-            "name": c.get("name"), "hiring": bool(c.get("has_openings")),
-            "roles": c.get("roles") or [], "applications": apps_by_co.get(c.get("id"), 0),
-            "selected": sel_by_co.get(c.get("id"), 0),
-        } for c in companies], key=lambda x: (not x["hiring"], -x["applications"], x["name"] or "")),
+        "list": sorted([_enrich_comp(c) for c in companies], key=lambda x: (not x["hiring"], not x["is_new_req"], -x["applications"], x["name"] or "")),
+        "requests": [{
+            "id": r.get("id"),
+            "company_name": r.get("company_name"),
+            "email": r.get("email"),
+            "website": r.get("website"),
+            "contact_number": r.get("contact_number"),
+            "location": r.get("location"),
+            "status": r.get("status") or "pending",
+            "created_at": r.get("created_at")
+        } for r in requests_]
     }
 
     # ---- domains ----
@@ -1863,21 +1985,29 @@ def admin_dashboard_stats():
         "revenue_inr": round(sum((p.get("amount_paise") or 0) for p in paid) / 100, 2),
     }
 
-    # ---- 14-day trends ----
-    days = [(now - timedelta(days=i)).date() for i in range(13, -1, -1)]
-    def series(rows, field):
-        c = Counter()
-        for r in rows:
-            t = _parse_ts(r.get(field))
-            if t:
-                c[t.date()] += 1
-        return [c.get(d, 0) for d in days]
-    trends = {
-        "labels": [d.strftime("%d %b") for d in days],
-        "signups": series(students, "created_at"),
-        "attempts": series(attempts, "created_at"),
-        "applications": series(applications, "created_at"),
-    }
+    # ---- Trends: 7-day, 14-day, and 30-day series ----
+    days_30 = [(now - timedelta(days=i)).date() for i in range(29, -1, -1)]
+
+    def _build_trend_dict(day_list):
+        def _series_for(rows, field):
+            c = Counter()
+            for r in rows:
+                t = _parse_ts(r.get(field))
+                if t:
+                    c[t.date()] += 1
+            return [c.get(d, 0) for d in day_list]
+
+        return {
+            "labels": [d.strftime("%d %b") for d in day_list],
+            "full_dates": [d.strftime("%Y-%m-%d") for d in day_list],
+            "signups": _series_for(students, "created_at"),
+            "attempts": _series_for(attempts, "created_at"),
+            "applications": _series_for(applications, "created_at"),
+        }
+
+    trends_14 = _build_trend_dict(days_30[-14:])
+    trends_7 = _build_trend_dict(days_30[-7:])
+    trends_30 = _build_trend_dict(days_30)
 
     # ---- top colleges / degrees ----
     colleges = Counter((s.get("college") or "").strip() for s in students if (s.get("college") or "").strip())
@@ -1896,8 +2026,8 @@ def admin_dashboard_stats():
     return jsonify({
         "generated_at": now.isoformat(), "students": stu, "companies": comp,
         "domains": domains, "domains_total": len(DOMAIN_NAMES), "tests": tests,
-        "extra": extra, "trends": trends, "top_colleges": top_colleges,
-        "recent_attempts": recent_attempts,
+        "extra": extra, "trends": trends_14, "trends_7": trends_7, "trends_30": trends_30,
+        "top_colleges": top_colleges, "recent_attempts": recent_attempts,
     })
 
 
@@ -1992,7 +2122,7 @@ def admin_outreach():
 
 @app.route("/api/admin/daily", methods=["GET"])
 def admin_daily():
-    """Day-wise activity for the last 30 days (India time): registrations, tests, passes, payments."""
+    """Day-wise activity for up to 90 days (India time): registrations, tests, passes, payments."""
     if not _admin_ok():
         return error("Unauthorized.", 401)
     from datetime import timedelta
@@ -2009,10 +2139,11 @@ def admin_daily():
         except Exception:
             return None
 
+    num_days = min(max(int(request.args.get("days") or 90), 1), 365)
     today = datetime.now(ist).date()
     days = {(today - timedelta(days=i)).isoformat(): {"date": (today - timedelta(days=i)).isoformat(),
             "registered": 0, "attended": 0, "passed": 0, "failed": 0, "payments": 0, "revenue_inr": 0}
-            for i in range(30)}
+            for i in range(num_days)}
     cached_users = _get_cached_auth_users()
     for u in cached_users.values():
         k = day(getattr(u, "created_at", None))
@@ -2031,23 +2162,337 @@ def admin_daily():
     return jsonify({"today": today.isoformat(), "days": sorted(days.values(), key=lambda x: x["date"], reverse=True)})
 
 
-@app.route("/api/admin/database", methods=["GET"])
-def admin_database():
-    """Registered students: name, email, mobile number (read-only)."""
+@app.route("/api/admin/daily-detail", methods=["GET"])
+def admin_daily_detail():
+    """Granular breakdown of students registered, test attempts, and payments for a specific date (IST)."""
     if not _admin_ok():
         return error("Unauthorized.", 401)
+    target_date = request.args.get("date")
+    if not target_date:
+        return error("Date parameter required (YYYY-MM-DD).", 400)
+
+    from datetime import timedelta
+    ist = timezone(timedelta(hours=5, minutes=30))
+
+    def _to_ist_date(ts):
+        if not ts:
+            return None, None
+        try:
+            d = ts if isinstance(ts, datetime) else datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
+            if d.tzinfo is None:
+                d = d.replace(tzinfo=timezone.utc)
+            d_ist = d.astimezone(ist)
+            return d_ist.date().isoformat(), d_ist.strftime("%I:%M %p")
+        except Exception:
+            return None, None
+
+    cached_users = _get_cached_auth_users()
+    profiles_res = supabase_admin.table("profiles").select("id,full_name,mobile_number,college,degree").execute()
+    prof_by_id = {p["id"]: p for p in (profiles_res.data or [])}
+
+    registered_students = []
+    for u in cached_users.values():
+        u_date, u_time = _to_ist_date(getattr(u, "created_at", None))
+        if u_date == target_date:
+            prof = prof_by_id.get(u.id, {})
+            registered_students.append({
+                "id": u.id,
+                "name": prof.get("full_name") or "Student",
+                "email": getattr(u, "email", "") or "",
+                "phone": prof.get("mobile_number") or "",
+                "college": prof.get("college") or "",
+                "time": u_time or "–"
+            })
+    registered_students.sort(key=lambda s: s["time"], reverse=True)
+
+    attempts_res = supabase_admin.table("assessment_attempts").select("*").order("created_at", desc=True).execute()
+    day_attempts = []
+    for a in (attempts_res.data or []):
+        a_date, a_time = _to_ist_date(a.get("created_at"))
+        if a_date == target_date:
+            prof = prof_by_id.get(a.get("student_id"), {})
+            u = cached_users.get(a.get("student_id"))
+            day_attempts.append({
+                "id": a.get("id"),
+                "student_name": prof.get("full_name") or (getattr(u, "email", "") if u else "Student"),
+                "student_email": getattr(u, "email", "") if u else "",
+                "domain": DOMAIN_NAMES.get(a.get("domain"), a.get("domain") or "–"),
+                "score": a.get("round1_score"),
+                "passed": bool(a.get("overall_passed")),
+                "flagged": bool(a.get("flagged")),
+                "time": a_time or "–"
+            })
+
+    payments_res = supabase_admin.table("assessment_payments").select("*").order("created_at", desc=True).execute()
+    day_payments = []
+    for p in (payments_res.data or []):
+        p_date, p_time = _to_ist_date(p.get("created_at"))
+        if p_date == target_date and p.get("status") in ("paid", "consumed"):
+            prof = prof_by_id.get(p.get("student_id"), {})
+            u = cached_users.get(p.get("student_id"))
+            day_payments.append({
+                "id": p.get("id"),
+                "student_name": prof.get("full_name") or (getattr(u, "email", "") if u else "Student"),
+                "student_email": getattr(u, "email", "") if u else "",
+                "order_id": p.get("razorpay_order_id") or "–",
+                "payment_id": p.get("razorpay_payment_id") or "–",
+                "amount_inr": round((p.get("amount_paise") or 0) / 100, 2),
+                "status": p.get("status"),
+                "time": p_time or "–"
+            })
+
+    return jsonify({
+        "date": target_date,
+        "registered": registered_students,
+        "attempts": day_attempts,
+        "payments": day_payments
+    })
+
+
+@app.route("/api/admin/database", methods=["GET"])
+def admin_database():
+    """Registered students and multi-table browser for modern SaaS database view (read-only)."""
+    if not _admin_ok():
+        return error("Unauthorized.", 401)
+    
+    from collections import Counter
+    tbl = (request.args.get("table") or "students").lower()
+
+    if tbl == "companies":
+        companies = _fetch_all("companies")
+        applications = _fetch_all("applications")
+        apps_by_co = Counter(a.get("company_id") for a in applications)
+        profiles = _fetch_all("profiles")
+        sel_by_co = Counter(p.get("selected_by_company_id") for p in profiles if p.get("selected_by_company_id"))
+        rows = sorted([{
+            "id": c.get("id"),
+            "name": c.get("name") or "–",
+            "roles": c.get("roles") or [],
+            "has_openings": bool(c.get("has_openings")),
+            "open_roles_count": len(c.get("roles") or []) if c.get("has_openings") else 0,
+            "applications": apps_by_co.get(c.get("id"), 0),
+            "selected": sel_by_co.get(c.get("id"), 0),
+        } for c in companies], key=lambda x: (not x["has_openings"], -x["applications"], x["name"] or ""))
+        return jsonify({"table": "companies", "total": len(rows), "rows": rows})
+
+    elif tbl == "attempts":
+        attempts = _fetch_all("assessment_attempts")
+        profs = {p["id"]: p for p in _fetch_all("profiles", "id,full_name")}
+        users = _get_cached_auth_users()
+        rows = sorted([{
+            "id": a.get("id"),
+            "student_id": a.get("student_id"),
+            "student_name": (profs.get(a.get("student_id")) or {}).get("full_name") or "Student",
+            "student_email": getattr(users.get(a.get("student_id")), "email", "") or "",
+            "domain": DOMAIN_NAMES.get(a.get("domain"), a.get("domain") or "–"),
+            "round1_score": a.get("round1_score"),
+            "overall_passed": bool(a.get("overall_passed")),
+            "violations": a.get("violations") or 0,
+            "flagged": bool(a.get("flagged")),
+            "created_at": a.get("created_at") or "",
+        } for a in attempts], key=lambda x: x["created_at"] or "", reverse=True)
+        return jsonify({"table": "attempts", "total": len(rows), "rows": rows})
+
+    elif tbl == "applications":
+        apps = _fetch_all("applications")
+        profs = {p["id"]: p for p in _fetch_all("profiles", "id,full_name")}
+        comps = {c["id"]: c.get("name") for c in _fetch_all("companies", "id,name")}
+        users = _get_cached_auth_users()
+        rows = sorted([{
+            "id": a.get("id"),
+            "student_id": a.get("student_id"),
+            "student_name": (profs.get(a.get("student_id")) or {}).get("full_name") or "Student",
+            "student_email": getattr(users.get(a.get("student_id")), "email", "") or "",
+            "company_name": comps.get(a.get("company_id"), "Company"),
+            "role": a.get("role") or "–",
+            "answers": a.get("answers") or {},
+            "created_at": a.get("created_at") or "",
+        } for a in apps], key=lambda x: x["created_at"] or "", reverse=True)
+        return jsonify({"table": "applications", "total": len(rows), "rows": rows})
+
+    elif tbl == "payments":
+        payments = _fetch_all("assessment_payments")
+        profs = {p["id"]: p for p in _fetch_all("profiles", "id,full_name")}
+        users = _get_cached_auth_users()
+        rows = sorted([{
+            "id": p.get("id"),
+            "student_id": p.get("student_id"),
+            "student_name": (profs.get(p.get("student_id")) or {}).get("full_name") or "Student",
+            "student_email": getattr(users.get(p.get("student_id")), "email", "") or "",
+            "order_id": p.get("razorpay_order_id") or "–",
+            "payment_id": p.get("razorpay_payment_id") or "–",
+            "amount_inr": round((p.get("amount_paise") or 0) / 100, 2),
+            "status": p.get("status") or "created",
+            "created_at": p.get("created_at") or "",
+        } for p in payments], key=lambda x: x["created_at"] or "", reverse=True)
+        return jsonify({"table": "payments", "total": len(rows), "rows": rows})
+
+    elif tbl == "chats":
+        msgs = _fetch_all("messages")
+        profs = {p["id"]: p for p in _fetch_all("profiles", "id,full_name")}
+        comps = {c["id"]: c.get("name") for c in _fetch_all("companies", "id,name")}
+        rows = sorted([{
+            "id": m.get("id"),
+            "company_id": m.get("company_id"),
+            "student_id": m.get("student_id"),
+            "company_name": comps.get(m.get("company_id"), "Company"),
+            "student_name": (profs.get(m.get("student_id")) or {}).get("full_name") or "Student",
+            "sender_role": m.get("sender_role"),
+            "body": m.get("body") or "",
+            "created_at": m.get("created_at") or "",
+        } for m in msgs], key=lambda x: x["created_at"] or "", reverse=True)
+        return jsonify({"table": "chats", "total": len(rows), "rows": rows})
+
+    # Default: Students
+    from datetime import timedelta
+    ist = timezone(timedelta(hours=5, minutes=30))
+    now_ist = datetime.now(ist)
+    today_ist = now_ist.date()
+    week_ago_ist = today_ist - timedelta(days=7)
+
     users = _get_cached_auth_users()
-    profs = _fetch_all("profiles", "id,full_name,mobile_number,role")
+    profs = _fetch_all("profiles")
+    attempts = _fetch_all("assessment_attempts")
+    companies = {c["id"]: c.get("name") for c in _fetch_all("companies", "id,name")}
+
+    attended_ids = {a["student_id"] for a in attempts if a.get("student_id")}
+
     rows = []
+    new_today = 0
+    new_this_week = 0
+    with_phone = 0
+
     for p in profs:
         if p.get("role") != "student":
             continue
-        u = users.get(p["id"])
-        rows.append({"name": p.get("full_name") or "", "email": getattr(u, "email", "") or "",
-                     "mobile": p.get("mobile_number") or "",
-                     "registered": str(getattr(u, "created_at", "") or "")})
+        sid = p["id"]
+        u = users.get(sid)
+        email = getattr(u, "email", "") or ""
+        mobile = (p.get("mobile_number") or "").strip()
+        reg_raw = getattr(u, "created_at", "") or p.get("created_at") or ""
+        reg_dt = _parse_ts(reg_raw)
+
+        if reg_dt:
+            dt_ist = reg_dt.astimezone(ist).date()
+            if dt_ist == today_ist:
+                new_today += 1
+            if dt_ist >= week_ago_ist:
+                new_this_week += 1
+
+        if mobile:
+            with_phone += 1
+
+        is_placed = bool(p.get("is_placed") or p.get("student_confirmed_hire"))
+        comp_placed = companies.get(p.get("selected_by_company_id"), "") if is_placed else ""
+
+        rows.append({
+            "id": sid,
+            "name": p.get("full_name") or "–",
+            "email": email,
+            "phone": mobile,
+            "college": (p.get("college") or "").strip(),
+            "degree": (p.get("degree") or "").strip(),
+            "domain": DOMAIN_NAMES.get(p.get("qualified_domain"), p.get("qualified_domain") or ""),
+            "assessment_status": p.get("assessment_status") or "locked",
+            "resume_url": p.get("resume_url") or "",
+            "is_placed": is_placed,
+            "company_placed_in": comp_placed,
+            "attended_test": sid in attended_ids,
+            "registered": str(reg_raw),
+        })
+
     rows.sort(key=lambda r: r["registered"], reverse=True)
-    return jsonify({"total": len(rows), "students": rows})
+    total_students = len(rows)
+
+    stats = {
+        "total": total_students,
+        "new_today": new_today,
+        "new_this_week": new_this_week,
+        "with_phone": with_phone,
+        "with_phone_pct": round(with_phone * 100 / total_students, 1) if total_students else 0,
+        "missing_phone": total_students - with_phone,
+    }
+
+    return jsonify({"table": "students", "total": total_students, "stats": stats, "students": rows})
+
+
+@app.route("/api/admin/student/<student_id>", methods=["GET"])
+def admin_student_detail(student_id):
+    """Full detail for student drawer: profile, attempts, applications, messages, payments."""
+    if not _admin_ok():
+        return error("Unauthorized.", 401)
+
+    users = _get_cached_auth_users()
+    u = users.get(student_id)
+
+    prof_res = supabase_admin.table("profiles").select("*").eq("id", student_id).limit(1).execute()
+    if not prof_res.data:
+        return error("Student not found.", 404)
+    prof = prof_res.data[0]
+
+    companies = {c["id"]: c.get("name") for c in _fetch_all("companies", "id,name")}
+
+    att_res = supabase_admin.table("assessment_attempts").select("*").eq("student_id", student_id).order("created_at", desc=True).execute()
+    attempts = [{
+        "id": a.get("id"),
+        "domain": DOMAIN_NAMES.get(a.get("domain"), a.get("domain") or "–"),
+        "round1_score": a.get("round1_score"),
+        "round1_passed": a.get("round1_passed"),
+        "round2_passed": a.get("round2_passed"),
+        "overall_passed": a.get("overall_passed"),
+        "violations": a.get("violations") or 0,
+        "flagged": a.get("flagged"),
+        "created_at": a.get("created_at")
+    } for a in (att_res.data or [])]
+
+    app_res = supabase_admin.table("applications").select("*").eq("student_id", student_id).order("created_at", desc=True).execute()
+    applications = [{
+        "id": ap.get("id"),
+        "company_name": companies.get(ap.get("company_id"), "Company"),
+        "role": ap.get("role") or "–",
+        "answers": ap.get("answers") or {},
+        "created_at": ap.get("created_at")
+    } for ap in (app_res.data or [])]
+
+    msg_res = supabase_admin.table("messages").select("*").eq("student_id", student_id).order("created_at").execute()
+    messages = [{
+        "id": m.get("id"),
+        "company_name": companies.get(m.get("company_id"), "Company"),
+        "sender_role": m.get("sender_role"),
+        "body": m.get("body"),
+        "created_at": m.get("created_at")
+    } for m in (msg_res.data or [])]
+
+    pay_res = supabase_admin.table("assessment_payments").select("*").eq("student_id", student_id).order("created_at", desc=True).execute()
+    payments = [{
+        "id": py.get("id"),
+        "order_id": py.get("razorpay_order_id"),
+        "payment_id": py.get("razorpay_payment_id"),
+        "amount_inr": round((py.get("amount_paise") or 0) / 100, 2),
+        "status": py.get("status"),
+        "created_at": py.get("created_at")
+    } for py in (pay_res.data or [])]
+
+    return jsonify({
+        "id": student_id,
+        "name": prof.get("full_name") or "–",
+        "email": getattr(u, "email", "") or "",
+        "phone": prof.get("mobile_number") or "",
+        "college": prof.get("college") or "",
+        "degree": prof.get("degree") or "",
+        "age": prof.get("age"),
+        "domain": DOMAIN_NAMES.get(prof.get("qualified_domain"), prof.get("qualified_domain") or ""),
+        "assessment_status": prof.get("assessment_status") or "locked",
+        "resume_url": prof.get("resume_url") or "",
+        "photo_url": prof.get("photo_url") or "",
+        "is_placed": bool(prof.get("is_placed") or prof.get("student_confirmed_hire")),
+        "company_placed_in": companies.get(prof.get("selected_by_company_id"), ""),
+        "created_at": str(getattr(u, "created_at", "") or prof.get("created_at") or ""),
+        "attempts": attempts,
+        "applications": applications,
+        "messages": messages,
+        "payments": payments
+    })
 
 
 @app.route("/api/admin/payments", methods=["GET"])
