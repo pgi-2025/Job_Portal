@@ -448,6 +448,69 @@
       background: #134e38;
     }
 
+    /* Mobile Navigation & Overlay */
+    .btn-mobile-menu {
+      display: none;
+      background: #ffffff;
+      border: 1px solid #d4dfd8;
+      border-radius: 9px;
+      width: 36px;
+      height: 36px;
+      align-items: center;
+      justify-content: center;
+      color: #093323;
+      cursor: pointer;
+      flex: none;
+      transition: .15s;
+    }
+
+    .btn-mobile-menu:hover {
+      background: #e9f0ec;
+    }
+
+    .btn-mobile-close {
+      display: none;
+      background: rgba(255, 255, 255, 0.12);
+      border: 0;
+      color: #ffffff;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      transition: .15s;
+      margin-left: 6px;
+    }
+
+    .btn-mobile-close:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .mobile-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(9, 35, 25, 0.6);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      z-index: 95;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .mobile-backdrop.active {
+      display: block;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     /* Content Area */
     .content-body {
       padding: 24px 28px 60px;
@@ -646,25 +709,134 @@
       }
     }
 
-    @media (max-width: 768px) {
-      .grid-5, .grid-4 {
-        grid-template-columns: 1fr;
+    @media (max-width: 900px) {
+      .btn-mobile-menu {
+        display: inline-flex;
       }
-      .topbar {
-        padding: 0 16px;
-      }
-      .content-body {
-        padding: 16px;
+      .btn-mobile-close {
+        display: inline-flex;
       }
       .sidebar {
         position: fixed;
         left: 0;
         top: 0;
         bottom: 0;
+        z-index: 100;
+        width: 270px !important;
         transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 4px 0 28px rgba(0, 0, 0, 0.3);
       }
       .sidebar.open-mobile {
         transform: translateX(0);
+      }
+      .sidebar.collapsed {
+        width: 270px !important;
+      }
+      .btn-collapse {
+        display: none !important;
+      }
+      .topbar {
+        padding: 0 16px;
+        gap: 12px;
+      }
+      .topbar-search {
+        width: 190px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .grid-5, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+      .topbar {
+        height: auto;
+        min-height: 58px;
+        padding: 8px 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .content-body {
+        padding: 14px;
+      }
+      .pulse-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px 16px;
+      }
+      .pulse-right {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .two {
+        grid-template-columns: 1fr !important;
+      }
+      .trend-range-selector {
+        overflow-x: auto;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+      }
+      .daily-table-container,
+      .db-table-container,
+      .co-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .topbar-left {
+        gap: 8px;
+        flex: 1 1 auto;
+      }
+      .breadcrumb {
+        font-size: 12px;
+      }
+      .breadcrumb span:not(#bcCurrent) {
+        display: none;
+      }
+      .topbar-search {
+        display: none;
+      }
+      .topbar-right {
+        gap: 6px;
+      }
+      .live-status span:not(.dot-live) {
+        display: none;
+      }
+      .live-status {
+        padding: 4px;
+      }
+      .btn-topbar {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+      .btn-topbar-primary {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+      .db-summary-strip {
+        grid-template-columns: 1fr !important;
+      }
+      .co-kpi-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .daily-kpi-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .daily-exec-ribbon {
+        grid-template-columns: 1fr !important;
+      }
+      .drawer {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .modal-box {
+        width: 95% !important;
+        max-width: 95% !important;
+        padding: 18px 14px !important;
+        margin: 12px auto !important;
       }
     }
 
@@ -4036,6 +4208,9 @@
 
   <!-- Main Application Shell -->
   <div class="app-shell" id="appShell" style="display:none">
+    <!-- Mobile Backdrop Overlay -->
+    <div class="mobile-backdrop" id="mobileBackdrop" onclick="closeMobileSidebar()"></div>
+
     <!-- Left Dark Green Sidebar -->
     <aside class="sidebar" id="sidebar">
       <!-- Brand Header -->
@@ -4048,6 +4223,7 @@
           <span class="badge-admin">ADMIN</span>
         </div>
         <button class="btn-collapse" id="sidebarCollapse" onclick="toggleSidebar()" title="Toggle sidebar">«</button>
+        <button type="button" class="btn-mobile-close" id="btnMobileClose" onclick="closeMobileSidebar()" aria-label="Close menu">✕</button>
       </div>
 
       <!-- Sidebar Navigation Menu -->
@@ -4171,6 +4347,13 @@
       <!-- Sticky Topbar -->
       <header class="topbar">
         <div class="topbar-left">
+          <button type="button" class="btn-mobile-menu" id="btnMobileMenu" onclick="toggleMobileSidebar()" aria-label="Toggle navigation menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
           <div class="breadcrumb">
             <span>Dashboard</span>
             <span style="opacity:0.5">›</span>
@@ -5201,7 +5384,7 @@
                 </div>
               </div>
             </div>
-            <div style="position:relative;height:280px;width:100%">
+            <div style="position:relative;height:280px;width:100%" id="dailyChartBox">
               <canvas id="dailyChartCanvas"></canvas>
             </div>
           </div>
@@ -5675,6 +5858,7 @@
 
     function switchTab(tabKey) {
       if (!tabKey) return;
+      closeMobileSidebar();
       document.querySelectorAll('#sidebarNav button').forEach(btn => {
         btn.classList.toggle('on', btn.dataset.t === tabKey);
       });
@@ -5691,12 +5875,21 @@
       try {
         if (tabKey === 'db') renderDb();
         else if (tabKey === 'co') renderCo();
-        else if (tabKey === 'dy') renderDay();
+        else if (tabKey === 'dy') {
+          // Allow DOM reflow for display:block before Chart.js measures canvas size
+          requestAnimationFrame(() => {
+            setTimeout(renderDaily, 40);
+          });
+        }
         else if (tabKey === 'pay') renderPay();
         else if (tabKey === 'ou') renderOu();
         else if (tabKey === 'ch') renderChats();
         else if (tabKey === 'pm') renderPm();
-        else if (tabKey === 'ov') renderTrendChart();
+        else if (tabKey === 'ov') {
+          requestAnimationFrame(() => {
+            renderTrendChart();
+          });
+        }
       } catch (err) {
         console.error('Error rendering tab ' + tabKey + ':', err);
       }
@@ -5709,6 +5902,29 @@
       const isCol = sb.classList.contains('collapsed');
       const btn = $('sidebarCollapse');
       if (btn) btn.textContent = isCol ? '»' : '«';
+    }
+
+    // Mobile sidebar toggle handlers
+    function toggleMobileSidebar() {
+      const sb = $('sidebar');
+      const bd = $('mobileBackdrop');
+      if (!sb) return;
+      const isOpen = sb.classList.contains('open-mobile');
+      if (isOpen) {
+        closeMobileSidebar();
+      } else {
+        sb.classList.add('open-mobile');
+        if (bd) bd.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function closeMobileSidebar() {
+      const sb = $('sidebar');
+      const bd = $('mobileBackdrop');
+      if (sb) sb.classList.remove('open-mobile');
+      if (bd) bd.classList.remove('active');
+      document.body.style.overflow = '';
     }
 
     // Screening sync action
@@ -5830,7 +6046,7 @@
         const activeTabKey = activeNav ? activeNav.dataset.t : 'ov';
         if (activeTabKey === 'db') renderDb();
         else if (activeTabKey === 'co') renderCo();
-        else if (activeTabKey === 'dy') renderDay();
+        else if (activeTabKey === 'dy') renderDaily();
         else if (activeTabKey === 'pay') renderPay();
         else if (activeTabKey === 'ou') renderOu();
 
@@ -5950,7 +6166,7 @@
       try { renderChats(); } catch (err) { console.error('renderChats error:', err); }
       try { renderPay(); } catch (err) { console.error('renderPay error:', err); }
       try { renderDb(); } catch (err) { console.error('renderDb error:', err); }
-      try { renderDay(); } catch (err) { console.error('renderDay error:', err); }
+      try { renderDaily(); } catch (err) { console.error('renderDaily error:', err); }
     }
 
     /* ==========================================================================
@@ -6298,14 +6514,27 @@
 
     // 3. Trend Chart (Chart.js Modern SaaS Overhaul)
     function renderDailyChart() {
-      const canvas = $('dailyChartCanvas');
+      const dyPane = $('p-dy');
+      // If Daily Updates tab is currently hidden, skip drawing to avoid 0x0 canvas;
+      // switchTab('dy') will automatically call renderDailyChart() when the tab becomes visible.
+      if (dyPane && !dyPane.classList.contains('on')) {
+        return;
+      }
+
+      let canvas = $('dailyChartCanvas');
+      const box = $('dailyChartBox') || (canvas && canvas.parentElement);
+      if (!canvas && box) {
+        box.innerHTML = '<canvas id="dailyChartCanvas"></canvas>';
+        canvas = $('dailyChartCanvas');
+      }
       if (!canvas) return;
 
       const filtered = getFilteredDailyDays();
       const chronDays = [...filtered].reverse();
 
       if (typeof Chart === 'undefined') {
-        canvas.parentElement.innerHTML = '<div style="padding:40px;text-align:center;color:#64746b">Loading Chart.js…</div>';
+        if (box) box.innerHTML = '<div style="padding:40px;text-align:center;color:#64746b">Loading Chart.js…</div>';
+        setTimeout(renderDailyChart, 250);
         return;
       }
 
@@ -7085,6 +7314,15 @@
       else if (dbState.filterChip === '7d') $('chipWeek').classList.add('active');
       else if (dbState.filterChip === 'with_phone') $('chipPhone').classList.add('active');
 
+      // Clear any conflicting date preset or custom range when a time-based chip is clicked
+      if (dbState.filterChip === 'today' || dbState.filterChip === '7d') {
+        dbState.datePreset = 'all';
+        if ($('dbDatePreset')) $('dbDatePreset').value = 'all';
+        if ($('dbCustomDates')) $('dbCustomDates').style.display = 'none';
+        if ($('dbDateFrom')) $('dbDateFrom').value = '';
+        if ($('dbDateTo')) $('dbDateTo').value = '';
+      }
+
       dbState.page = 1;
       renderDb();
     }
@@ -7114,6 +7352,11 @@
     // Date Preset Handler
     function onDbDatePresetChange(preset) {
       dbState.datePreset = preset;
+      if (preset !== 'all') {
+        dbState.filterChip = 'all';
+        document.querySelectorAll('.db-stat-chip').forEach(el => el.classList.remove('active'));
+        if ($('chipTotal')) $('chipTotal').classList.add('active');
+      }
       const customDates = $('dbCustomDates');
       if (preset === 'custom') {
         if (customDates) customDates.style.display = 'inline-flex';
@@ -9554,6 +9797,16 @@
     $('dlModal').addEventListener('click', e => {
       if (e.target === $('dlModal')) {
         closeDownloadModal();
+      }
+    });
+
+    // Responsive Resize & Orientation Handlers
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 900) {
+        closeMobileSidebar();
+      }
+      if (dailyState.chartInstance && $('p-dy') && $('p-dy').classList.contains('on')) {
+        dailyState.chartInstance.resize();
       }
     });
 
