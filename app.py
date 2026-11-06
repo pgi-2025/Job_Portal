@@ -1823,101 +1823,51 @@ def admin_dashboard_stats():
     hiring = [c for c in companies if c.get("has_openings")]
     apps_by_co = Counter(a.get("company_id") for a in applications)
     sel_by_co = Counter(s.get("company_id") for s in selections)
-    # Mappings & Enriched Company Profiles for Modern SaaS Corporate Directory
-    KNOWN_COMPANIES_META = {
-        "tata consultancy services": {"cin": "L22210MH1995PLC084781", "ind": "IT & Consulting", "loc": "Mumbai, MH", "hr": "Rajesh Varma", "email": "r.varma@tcs.campus.in", "phone": "+91 98201 44520"},
-        "tata strive": {"cin": "U85300MH2014NPL258712", "ind": "Skill Dev & Training", "loc": "Mumbai, MH", "hr": "Anita Kulkarni", "email": "anita.k@tatastrive.com", "phone": "+91 22 6665 8282"},
-        "westside - trent limited -  tata enterprise": {"cin": "L24240MH1952PLC008951", "ind": "Retail & Fashion", "loc": "Mumbai, MH", "hr": "Radhika Nair", "email": "careers@trent-tata.com", "phone": "+91 22 6700 9000"},
-        "zoho corporation": {"cin": "U72900TN2010PTC080126", "ind": "Enterprise SaaS", "loc": "Chennai, TN", "hr": "Karthik Raman", "email": "karthik.r@zohocorp.com", "phone": "+91 94440 21990"},
-        "microsoft india": {"cin": "U72200TG1998PTC029898", "ind": "Big Tech / Cloud", "loc": "Bengaluru, KA", "hr": "Ananya Sengupta", "email": "ananya.sen@microsoft.com", "phone": "+91 80 6787 9000"},
-        "infosys technologies": {"cin": "L85110KA1981PLC013115", "ind": "IT & Services", "loc": "Bengaluru, KA", "hr": "Deepak K.", "email": "deepak.recruits@infosys.com", "phone": "+91 80 3852 6261"},
-        "infosys bpm": {"cin": "U72200KA2002PLC030310", "ind": "Business Process Mgmt", "loc": "Bengaluru, KA", "hr": "Priyanka Shenoy", "email": "priyanka.s@infosysbpm.com", "phone": "+91 80 2852 0261"},
-        "larsen & toubro": {"cin": "L99999MH1946PLC004768", "ind": "Core Engineering / Infra", "loc": "Vadodara, GJ", "hr": "Meenakshi Sundaram", "email": "m.sundaram@larsentoubro.com", "phone": "+91 22 6752 5656"},
-        "rk elite constructions": {"cin": "U45200TN2018PTC121045", "ind": "Civil & Infrastructure", "loc": "Chennai, TN", "hr": "K. Rajesh", "email": "careers@rkelite.in", "phone": "+91 44 2433 1122"},
-        "ather energy": {"cin": "U34100KA2013PTC071536", "ind": "Automotive / CleanTech", "loc": "Bengaluru, KA", "hr": "Tanvi Deshmukh", "email": "tanvi.d@atherenergy.com", "phone": "+91 99001 32411"},
-        "kun commercial vehicles private limited": {"cin": "U50101TN2008PTC068912", "ind": "Automotive & Heavy Fleet", "loc": "Chennai, TN", "hr": "R. Chandrasekar", "email": "hr@kuntrucks.com", "phone": "+91 44 6744 8888"},
-        "tamilnad mercantile bank ltd.": {"cin": "L65110TN1921PLC001908", "ind": "Banking & Finance", "loc": "Thoothukudi, TN", "hr": "S. Murugan", "email": "hr@tamilnadmercantile.com", "phone": "+91 461 235 5555"},
-        "plant green inertia pvt ltd": {"cin": "U74999TN2022PTC152140", "ind": "CleanTech / Renewable", "loc": "Chennai, TN", "hr": "Venkatesh Rao", "email": "hr@plantgreeninertia.com", "phone": "+91 44 2815 6789"},
-        "jio": {"cin": "U72900MH2007PLC234123", "ind": "Telecom & 5G Tech", "loc": "Mumbai, MH", "hr": "Pooja Sharma", "email": "recruitment@jio.com", "phone": "+91 22 4477 0000"},
-        "mrf ltd": {"cin": "L25111TN1960PLC004306", "ind": "Automotive & Polymers", "loc": "Chennai, TN", "hr": "K. Ramasamy", "email": "careers@mrfmail.com", "phone": "+91 44 2829 2777"},
-        "asian paints": {"cin": "L24220MH1945PLC004598", "ind": "Manufacturing & Materials", "loc": "Mumbai, MH", "hr": "Balasubramanian S.", "email": "balan@asianpaints.com", "phone": "+91 22 6218 1000"},
-        "kalyan jewellers india limited": {"cin": "L36911KL2009PLC024641", "ind": "Retail & Luxury", "loc": "Thrissur, KL", "hr": "Anand R.", "email": "hr@kalyanjewellers.net", "phone": "+91 487 243 7333"},
-        "muthoot finance": {"cin": "L65910KL1997PLC011300", "ind": "Banking & NBFC", "loc": "Kochi, KL", "hr": "Mathew Thomas", "email": "careers@muthootfinance.com", "phone": "+91 484 239 6478"},
-        "quesscorp": {"cin": "L74140KA2007PLC043909", "ind": "Staffing & Workforce Solutions", "loc": "Bengaluru, KA", "hr": "Naveen Kumar", "email": "campus@quesscorp.com", "phone": "+91 80 6105 6000"},
-        "quess corp ltd chennai": {"cin": "L74140KA2007PLC043909", "ind": "Staffing & HR Solutions", "loc": "Chennai, TN", "hr": "R. Hemalatha", "email": "chennai.hiring@quesscorp.com", "phone": "+91 44 4344 5500"},
-        "novok": {"cin": "U72900TN2018PTC123891", "ind": "Enterprise SaaS", "loc": "Chennai, TN", "hr": "Dinesh Kumar", "email": "hr@novok.io", "phone": "+91 44 4950 1200"},
-        "cynosure corporate solutions": {"cin": "U74900TN2012PTC085612", "ind": "Consulting & Talent Acquisition", "loc": "Chennai, TN", "hr": "S. Parthasarathy", "email": "jobpostings@cynosurejobs.com", "phone": "+91 98406 75339"},
-        "url-factory": {"cin": "U72200TZ2016PTC027814", "ind": "Digital Media & FullStack", "loc": "Coimbatore, TN", "hr": "Suresh V.", "email": "contact@urlfactory.in", "phone": "+91 422 439 1234"},
-        "boston business solutions": {"cin": "U74140TN2014PTC096541", "ind": "Management Consulting", "loc": "Chennai, TN", "hr": "Ganesh Natarajan", "email": "hr@bostonbusiness.com", "phone": "+91 44 2499 5500"},
-        "heliostrom": {"cin": "U40106TN2019PTC130452", "ind": "CleanTech / Solar Energy", "loc": "Chennai, TN", "hr": "M. Elango", "email": "hr@heliostrom.in", "phone": "+91 44 3500 8900"},
-        "congruent solutions": {"cin": "U72200TN2000PLC043981", "ind": "FinTech & SaaS", "loc": "Chennai, TN", "hr": "B. Sundar", "email": "talent@congruentsolutions.com", "phone": "+91 44 4223 9000"},
-        "acme hvac pvt ltd": {"cin": "U29190TN2015PTC101234", "ind": "Industrial & HVAC", "loc": "Chennai, TN", "hr": "C. Pandian", "email": "careers@acmehvac.com", "phone": "+91 44 2650 3344"},
-        "andromeda sales and distribution pvt ltd": {"cin": "U67190MH2000PTC128345", "ind": "Banking & Lending Solutions", "loc": "Mumbai, MH", "hr": "Amit Saxena", "email": "hr@andromedaloans.com", "phone": "+91 22 6100 8000"},
-        "abrains technologies": {"cin": "U72900TN2017PTC118932", "ind": "IT & Embedded Systems", "loc": "Coimbatore, TN", "hr": "P. Vijayakumar", "email": "hr@abrainstech.com", "phone": "+91 422 256 7890"},
-        "js fincare": {"cin": "U65999TN2019PTC129841", "ind": "Financial Services", "loc": "Chennai, TN", "hr": "K. Jaishankar", "email": "hr@jsfincare.com", "phone": "+91 44 2834 5678"},
-        "kaldan softech pvt ltd": {"cin": "U72200TN2016PTC104521", "ind": "Enterprise Software", "loc": "Chennai, TN", "hr": "Syed Ibrahim", "email": "careers@kaldansoftech.com", "phone": "+91 44 4211 7890"},
-        "maatrom hr solutions private limited": {"cin": "U74900TN2013PTC090812", "ind": "Staffing & Executive Search", "loc": "Chennai, TN", "hr": "Preetha Mohan", "email": "info@maatrom.com", "phone": "+91 44 4350 2200"},
-        "maatrom hr solution": {"cin": "U74900TN2013PTC090812", "ind": "Staffing & Executive Search", "loc": "Chennai, TN", "hr": "Preetha Mohan", "email": "info@maatrom.com", "phone": "+91 44 4350 2200"},
-    }
+    # Real Mappings from company_login, profiles, and company_access_requests
+    company_logins = _fetch_all("company_login")
+    login_by_company = {}
+    for cl in company_logins:
+        cid = cl.get("company_id")
+        if cid and (cid not in login_by_company or cl.get("is_active")):
+            login_by_company[cid] = cl
 
-    req_company_names = {str(r.get("company_name") or "").strip().lower() for r in requests_}
-    import re
+    company_profiles = {p["id"]: p for p in profiles if p.get("role") == "company"}
+    req_by_name = {str(r.get("company_name") or "").strip().lower(): r for r in requests_}
 
-    def _enrich_comp(c):
+    def _build_real_comp(c):
         raw_name = str(c.get("name") or "").strip()
-        name_key = raw_name.lower()
-        meta = KNOWN_COMPANIES_META.get(name_key, {})
+        cid = c.get("id")
+        cl = login_by_company.get(cid)
+        cprof = company_profiles.get(cl["profile_id"]) if cl and cl.get("profile_id") else None
+        req = req_by_name.get(raw_name.lower())
 
-        # Inferred / fallback values if not explicitly in table
-        ind = meta.get("ind")
-        if not ind:
-            if any(w in name_key for w in ("tech", "info", "soft", "system", "digital", "data", "solution")):
-                ind = "IT & SaaS"
-            elif any(w in name_key for w in ("construct", "infra", "engineer", "build", "industr", "hvac")):
-                ind = "Core Engineering / Infra"
-            elif any(w in name_key for w in ("bank", "fincare", "finance", "lending", "credit")):
-                ind = "Banking & Finance"
-            elif any(w in name_key for w in ("vehicle", "auto", "motor", "ev", "truck")):
-                ind = "Automotive / CleanTech"
-            elif any(w in name_key for w in ("recruit", "staff", "hr", "foundation", "academy", "strive")):
-                ind = "Staffing & HR Solutions"
-            else:
-                ind = "Consulting & Services"
+        roles_list = [r.strip() for r in (c.get("roles") or []) if r and r.strip()]
+        is_hiring = bool(c.get("has_openings"))
+        app_count = apps_by_co.get(cid, 0)
+        sel_count = sel_by_co.get(cid, 0)
 
-        loc = meta.get("loc")
-        if not loc:
-            loc = "Chennai, TN" if hash(raw_name) % 2 == 0 else "Bengaluru, KA"
-
-        cin = meta.get("cin")
-        if not cin:
-            code_num = abs(hash(raw_name)) % 90000 + 10000
-            year = 2012 + (abs(hash(raw_name)) % 10)
-            cin = f"U72900TN{year}PTC0{code_num}"
-
-        hr_name = meta.get("hr") or "Corporate HR Desk"
-        clean_slug = re.sub(r'[^a-zA-Z0-9]', '', raw_name)[:10].lower() or "campus"
-        hr_email = meta.get("email") or f"talent@{clean_slug}.com"
-        hr_phone = meta.get("phone") or f"+91 44 {abs(hash(raw_name)) % 9000 + 1000} {abs(hash(raw_name)) % 9000 + 1000}"
-
-        # Pending check (matches access request queue or specific flagged items)
-        is_pending = (name_key in req_company_names) or ("microsoft" in name_key)
-        status = "pending" if is_pending else "active"
+        login_email = cl.get("login_email") if cl else None
+        contact_phone = (cprof.get("mobile_number") if cprof else None) or (req.get("contact_number") if req else None)
+        contact_person = (cprof.get("full_name") if cprof else None)
+        location = req.get("location") if req else None
+        website = req.get("website") if req else None
 
         return {
-            "id": c.get("id"),
+            "id": cid,
             "name": raw_name,
-            "hiring": bool(c.get("has_openings")),
-            "roles": c.get("roles") or [],
-            "applications": apps_by_co.get(c.get("id"), 0),
-            "selected": sel_by_co.get(c.get("id"), 0),
-            "cin": cin,
-            "industry": ind,
-            "location": loc,
-            "hr_name": hr_name,
-            "hr_email": hr_email,
-            "hr_phone": hr_phone,
-            "status": status,
-            "is_new_req": is_pending,
+            "logo_url": c.get("logo_url"),
+            "hiring": is_hiring,
+            "roles": roles_list,
+            "roles_count": len(roles_list),
+            "applications": app_count,
+            "selected": sel_count,
+            "login_email": login_email,
+            "has_login": bool(cl),
+            "contact_phone": contact_phone,
+            "contact_person": contact_person,
+            "location": location,
+            "website": website,
+            "status": "active"
         }
 
     comp = {
@@ -1927,14 +1877,14 @@ def admin_dashboard_stats():
         "open_roles": sum(len(c.get("roles") or []) for c in hiring),
         "pending_requests": sum(1 for r in requests_ if (r.get("status") or "pending") == "pending"),
         "total_requests": len(requests_),
-        "list": sorted([_enrich_comp(c) for c in companies], key=lambda x: (not x["hiring"], not x["is_new_req"], -x["applications"], x["name"] or "")),
+        "list": sorted([_build_real_comp(c) for c in companies], key=lambda x: (not x["hiring"], -x["applications"], x["name"].lower() if x["name"] else "")),
         "requests": [{
             "id": r.get("id"),
-            "company_name": r.get("company_name"),
-            "email": r.get("email"),
-            "website": r.get("website"),
-            "contact_number": r.get("contact_number"),
-            "location": r.get("location"),
+            "company_name": (r.get("company_name") or "").strip(),
+            "email": r.get("email") or "–",
+            "website": r.get("website") or "–",
+            "contact_number": r.get("contact_number") or "–",
+            "location": r.get("location") or "–",
             "status": r.get("status") or "pending",
             "created_at": r.get("created_at")
         } for r in requests_]

@@ -322,3 +322,4 @@ print("Updated HTML markup for #p-dy.")
 
 with open("admin-dashboard.html", "w", encoding="utf-8") as f:
     f.write(content)
+
